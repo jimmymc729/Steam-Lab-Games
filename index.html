@@ -1,0 +1,1629 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STEAM Lab Games</title>
+  <meta name="description" content="STEAM Lab Games is an educational portal for HTML5 games, apps, and tools." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f4faff;
+      --ink: #12263a;
+      --muted: #4f677d;
+      --line: #d4e2ef;
+      --panel: #ffffff;
+      --primary: #0ea5a4;
+      --secondary: #2563eb;
+      --accent: #ff8a3d;
+      --science: #22c55e;
+      --engineering: #f97316;
+      --logic: #7c3aed;
+      --sim: #0ea5e9;
+      --break: #eab308;
+      --shadow: 0 16px 34px rgba(18, 38, 58, 0.1);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+      --max: 1160px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Nunito Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 6% 8%, rgba(14, 165, 164, 0.2), transparent 35%),
+        radial-gradient(circle at 95% 10%, rgba(37, 99, 235, 0.17), transparent 38%),
+        radial-gradient(circle at 70% 90%, rgba(255, 138, 61, 0.11), transparent 42%),
+        var(--bg);
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(18, 38, 58, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 38, 58, 0.025) 1px, transparent 1px);
+      background-size: 24px 24px;
+      z-index: -2;
+    }
+
+    .bg-motifs {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .motif {
+      position: absolute;
+      opacity: 0.16;
+      color: #6eb6e4;
+      filter: saturate(108%);
+    }
+
+    .motif svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .motif.gear-a {
+      width: 188px;
+      height: 188px;
+      left: -40px;
+      top: 120px;
+      animation: spinSlow 40s linear infinite;
+    }
+
+    .motif.gear-b {
+      width: 136px;
+      height: 136px;
+      left: 7%;
+      bottom: 96px;
+      color: #69cfb1;
+      opacity: 0.13;
+      animation: spinReverse 32s linear infinite;
+    }
+
+    .motif.atom {
+      width: 166px;
+      height: 166px;
+      right: 4.2%;
+      top: 164px;
+      color: #7384ed;
+      opacity: 0.14;
+      animation: floatY 10s ease-in-out infinite;
+    }
+
+    .motif.flask {
+      width: 132px;
+      height: 132px;
+      right: 8%;
+      bottom: 56px;
+      color: #f2a162;
+      opacity: 0.14;
+      animation: floatY 12s ease-in-out infinite 0.7s;
+    }
+
+    .motif.circuit {
+      width: 220px;
+      height: 110px;
+      right: -22px;
+      top: 56%;
+      color: #69c9c4;
+      opacity: 0.1;
+      animation: floatX 13s ease-in-out infinite;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 2rem));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      padding: 1rem 0 0.9rem;
+    }
+
+    .header-shell {
+      border: 1px solid #c5d9ec;
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(245, 250, 255, 0.9));
+      box-shadow: 0 12px 26px rgba(18, 38, 58, 0.08);
+      backdrop-filter: blur(6px);
+      padding: 0.95rem 1rem;
+      display: grid;
+      gap: 0.7rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header-shell::before {
+      content: "";
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(14, 165, 164, 0.1);
+      left: -60px;
+      top: -90px;
+      pointer-events: none;
+    }
+
+    .header-shell::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(37, 99, 235, 0.1);
+      right: -100px;
+      top: -110px;
+      pointer-events: none;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-mark {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid #87c9e9;
+      background: linear-gradient(160deg, #e8fbf9, #dff2ff);
+      display: grid;
+      place-items: center;
+      color: #165d88;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 14px rgba(22, 93, 136, 0.14);
+      transform: rotate(-5deg);
+    }
+
+    .brand-mark svg {
+      width: 26px;
+      height: 26px;
+      display: block;
+    }
+
+    .logo {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.65rem, 4.2vw, 2.95rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: #1a4c75;
+      text-align: center;
+      text-shadow: 0 6px 20px rgba(37, 99, 235, 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo .steam {
+      white-space: nowrap;
+    }
+
+    .logo .rest {
+      color: #215d90;
+      white-space: nowrap;
+    }
+
+    .logo .s { color: #22c55e; }
+    .logo .t { color: #0ea5e9; }
+    .logo .e { color: #f97316; }
+    .logo .a { color: #7c3aed; }
+    .logo .m { color: #ef4444; }
+
+    .tagline {
+      margin: 0;
+      text-align: center;
+      color: #45617c;
+      font-size: clamp(0.95rem, 1.8vw, 1.05rem);
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+    }
+
+    .steam-stripe {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .steam-tag {
+      border: 1px solid #c8d9ec;
+      border-radius: var(--radius-pill);
+      padding: 0.22rem 0.5rem;
+      font-size: 0.64rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      background: #fff;
+    }
+
+    .steam-tag.s { color: #137a56; border-color: #a6e5be; background: #ecfff3; }
+    .steam-tag.t { color: #176ea1; border-color: #b6e3fa; background: #ecf9ff; }
+    .steam-tag.e { color: #a75714; border-color: #ffca9e; background: #fff3ea; }
+    .steam-tag.a { color: #6c4dc3; border-color: #d8c9ff; background: #f6f1ff; }
+    .steam-tag.m { color: #8a6a00; border-color: #f9e28a; background: #fffbe9; }
+
+    .nav {
+      display: flex;
+      gap: 0.62rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .pill {
+      border: 1px solid #c4d6ea;
+      border-radius: var(--radius-pill);
+      padding: 0.38rem 1rem;
+      min-width: 108px;
+      text-align: center;
+      font-size: 0.93rem;
+      font-weight: 700;
+      color: #224464;
+      background: #fff;
+      transition: 140ms ease;
+    }
+
+    .pill:nth-child(1) { border-color: #77d9d4; }
+    .pill:nth-child(2) { border-color: #a9bff5; }
+    .pill:nth-child(3) { border-color: #d8c9ff; }
+
+    .pill:hover {
+      border-color: #98b8dc;
+      transform: translateY(-1px);
+    }
+
+    .pill.active {
+      border-color: #66cdc8;
+      color: #0b6668;
+      background: linear-gradient(160deg, #e6fbf9, #f0f8ff);
+      box-shadow: 0 8px 14px rgba(14, 165, 164, 0.16);
+    }
+
+    .lab-status {
+      margin: -0.1rem auto 0.1rem;
+      width: fit-content;
+      border: 1px solid #c8dff2;
+      border-radius: var(--radius-pill);
+      background: linear-gradient(140deg, #f0fbf8, #eef6ff);
+      color: #285475;
+      padding: 0.28rem 0.62rem;
+      font-size: 0.74rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.38rem;
+      letter-spacing: 0.01em;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.34);
+      animation: statusPing 2s ease-out infinite;
+      flex: 0 0 auto;
+    }
+
+    main {
+      padding: 0.85rem 0 2rem;
+      display: grid;
+      gap: 1.05rem;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+
+    .hero-main {
+      padding: 1rem;
+      display: grid;
+      gap: 0.7rem;
+      background:
+        radial-gradient(circle at 84% 20%, rgba(255, 255, 255, 0.45), transparent 42%),
+        radial-gradient(circle at 14% 80%, rgba(255, 200, 120, 0.16), transparent 34%),
+        linear-gradient(145deg, #0f4a74, #1d6f95 42%, #2f78d9);
+      color: #f3fbff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-main::after {
+      content: "";
+      position: absolute;
+      width: 240px;
+      height: 240px;
+      right: -90px;
+      bottom: -120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+    }
+
+    .hero-main::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.24) 0 2px, transparent 3px),
+        radial-gradient(circle at 28% 76%, rgba(255, 255, 255, 0.18) 0 2px, transparent 3px),
+        radial-gradient(circle at 70% 35%, rgba(255, 255, 255, 0.2) 0 2px, transparent 3px);
+      opacity: 0.55;
+    }
+
+    .hero-label {
+      width: fit-content;
+      margin: 0;
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      border-radius: var(--radius-pill);
+      padding: 0.2rem 0.5rem;
+      font-family: "Nunito Sans", sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: rgba(0, 0, 0, 0.18);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-main h2 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.45rem, 2.8vw, 2.25rem);
+      line-height: 1.08;
+      max-width: 20ch;
+    }
+
+    .hero-main p {
+      margin: 0;
+      color: rgba(243, 251, 255, 0.92);
+      max-width: 56ch;
+      line-height: 1.36;
+      font-size: 0.96rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      z-index: 1;
+    }
+
+    .hero-art {
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.12);
+      padding: 0.35rem;
+      width: min(100%, 460px);
+    }
+
+    .hero-art svg {
+      width: 100%;
+      height: 180px;
+      display: block;
+      border-radius: 10px;
+    }
+
+    .hero-side {
+      background: linear-gradient(180deg, #ffffff, #f4f9ff);
+      padding: 1rem;
+      border-left: 1px solid var(--line);
+      display: grid;
+      gap: 0.65rem;
+      align-content: start;
+    }
+
+    .side-item {
+      border: 1px solid #d1e0ee;
+      border-radius: 12px;
+      background: #fff;
+      padding: 0.64rem 0.7rem;
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .side-item strong {
+      font-family: "Poppins", sans-serif;
+      color: #1a4a73;
+      font-size: 0.94rem;
+    }
+
+    .side-item span {
+      color: #4e6881;
+      font-size: 0.86rem;
+      line-height: 1.32;
+    }
+
+    .daily-challenge {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(150deg, #ffffff, #f2faff);
+      box-shadow: var(--shadow);
+      padding: 0.95rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.9rem;
+      align-items: center;
+    }
+
+    .challenge-copy h2 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+      color: #184770;
+      line-height: 1.1;
+    }
+
+    .challenge-copy p {
+      margin: 0.42rem 0 0;
+      color: #4f677d;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      max-width: 65ch;
+    }
+
+    .challenge-pills {
+      margin-top: 0.55rem;
+      display: flex;
+      gap: 0.38rem;
+      flex-wrap: wrap;
+    }
+
+    .challenge-pill {
+      border: 1px solid #c8dbef;
+      border-radius: var(--radius-pill);
+      background: #fff;
+      color: #3f607e;
+      font-size: 0.65rem;
+      line-height: 1;
+      padding: 0.26rem 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .challenge-action {
+      display: grid;
+      gap: 0.35rem;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .challenge-action small {
+      color: #55718b;
+      font-size: 0.73rem;
+      font-weight: 700;
+    }
+
+    .catalog-head h2 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.6rem, 3.8vw, 2.4rem);
+      color: #184770;
+      line-height: 1.05;
+      position: relative;
+      width: fit-content;
+    }
+
+    .catalog-head h2::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 14%;
+      bottom: -6px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #22c55e, #0ea5a4, #2563eb, #7c3aed, #eab308);
+      opacity: 0.55;
+    }
+
+    .catalog-head p {
+      margin: 0.5rem 0 0.7rem;
+      color: var(--muted);
+      font-size: 1.15rem;
+    }
+
+    .highlights {
+      display: flex;
+      gap: 0.42rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.95rem;
+    }
+
+    .highlight {
+      border: 1px solid #ccddef;
+      border-radius: var(--radius-pill);
+      background: #fff;
+      color: #42617e;
+      font-family: "Nunito Sans", sans-serif;
+      font-size: 0.67rem;
+      line-height: 1;
+      font-weight: 700;
+      padding: 0.28rem 0.52rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.95rem;
+    }
+
+    .card {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 0.76rem;
+      display: grid;
+      gap: 0.58rem;
+      overflow: hidden;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+      transform-origin: center;
+    }
+
+    .card:hover {
+      transform: translateY(-4px) rotate(-0.15deg);
+      box-shadow: 0 20px 34px rgba(18, 38, 58, 0.14);
+    }
+
+    .card:active {
+      transform: translateY(-1px) scale(0.995);
+    }
+
+    .card.focus-pop {
+      animation: focusPop 640ms ease;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 4px;
+      background: var(--bar);
+    }
+
+    .card[data-theme="science"] { --bar: linear-gradient(90deg, #22c55e, #0ea5a4); }
+    .card[data-theme="engineering"] { --bar: linear-gradient(90deg, #ff8a3d, #f97316); }
+    .card[data-theme="logic"] { --bar: linear-gradient(90deg, #7c3aed, #6366f1); }
+    .card[data-theme="sim"] { --bar: linear-gradient(90deg, #0ea5e9, #2563eb); }
+    .card[data-theme="break"] { --bar: linear-gradient(90deg, #eab308, #f59e0b); }
+
+    .thumb {
+      min-height: 154px;
+      border-radius: var(--radius-md);
+      border: 1px solid #c6d8ea;
+      overflow: hidden;
+      background: #ecf5ff;
+    }
+
+    .thumb svg {
+      width: 100%;
+      height: 154px;
+      display: block;
+      transition: transform 220ms ease;
+    }
+
+    .card:hover .thumb svg {
+      transform: scale(1.03);
+    }
+
+    .card h3 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: 1.42rem;
+      line-height: 1.06;
+      color: #173f63;
+    }
+
+    .card p {
+      margin: 0;
+      color: #52708a;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.5rem;
+    }
+
+    .progress-chip {
+      border: 1px solid #c3d6e9;
+      border-radius: var(--radius-pill);
+      padding: 0.24rem 0.58rem;
+      background: #f5faff;
+      color: #355877;
+      font-size: 0.69rem;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: transform 140ms ease, background 150ms ease;
+    }
+
+    .progress-chip:hover {
+      transform: translateY(-1px);
+    }
+
+    .progress-chip.state-not-started {
+      border-color: #c8d8ea;
+      background: #f5f8fc;
+      color: #5b738a;
+    }
+
+    .progress-chip.state-in-progress {
+      border-color: #7ed9d5;
+      background: #e5fafa;
+      color: #0f6664;
+    }
+
+    .progress-chip.state-completed {
+      border-color: #9ee7b8;
+      background: #ebfff3;
+      color: #167746;
+    }
+
+    .tags {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      border: 1px solid #c4d5e8;
+      border-radius: var(--radius-pill);
+      padding: 0.2rem 0.5rem;
+      font-size: 0.66rem;
+      line-height: 1;
+      font-family: "Nunito Sans", sans-serif;
+      color: #325572;
+      background: #f3f8ff;
+      font-weight: 700;
+    }
+
+    .tag.science { border-color: #a7e7bf; color: #167746; background: #edfff5; }
+    .tag.engineering { border-color: #ffc69e; color: #a65514; background: #fff3ea; }
+    .tag.logic { border-color: #d4c2ff; color: #5d35ad; background: #f5efff; }
+    .tag.sim { border-color: #b5e5fb; color: #0a6fa8; background: #eaf9ff; }
+    .tag.break { border-color: #f9e28a; color: #8a6c00; background: #fffbe9; }
+
+    .actions {
+      display: flex;
+      gap: 0.48rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid;
+      border-radius: 10px;
+      min-width: 130px;
+      text-align: center;
+      padding: 0.42rem 0.78rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0.01em;
+      transition: transform 120ms ease, box-shadow 160ms ease, filter 150ms ease;
+      cursor: pointer;
+    }
+
+    .btn.play {
+      border-color: #69ddd7;
+      color: #fff;
+      background: linear-gradient(110deg, #0ea5a4, #2563eb);
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+      animation: playPulse 2.3s ease-in-out infinite;
+    }
+
+    .btn.profile {
+      border-color: #acd0ff;
+      color: #ddf0ff;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .btn.classqr {
+      border-color: #d8c9ff;
+      color: #f2eaff;
+      background: rgba(92, 62, 156, 0.32);
+    }
+
+    .card .btn.play {
+      border-color: #66d4cf;
+      color: #fff;
+      background: linear-gradient(110deg, #0ea5a4, #2563eb);
+      box-shadow: none;
+    }
+
+    .card .btn.profile {
+      border-color: #9ebef7;
+      color: #1f4fae;
+      background: #edf3ff;
+    }
+
+    .card .btn.classqr {
+      border-color: #cdbaf7;
+      color: #5e3a9f;
+      background: #f6f1ff;
+    }
+
+    .btn.soon {
+      border-color: #f3cda0;
+      color: #925b11;
+      background: #fff4e8;
+    }
+
+    .btn.disabled {
+      border-color: #d4deea;
+      color: #8ea4bc;
+      background: #f5f8fc;
+      pointer-events: none;
+      animation: none;
+      cursor: not-allowed;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    .btn:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .site-footer {
+      border-top: 1px solid #d8e4ef;
+      padding: 0.85rem 0 1.3rem;
+      color: #617f99;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .info-sections {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .info-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 10px 20px rgba(18, 38, 58, 0.08);
+      padding: 0.9rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .info-card h3 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: 1.16rem;
+      color: #184770;
+      line-height: 1.15;
+    }
+
+    .info-card p {
+      margin: 0;
+      color: #4f677d;
+      font-size: 0.94rem;
+      line-height: 1.4;
+    }
+
+    .roadmap-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.35rem;
+      color: #355573;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .roadmap-list li {
+      border: 1px solid #d6e3f1;
+      border-radius: 10px;
+      background: #f8fbff;
+      padding: 0.45rem 0.55rem;
+    }
+
+    .toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 60;
+      border: 1px solid #94b8df;
+      background: rgba(14, 43, 74, 0.95);
+      color: #e9f6ff;
+      border-radius: 12px;
+      padding: 0.62rem 0.76rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      max-width: min(92vw, 340px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes playPulse {
+      0%,
+      100% {
+        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+      }
+      50% {
+        box-shadow: 0 10px 20px rgba(14, 165, 164, 0.35);
+      }
+    }
+
+    @keyframes focusPop {
+      0% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.16);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+      }
+    }
+
+    @keyframes spinSlow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes spinReverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+
+    @keyframes floatY {
+      0%,
+      100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes floatX {
+      0%,
+      100% { transform: translateX(0); }
+      50% { transform: translateX(-8px); }
+    }
+
+    @keyframes statusPing {
+      0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.34);
+      }
+      70% {
+        box-shadow: 0 0 0 9px rgba(34, 197, 94, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-side {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .daily-challenge {
+        grid-template-columns: 1fr;
+      }
+
+      .challenge-action {
+        justify-items: start;
+        text-align: left;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .thumb,
+      .thumb svg {
+        min-height: 146px;
+        height: 146px;
+      }
+    }
+
+    @media (max-width: 740px) {
+      .wrap {
+        width: min(var(--max), calc(100% - 1rem));
+      }
+
+      .header-shell {
+        border-radius: 16px;
+      }
+
+      .brand-row {
+        gap: 0.5rem;
+      }
+
+      .tagline {
+        max-width: 34ch;
+      }
+
+      .pill {
+        min-width: 100px;
+        font-size: 0.88rem;
+      }
+
+      .hero-main,
+      .hero-side {
+        padding: 0.78rem;
+      }
+
+      .hero-side {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .thumb,
+      .thumb svg {
+        min-height: 176px;
+        height: 176px;
+      }
+
+      .toast {
+        right: 8px;
+        left: 8px;
+        max-width: none;
+      }
+
+      .motif.circuit,
+      .motif.flask {
+        display: none;
+      }
+
+      .motif.gear-a {
+        width: 150px;
+        height: 150px;
+        top: 150px;
+      }
+
+      .motif.atom {
+        width: 132px;
+        height: 132px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-motifs" aria-hidden="true">
+    <div class="motif gear-a">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <g fill="currentColor">
+          <rect x="92" y="8" width="16" height="28" rx="4" />
+          <rect x="92" y="164" width="16" height="28" rx="4" />
+          <rect x="8" y="92" width="28" height="16" rx="4" />
+          <rect x="164" y="92" width="28" height="16" rx="4" />
+          <rect x="27" y="27" width="22" height="14" rx="4" transform="rotate(-45 38 34)" />
+          <rect x="151" y="27" width="22" height="14" rx="4" transform="rotate(45 162 34)" />
+          <rect x="27" y="159" width="22" height="14" rx="4" transform="rotate(45 38 166)" />
+          <rect x="151" y="159" width="22" height="14" rx="4" transform="rotate(-45 162 166)" />
+        </g>
+        <circle cx="100" cy="100" r="58" fill="none" stroke="currentColor" stroke-width="11" />
+        <circle cx="100" cy="100" r="22" fill="none" stroke="currentColor" stroke-width="8" />
+      </svg>
+    </div>
+
+    <div class="motif gear-b">
+      <svg viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+        <g fill="currentColor">
+          <rect x="82" y="8" width="16" height="24" rx="4" />
+          <rect x="82" y="148" width="16" height="24" rx="4" />
+          <rect x="8" y="82" width="24" height="16" rx="4" />
+          <rect x="148" y="82" width="24" height="16" rx="4" />
+          <rect x="24" y="24" width="19" height="12" rx="4" transform="rotate(-45 33.5 30)" />
+          <rect x="136" y="24" width="19" height="12" rx="4" transform="rotate(45 145.5 30)" />
+          <rect x="24" y="144" width="19" height="12" rx="4" transform="rotate(45 33.5 150)" />
+          <rect x="136" y="144" width="19" height="12" rx="4" transform="rotate(-45 145.5 150)" />
+        </g>
+        <circle cx="90" cy="90" r="49" fill="none" stroke="currentColor" stroke-width="10" />
+        <circle cx="90" cy="90" r="19" fill="none" stroke="currentColor" stroke-width="7" />
+      </svg>
+    </div>
+
+    <div class="motif atom">
+      <svg viewBox="0 0 190 190" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="currentColor" stroke-width="7">
+          <ellipse cx="95" cy="95" rx="66" ry="28" />
+          <ellipse cx="95" cy="95" rx="66" ry="28" transform="rotate(60 95 95)" />
+          <ellipse cx="95" cy="95" rx="66" ry="28" transform="rotate(-60 95 95)" />
+        </g>
+        <circle cx="95" cy="95" r="10" fill="currentColor" />
+      </svg>
+    </div>
+
+    <div class="motif flask">
+      <svg viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+        <path d="M58 20h34v10l-8 18v18l28 43c6 10-1 23-13 23H51c-12 0-19-13-13-23l28-43V48l-8-18z" fill="none" stroke="currentColor" stroke-width="8" stroke-linejoin="round" />
+        <path d="M44 96h62" stroke="currentColor" stroke-width="8" stroke-linecap="round" />
+        <circle cx="62" cy="106" r="4" fill="currentColor" />
+        <circle cx="78" cy="114" r="4" fill="currentColor" />
+        <circle cx="92" cy="104" r="4" fill="currentColor" />
+      </svg>
+    </div>
+
+    <div class="motif circuit">
+      <svg viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+        <g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round">
+          <path d="M12 26h68l20 18h48" />
+          <path d="M82 84h54l18-16h74" />
+          <path d="M34 62h62l22-20h28" />
+        </g>
+        <g fill="currentColor">
+          <circle cx="12" cy="26" r="6" />
+          <circle cx="168" cy="44" r="6" />
+          <circle cx="82" cy="84" r="6" />
+          <circle cx="228" cy="68" r="6" />
+          <circle cx="34" cy="62" r="6" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="wrap header-shell">
+      <div class="brand-row">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 8h12v4l-3 7v8l10 14c2 4-1 7-5 7H16c-4 0-7-3-5-7l10-14v-8l-3-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
+            <path d="M12 31h24" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            <circle cx="19" cy="35" r="1.6" fill="currentColor" />
+            <circle cx="24" cy="38" r="1.6" fill="currentColor" />
+            <circle cx="29" cy="34" r="1.6" fill="currentColor" />
+          </svg>
+        </div>
+        <h1 class="logo"><span class="steam"><span class="s">S</span><span class="t">T</span><span class="e">E</span><span class="a">A</span><span class="m">M</span></span> <span class="rest">LAB GAMES</span></h1>
+      </div>
+      <p class="tagline">Play Experiments. Build Systems. Break Assumptions.</p>
+      <div class="steam-stripe" aria-label="STEAM Categories">
+        <span class="steam-tag s">SCIENCE</span>
+        <span class="steam-tag t">TECH</span>
+        <span class="steam-tag e">ENGINEERING</span>
+        <span class="steam-tag a">ART</span>
+        <span class="steam-tag m">MATH</span>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#gameGrid" class="pill active">GAMES</a>
+        <a href="#updates" class="pill">UPDATES</a>
+        <a href="#about" class="pill">ABOUT</a>
+      </nav>
+      <div class="lab-status" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Lab Status: Experiments Running • <span id="headerCount">6</span> available</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" aria-label="Featured Experiment">
+      <article class="hero-main">
+        <p class="hero-label">FEATURED EXPERIMENT</p>
+        <h2>Pixel Print Studio</h2>
+        <p>Create pixel art, remix classroom templates, and print your designs for hands-on STEAM projects.</p>
+        <div class="hero-actions">
+          <a class="btn play" href="pixel-print-classroom.html" data-launch-label="Pixel Print">PLAY NOW</a>
+          <a class="btn profile" href="#pixel-print" data-launch-label="Pixel Print">OPEN GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=pixel-print" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <svg viewBox="0 0 420 180" xmlns="http://www.w3.org/2000/svg" role="img">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#bfe7ff" />
+                <stop offset="100%" stop-color="#8ec5ff" />
+              </linearGradient>
+            </defs>
+            <rect width="420" height="180" fill="#234a7f" />
+            <rect y="118" width="420" height="62" fill="url(#g1)" />
+            <rect x="56" y="32" width="308" height="110" rx="10" fill="#eaf4ff" stroke="#9dc2e8" />
+            <g fill="#6ca2d8">
+              <rect x="76" y="52" width="18" height="18" />
+              <rect x="96" y="52" width="18" height="18" />
+              <rect x="116" y="52" width="18" height="18" />
+              <rect x="76" y="72" width="18" height="18" />
+              <rect x="96" y="72" width="18" height="18" />
+              <rect x="116" y="72" width="18" height="18" />
+              <rect x="136" y="72" width="18" height="18" />
+            </g>
+            <g fill="#55c3a4">
+              <rect x="210" y="54" width="22" height="22" />
+              <rect x="234" y="54" width="22" height="22" />
+              <rect x="210" y="78" width="22" height="22" />
+              <rect x="234" y="78" width="22" height="22" />
+            </g>
+            <g fill="#f58ca4">
+              <rect x="260" y="54" width="22" height="22" />
+              <rect x="260" y="78" width="22" height="22" />
+            </g>
+            <g fill="#f8d36d">
+              <circle cx="330" cy="58" r="8" />
+              <circle cx="348" cy="74" r="6" />
+            </g>
+          </svg>
+        </div>
+      </article>
+      <aside class="hero-side">
+        <div class="side-item">
+          <strong>Teacher Mode</strong>
+          <span>Prompt questions, printable lab sheet, and extension ideas.</span>
+        </div>
+        <div class="side-item">
+          <strong>Today's Live Lab</strong>
+          <span>Pixel Print Studio is playable now in-browser.</span>
+        </div>
+        <div class="side-item">
+          <strong>Portal Status</strong>
+          <span>6 labs ready to explore. More experiments in build queue.</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="daily-challenge" aria-label="Daily Challenge">
+      <div class="challenge-copy">
+        <h2>Daily Lab Challenge</h2>
+        <p>Create one 16x16 icon, one 32x32 character, and one printable classroom badge in Pixel Print Studio.</p>
+        <div class="challenge-pills">
+          <span class="challenge-pill">15 MIN</span>
+          <span class="challenge-pill">ART + DESIGN</span>
+          <span class="challenge-pill">TEAM OR SOLO</span>
+        </div>
+      </div>
+      <div class="challenge-action">
+        <button id="challengeStartBtn" type="button" class="btn play">START TODAY'S CHALLENGE</button>
+        <small>Resets every morning.</small>
+      </div>
+    </section>
+
+    <section class="catalog-head">
+      <h2>ALL LABS</h2>
+      <p><span id="loadedCount">6</span> labs ready to explore.</p>
+      <div class="highlights" aria-label="Portal Highlights">
+        <span class="highlight">NO ADS</span>
+        <span class="highlight">CLASSROOM SAFE</span>
+        <span class="highlight">BROWSER BASED</span>
+        <span class="highlight">EXPERIMENT FIRST</span>
+      </div>
+    </section>
+
+    <section id="gameGrid" class="grid" aria-label="Game Catalog">
+      <article class="card" data-theme="science" data-title="Pixel Print Studio" data-lab="pixel-print" data-progress="in-progress" id="pixel-print">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#dff8ea" />
+            <rect x="18" y="18" width="264" height="118" rx="8" fill="#e9fff3" stroke="#9cd8b6" />
+            <g fill="#6ea58a">
+              <rect x="38" y="38" width="16" height="16" /><rect x="56" y="38" width="16" height="16" /><rect x="74" y="38" width="16" height="16" />
+              <rect x="38" y="56" width="16" height="16" /><rect x="56" y="56" width="16" height="16" /><rect x="74" y="56" width="16" height="16" />
+              <rect x="92" y="56" width="16" height="16" /><rect x="110" y="56" width="16" height="16" />
+            </g>
+            <g fill="#39a4d8">
+              <rect x="184" y="44" width="20" height="20" /><rect x="206" y="44" width="20" height="20" />
+              <rect x="184" y="66" width="20" height="20" /><rect x="206" y="66" width="20" height="20" />
+            </g>
+            <g fill="#ef7a7a">
+              <rect x="228" y="44" width="20" height="20" /><rect x="228" y="66" width="20" height="20" />
+            </g>
+          </svg>
+        </div>
+        <h3>Pixel Print</h3>
+        <p>Design sprites and printable pixel art sheets for class.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">IN PROGRESS</button>
+        </div>
+        <div class="tags">
+          <span class="tag science">TOOL</span>
+          <span class="tag sim">SINGLE PLAYER</span>
+          <span class="tag science">LIVE NOW</span>
+        </div>
+        <div class="actions">
+          <a class="btn play" href="pixel-print-classroom.html" data-launch-label="Pixel Print">PLAY NOW</a>
+          <a class="btn profile" href="pixel-print-classroom.html" data-launch-label="Pixel Print">OPEN LAB PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=pixel-print" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+
+      <article class="card" data-theme="science" data-title="Ant Colony Lab" data-lab="ant-colony" data-progress="not-started" id="ant-colony">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#e8fff2" />
+            <rect y="102" width="300" height="52" fill="#86b991" />
+            <path d="M0 112 C52 92 104 120 150 108 C196 94 246 118 300 110 L300 154 L0 154 Z" fill="#6f9f79" />
+            <g fill="#4a3b34">
+              <ellipse cx="62" cy="86" rx="19" ry="8" />
+              <ellipse cx="154" cy="95" rx="24" ry="9" />
+              <ellipse cx="244" cy="82" rx="17" ry="8" />
+            </g>
+            <g fill="#181818">
+              <circle cx="64" cy="86" r="2.5" /><circle cx="69" cy="86" r="2.5" /><circle cx="74" cy="86" r="2.5" />
+              <circle cx="156" cy="95" r="2.5" /><circle cx="161" cy="95" r="2.5" /><circle cx="166" cy="95" r="2.5" />
+              <circle cx="246" cy="82" r="2.5" /><circle cx="251" cy="82" r="2.5" /><circle cx="256" cy="82" r="2.5" />
+            </g>
+          </svg>
+        </div>
+        <h3>Ant Colony Lab</h3>
+        <p>Build tunnels, balance food flow, and test colony survival.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">NOT STARTED</button>
+        </div>
+        <div class="tags">
+          <span class="tag science">SCIENCE</span>
+          <span class="tag sim">SIMULATION</span>
+          <span class="tag">COMING SOON</span>
+        </div>
+        <div class="actions">
+          <a class="btn soon" href="#updates">PLAY SOON</a>
+          <a class="btn profile" href="#updates">GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=ant-colony" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+
+      <article class="card" data-theme="sim" data-title="Moonjet Cavern" data-lab="moonjet-cavern" data-progress="not-started">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#e7f4ff" />
+            <rect width="300" height="154" fill="#122844" opacity="0.92" />
+            <g fill="#d7e8ff" opacity="0.4">
+              <rect x="20" y="0" width="28" height="56" />
+              <rect x="118" y="0" width="30" height="68" />
+              <rect x="242" y="0" width="24" height="60" />
+              <rect x="86" y="98" width="34" height="56" />
+              <rect x="204" y="96" width="38" height="58" />
+            </g>
+            <path d="M45 96 L70 83 L66 102 Z" fill="#ff9d6d" />
+            <circle cx="73" cy="89" r="6" fill="#ecf2ff" />
+            <g fill="#8cc8ff" opacity="0.8">
+              <circle cx="34" cy="22" r="1.5" /><circle cx="85" cy="14" r="1.5" /><circle cx="142" cy="28" r="1.5" />
+              <circle cx="196" cy="20" r="1.5" /><circle cx="260" cy="30" r="1.5" />
+            </g>
+          </svg>
+        </div>
+        <h3>Moonjet Cavern</h3>
+        <p>Pilot through cavern runs and dodge obstacle patterns.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">NOT STARTED</button>
+        </div>
+        <div class="tags">
+          <span class="tag logic">LOGIC</span>
+          <span class="tag sim">ARCADE</span>
+          <span class="tag">COMING SOON</span>
+        </div>
+        <div class="actions">
+          <a class="btn soon" href="#updates">PLAY SOON</a>
+          <a class="btn profile" href="#updates">GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=moonjet-cavern" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+
+      <article class="card" data-theme="engineering" data-title="Bridge Builder" data-lab="bridge-builder" data-progress="in-progress">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#fff2e6" />
+            <rect y="118" width="300" height="36" fill="#b2d2ea" />
+            <path d="M34 118 L150 68 L266 118" fill="none" stroke="#d3702f" stroke-width="6" />
+            <g stroke="#d3702f" stroke-width="4">
+              <line x1="52" y1="110" x2="70" y2="102" />
+              <line x1="88" y1="95" x2="106" y2="87" />
+              <line x1="124" y1="80" x2="142" y2="72" />
+              <line x1="158" y1="72" x2="176" y2="80" />
+              <line x1="194" y1="87" x2="212" y2="95" />
+              <line x1="230" y1="102" x2="248" y2="110" />
+            </g>
+            <rect x="40" y="112" width="220" height="8" fill="#4d667f" />
+          </svg>
+        </div>
+        <h3>Bridge Builder</h3>
+        <p>Engineer stable designs and pass stress and load tests.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">IN PROGRESS</button>
+        </div>
+        <div class="tags">
+          <span class="tag engineering">ENGINEERING</span>
+          <span class="tag engineering">PUZZLE</span>
+          <span class="tag">COMING SOON</span>
+        </div>
+        <div class="actions">
+          <a class="btn soon" href="#updates">PLAY SOON</a>
+          <a class="btn profile" href="#updates">GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=bridge-builder" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+
+      <article class="card" data-theme="sim" data-title="Ecosystem Simulator" data-lab="ecosystem-simulator" data-progress="not-started">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#e9f7ff" />
+            <rect y="102" width="300" height="52" fill="#95d6a5" />
+            <circle cx="58" cy="42" r="20" fill="#c9f1ff" />
+            <rect x="88" y="78" width="10" height="26" fill="#5b8f63" />
+            <circle cx="93" cy="66" r="16" fill="#4ca86e" />
+            <rect x="146" y="82" width="9" height="22" fill="#5b8f63" />
+            <circle cx="151" cy="72" r="13" fill="#5cc17b" />
+            <ellipse cx="230" cy="98" rx="20" ry="9" fill="#5fa1d8" />
+            <polygon points="250,96 264,100 250,104" fill="#5fa1d8" />
+            <circle cx="224" cy="95" r="2" fill="#fff" />
+          </svg>
+        </div>
+        <h3>Ecosystem Simulator</h3>
+        <p>Adjust climate variables and observe system behavior.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">NOT STARTED</button>
+        </div>
+        <div class="tags">
+          <span class="tag sim">SIMULATION</span>
+          <span class="tag science">SCIENCE</span>
+          <span class="tag">COMING SOON</span>
+        </div>
+        <div class="actions">
+          <a class="btn soon" href="#updates">PLAY SOON</a>
+          <a class="btn profile" href="#updates">GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=ecosystem-simulator" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+
+      <article class="card" data-theme="break" data-title="Pattern Pulse" data-lab="pattern-pulse" data-progress="completed">
+        <div class="thumb" aria-hidden="true">
+          <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <rect width="300" height="154" fill="#fffbe7" />
+            <g fill="#f0d76b" opacity="0.4">
+              <rect x="38" y="28" width="34" height="34" rx="6" />
+              <rect x="112" y="28" width="34" height="34" rx="6" />
+              <rect x="186" y="28" width="34" height="34" rx="6" />
+              <rect x="75" y="74" width="34" height="34" rx="6" />
+              <rect x="149" y="74" width="34" height="34" rx="6" />
+              <rect x="223" y="74" width="34" height="34" rx="6" />
+            </g>
+            <path d="M52 121 L248 121" stroke="#8e7a2f" stroke-width="4" stroke-linecap="round" />
+            <circle cx="86" cy="121" r="8" fill="#8e7a2f" />
+            <circle cx="214" cy="121" r="8" fill="#8e7a2f" />
+          </svg>
+        </div>
+        <h3>Pattern Pulse</h3>
+        <p>Fast memory and focus mini-games for quick brain breaks.</p>
+        <div class="progress-row">
+          <button class="progress-chip" type="button" data-role="progress-toggle">COMPLETED</button>
+        </div>
+        <div class="tags">
+          <span class="tag break">BRAIN BREAK</span>
+          <span class="tag logic">ARCADE</span>
+          <span class="tag">COMING SOON</span>
+        </div>
+        <div class="actions">
+          <a class="btn soon" href="#updates">PLAY SOON</a>
+          <a class="btn profile" href="#updates">GAME PROFILE</a>
+          <a class="btn classqr" href="class/index.html?game=pattern-pulse" target="_blank" rel="noopener">CLASS QR</a>
+        </div>
+      </article>
+    </section>
+
+    <section id="updates" class="info-sections" aria-label="Updates and Roadmap">
+      <article class="info-card">
+        <h3>Lab Updates</h3>
+        <p>Upcoming launches and milestones for the next experiments in the portal.</p>
+        <ul class="roadmap-list">
+          <li>Ant Colony Lab: profile + classroom worksheet coming next.</li>
+          <li>Moonjet Cavern: first playable prototype in development.</li>
+          <li>Bridge Builder: physics pass and challenge mode in progress.</li>
+          <li>Ecosystem Simulator: balancing model and teacher prompts underway.</li>
+          <li>Pattern Pulse: classroom-friendly rapid rounds and score goals planned.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="about" class="info-sections" aria-label="About STEAM Lab Games">
+      <article class="info-card">
+        <h3>About STEAM Lab Games</h3>
+        <p>STEAM Lab Games is a classroom-ready experiment portal built for Science, Technology, Engineering, Art, and Math. Every lab is browser-based, ad-free, and designed for whole-class launch using Class QR.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="wrap site-footer">
+    <span>STEAM Lab Games</span>
+    <span>hello@steamlabs.games</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "steamlab-progress-v1";
+      const STATES = ["not-started", "in-progress", "completed"];
+      const LABELS = {
+        "not-started": "NOT STARTED",
+        "in-progress": "IN PROGRESS",
+        "completed": "COMPLETED"
+      };
+      const STATE_CLASS = {
+        "not-started": "state-not-started",
+        "in-progress": "state-in-progress",
+        "completed": "state-completed"
+      };
+
+      const countEl = document.getElementById("loadedCount");
+      const headerCountEl = document.getElementById("headerCount");
+      const cards = Array.from(document.querySelectorAll("#gameGrid .card"));
+      const toastEl = document.getElementById("toast");
+      const challengeStartBtn = document.getElementById("challengeStartBtn");
+      countEl.textContent = String(cards.length);
+      if (headerCountEl) headerCountEl.textContent = String(cards.length);
+
+      let toastTimer = null;
+      let progressMap = {};
+
+      try {
+        progressMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      } catch (err) {
+        progressMap = {};
+      }
+
+      function showToast(message) {
+        if (!toastEl) return;
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove("show");
+        }, 1800);
+      }
+
+      function persistProgress() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(progressMap));
+      }
+
+      function sanitizeId(value) {
+        return (value || "")
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      }
+
+      function applyProgress(card, state) {
+        const chip = card.querySelector("[data-role='progress-toggle']");
+        if (!chip) return;
+        const safeState = STATES.includes(state) ? state : "not-started";
+        card.dataset.progress = safeState;
+        chip.textContent = LABELS[safeState];
+        chip.className = "progress-chip " + STATE_CLASS[safeState];
+        chip.setAttribute("aria-label", "Progress: " + LABELS[safeState] + ". Click to change.");
+      }
+
+      function flashCard(card) {
+        if (!card) return;
+        card.classList.add("focus-pop");
+        setTimeout(() => card.classList.remove("focus-pop"), 650);
+      }
+
+      cards.forEach((card) => {
+        const labId = card.dataset.lab || sanitizeId(card.dataset.title);
+        const savedState = progressMap[labId];
+        const initialState = STATES.includes(savedState) ? savedState : card.dataset.progress;
+        card.dataset.lab = labId;
+        applyProgress(card, initialState);
+
+        const chip = card.querySelector("[data-role='progress-toggle']");
+        if (chip) {
+          chip.addEventListener("click", () => {
+            const current = STATES.indexOf(card.dataset.progress);
+            const nextState = STATES[(current + 1) % STATES.length];
+            applyProgress(card, nextState);
+            progressMap[labId] = nextState;
+            persistProgress();
+            showToast(card.dataset.title + ": " + LABELS[nextState]);
+          });
+        }
+      });
+
+      if (challengeStartBtn) {
+        challengeStartBtn.addEventListener("click", () => {
+          const target = document.getElementById("pixel-print");
+          if (target) {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            flashCard(target);
+          }
+          showToast("Challenge loaded: Pixel Print Studio");
+        });
+      }
+
+      function shouldBypass(event) {
+        return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
+      }
+
+      const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.btn.profile"));
+      launchLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          if (shouldBypass(event)) return;
+
+          const href = link.getAttribute("href");
+          const title = link.dataset.launchLabel || link.closest(".card")?.dataset.title || "Lab";
+
+          if (!href || href === "#") {
+            event.preventDefault();
+            showToast(title + " is coming soon.");
+            return;
+          }
+
+          if (href.startsWith("#")) {
+            event.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+              target.scrollIntoView({ behavior: "smooth", block: "center" });
+              flashCard(target);
+            }
+            showToast("Opening " + title + "...");
+            return;
+          }
+
+          event.preventDefault();
+          showToast("Launching " + title + "...");
+          setTimeout(() => {
+            window.location.href = href;
+          }, 220);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

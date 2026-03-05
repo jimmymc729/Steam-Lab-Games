@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "pixel-print",
+    "title": "Pixel Print Studio",
+    "path": "/pixel-print-classroom.html",
+    "status": "live",
+    "tags": ["tool", "art", "pixel", "single-player"]
+  },
+  {
+    "slug": "ant-colony",
+    "title": "Ant Colony Lab",
+    "path": "/games/ant-colony-lab/",
+    "status": "coming_soon",
+    "tags": ["science", "simulation", "systems"]
+  },
+  {
+    "slug": "moonjet-cavern",
+    "title": "Moonjet Cavern",
+    "path": "/games/moonjet-cavern/",
+    "status": "coming_soon",
+    "tags": ["arcade", "logic", "reflex"]
+  },
+  {
+    "slug": "bridge-builder",
+    "title": "Bridge Builder",
+    "path": "/games/bridge-builder/",
+    "status": "coming_soon",
+    "tags": ["engineering", "physics", "design"]
+  },
+  {
+    "slug": "ecosystem-simulator",
+    "title": "Ecosystem Simulator",
+    "path": "/games/ecosystem-simulator/",
+    "status": "coming_soon",
+    "tags": ["science", "simulation", "biology"]
+  },
+  {
+    "slug": "pattern-pulse",
+    "title": "Pattern Pulse",
+    "path": "/games/pattern-pulse/",
+    "status": "coming_soon",
+    "tags": ["brain-break", "memory", "arcade"]
+  }
+]

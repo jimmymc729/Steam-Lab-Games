@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Class Launch | STEAM Lab Games</title>
+  <meta name="description" content="Projector-friendly class launch with QR code for STEAM Lab Games." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="class.css" />
+</head>
+<body>
+  <main class="launch">
+    <header class="launch-head">
+      <a class="back-link" href="../index.html">Back to Portal</a>
+      <p id="modeBadge" class="mode-badge">CLASS LAUNCH</p>
+      <h1 id="gameTitle">STEAM Lab Experiment</h1>
+      <p id="joinPrompt" class="join-prompt">Scan or type the link on your device.</p>
+    </header>
+
+    <section class="qr-panel" aria-label="Class QR Code">
+      <div class="qr-shell">
+        <div id="qrCode" class="qr-code" aria-label="QR Code"></div>
+      </div>
+      <p class="typed-label">Direct Link</p>
+      <p class="typed-link-wrap">
+        <a id="typedLink" class="typed-link" href="#" target="_blank" rel="noopener"></a>
+      </p>
+      <div class="controls">
+        <button id="copyBtn" class="btn primary" type="button">Copy Link (C)</button>
+        <a id="openBtn" class="btn secondary" href="#" target="_blank" rel="noopener">Open Game</a>
+        <button id="fullscreenBtn" class="btn secondary" type="button">Fullscreen (F)</button>
+      </div>
+      <p id="statusText" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <footer class="shortcuts">
+      <span>Shortcuts: F = fullscreen, C = copy link, Esc = exit fullscreen</span>
+    </footer>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="class.js"></script>
+</body>
+</html>

@@ -1,0 +1,1459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STEAMLab Pixel Print - Classroom Mode</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #64748b;
+      --accent: #0f766e;
+      --line: #dbe3ef;
+      --danger: #b42318;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 80% 10%, rgba(15, 118, 110, 0.1), transparent 35%), var(--bg);
+      min-height: 100vh;
+      padding: 14px;
+    }
+
+    .app {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) 320px;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .stage {
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      background:
+        linear-gradient(transparent 24px, #edf2ff 24px 25px, transparent 25px),
+        linear-gradient(90deg, transparent 24px, #edf2ff 24px 25px, transparent 25px),
+        #fafcff;
+      background-size: 25px 25px;
+    }
+
+    #drawCanvas {
+      width: min(85vw, 760px);
+      max-width: 100%;
+      aspect-ratio: 1;
+      border: 1px solid #b8c4da;
+      border-radius: 10px;
+      background: #ffffff;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
+    }
+
+    .panel {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      max-height: calc(100vh - 28px);
+      overflow: auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+    }
+
+    .group {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .group-title {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    label {
+      font-size: 0.86rem;
+      display: grid;
+      gap: 4px;
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.86rem;
+    }
+
+    .check input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    input,
+    select,
+    button {
+      font: inherit;
+    }
+
+    input[type="text"],
+    select {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 8px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: #b7c3db;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    button.danger {
+      border-color: #f3cccc;
+      background: #fff5f5;
+      color: var(--danger);
+    }
+
+    button.active {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .palette {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+
+    .palette-title {
+      margin: 2px 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .palette-note {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .swatch {
+      width: 100%;
+      aspect-ratio: 1;
+      border: 2px solid #fff;
+      border-radius: 7px;
+      box-shadow: 0 0 0 1px #c0ccdf;
+      cursor: pointer;
+    }
+
+    .swatch.active {
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .swatch.editing {
+      outline: 2px solid #f59e0b;
+      outline-offset: 1px;
+    }
+
+    .buttons.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .status {
+      min-height: 18px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 940px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        max-height: none;
+      }
+
+      .stage {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card stage">
+      <canvas id="drawCanvas" width="640" height="640" aria-label="Pixel drawing canvas"></canvas>
+    </section>
+
+    <aside class="card panel">
+      <header>
+        <h1>Pixel Print</h1>
+        <p class="subtitle">Simple classroom pixel art creator with printable templates.</p>
+      </header>
+
+      <section class="group">
+        <p class="group-title">Project</p>
+        <label>Title
+          <input id="titleInput" type="text" value="Pixel Print" maxlength="60" />
+        </label>
+        <label>Name
+          <input id="nameInput" type="text" placeholder="Student name" maxlength="60" />
+        </label>
+        <label>Grid size
+          <select id="gridSize">
+            <option value="16">16 x 16</option>
+            <option value="32" selected>32 x 32</option>
+            <option value="64">64 x 64</option>
+          </select>
+        </label>
+        <button id="newBtn" class="danger">New Grid</button>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Colors</p>
+        <label>Color theory palette
+          <select id="palettePreset">
+            <option value="balanced">Rainbow Lab</option>
+            <option value="complementary">Power Pairs</option>
+            <option value="analogousCool">Ocean Breeze</option>
+            <option value="triadic">Candy Pop</option>
+            <option value="warmEarth">Campfire Colors</option>
+            <option value="monochromeBlue">Deep Sea Blues</option>
+            <option value="sunsetParty">Sunset Party</option>
+            <option value="forestQuest">Forest Quest</option>
+            <option value="galaxyGlow">Galaxy Glow</option>
+            <option value="dinoJungle">Dino Jungle</option>
+            <option value="unicornDream">Unicorn Dream</option>
+            <option value="rocketLaunch">Rocket Launch</option>
+            <option value="candyShop">Candy Shop</option>
+            <option value="arcticIce">Arctic Ice</option>
+          </select>
+        </label>
+        <p id="paletteConcept" class="palette-note"></p>
+        <p class="palette-title">Class Palette</p>
+        <div id="fixedPalette" class="palette"></div>
+        <input id="colorPicker" type="color" value="#2563eb" />
+        <p class="palette-title">My Colors</p>
+        <div id="myPalette" class="palette"></div>
+        <div class="buttons three">
+          <button id="addMyColorBtn">Add</button>
+          <button id="updateMyColorBtn">Update</button>
+          <button id="removeMyColorBtn" class="danger">Remove</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Tools</p>
+        <div class="buttons">
+          <button id="paintBtn" class="active">Paint</button>
+          <button id="eraseBtn">Erase</button>
+        </div>
+        <div class="buttons">
+          <button id="undoBtn">Undo</button>
+          <button id="clearBtn" class="danger">Clear</button>
+        </div>
+        <label>Symmetry
+          <select id="symmetryMode">
+            <option value="off">Off</option>
+            <option value="vertical">Vertical</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="both">Both</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Templates</p>
+        <label>Template
+          <select id="templateSelect"></select>
+        </label>
+        <button id="loadTemplateBtn">Load Template</button>
+        <p class="palette-note">Grayscale starters that students can color in.</p>
+      </section>
+
+      <section class="group">
+        <p class="group-title">Export</p>
+        <label class="check">
+          <input id="pdfGrid" type="checkbox" checked />
+          Show grid lines in PDF
+        </label>
+        <div class="buttons">
+          <button id="pngBtn" class="primary">Export PNG</button>
+          <button id="pdfBtn" class="primary">Print PDF</button>
+        </div>
+      </section>
+
+      <p id="status" class="status"></p>
+    </aside>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (function () {
+      const STORAGE_KEY = "steamlab-pixel-print-classroom-v1";
+      const MAX_UNDO = 80;
+      const PALETTE_PRESETS = {
+        balanced: {
+          label: "Rainbow Lab",
+          concept: "A balanced starter mix of warm, cool, and neutral colors.",
+          colors: ["#111827", "#ffffff", "#ef4444", "#f97316", "#facc15", "#22c55e", "#06b6d4", "#2563eb", "#7c3aed", "#ec4899", "#9ca3af", "#6b7280"]
+        },
+        complementary: {
+          label: "Power Pairs",
+          concept: "Opposite colors on the wheel make bold, high-contrast designs.",
+          colors: ["#1f2937", "#ffffff", "#2563eb", "#f97316", "#0ea5e9", "#fb923c", "#1d4ed8", "#c2410c", "#93c5fd", "#fed7aa", "#9ca3af", "#475569"]
+        },
+        analogousCool: {
+          label: "Ocean Breeze",
+          concept: "Neighboring cool hues create calm and smooth color harmony.",
+          colors: ["#0f172a", "#f8fafc", "#0ea5e9", "#06b6d4", "#14b8a6", "#22c55e", "#3b82f6", "#6366f1", "#8b5cf6", "#bae6fd", "#99f6e4", "#86efac"]
+        },
+        triadic: {
+          label: "Candy Pop",
+          concept: "Three spaced-out hue families keep bright colors balanced.",
+          colors: ["#111827", "#ffffff", "#ef4444", "#eab308", "#2563eb", "#f97316", "#22c55e", "#8b5cf6", "#ec4899", "#facc15", "#93c5fd", "#9ca3af"]
+        },
+        warmEarth: {
+          label: "Campfire Colors",
+          concept: "Warm neighboring colors with earthy neutrals for cozy scenes.",
+          colors: ["#1c1917", "#fafaf9", "#7c2d12", "#9a3412", "#c2410c", "#ea580c", "#f59e0b", "#a16207", "#854d0e", "#78716c", "#d6d3d1", "#fef3c7"]
+        },
+        monochromeBlue: {
+          label: "Deep Sea Blues",
+          concept: "One hue family exploring light-to-dark values in blue.",
+          colors: ["#0f172a", "#ffffff", "#1e3a8a", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#64748b", "#334155"]
+        },
+        sunsetParty: {
+          label: "Sunset Party",
+          concept: "Warm sunset gradients with a splash of cool twilight contrast.",
+          colors: ["#2b2d42", "#fff8f0", "#ff6b6b", "#ff8e53", "#ffb347", "#ffd166", "#f77fbe", "#c77dff", "#6c63ff", "#4cc9f0", "#8d99ae", "#ef233c"]
+        },
+        forestQuest: {
+          label: "Forest Quest",
+          concept: "Natural greens with bark browns and sky accents.",
+          colors: ["#1b4332", "#f1faee", "#2d6a4f", "#40916c", "#52b788", "#95d5b2", "#a3b18a", "#606c38", "#bc6c25", "#dda15e", "#457b9d", "#8ecae6"]
+        },
+        galaxyGlow: {
+          label: "Galaxy Glow",
+          concept: "Dark space tones with neon highlights for sci-fi art.",
+          colors: ["#0b132b", "#f8f9ff", "#1c2541", "#3a506b", "#5bc0be", "#00bbf9", "#9b5de5", "#f15bb5", "#fee440", "#00f5d4", "#7f5af0", "#ff5d8f"]
+        },
+        dinoJungle: {
+          label: "Dino Jungle",
+          concept: "Leafy greens and muddy earth colors for prehistoric adventures.",
+          colors: ["#1f3b2d", "#f4f1de", "#2a9d8f", "#52b788", "#84a98c", "#a3b18a", "#588157", "#bc6c25", "#99582a", "#6f4518", "#e9c46a", "#e76f51"]
+        },
+        unicornDream: {
+          label: "Unicorn Dream",
+          concept: "Soft pastel analogs with sparkling accent colors.",
+          colors: ["#2b2d42", "#fff7fb", "#ffcad4", "#f4acb7", "#cdb4db", "#bde0fe", "#a2d2ff", "#d8e2dc", "#ffc8dd", "#ffd6a5", "#caffbf", "#9bf6ff"]
+        },
+        rocketLaunch: {
+          label: "Rocket Launch",
+          concept: "Strong primaries with fiery launch colors and dark space neutrals.",
+          colors: ["#0f172a", "#f8fafc", "#2563eb", "#ef4444", "#f97316", "#facc15", "#22c55e", "#06b6d4", "#7c3aed", "#e11d48", "#94a3b8", "#1e293b"]
+        },
+        candyShop: {
+          label: "Candy Shop",
+          concept: "Sweet high-saturation brights for playful designs.",
+          colors: ["#2d1e2f", "#fffdf7", "#ff4d6d", "#ff8fab", "#ffb703", "#ffd166", "#06d6a0", "#00bbf9", "#4d96ff", "#9b5de5", "#f15bb5", "#8ac926"]
+        },
+        arcticIce: {
+          label: "Arctic Ice",
+          concept: "Cool tints and icy shades for winter scenes and value practice.",
+          colors: ["#0b1f3a", "#f7fbff", "#1d3557", "#457b9d", "#61a5c2", "#89c2d9", "#a9d6e5", "#caf0f8", "#8ecae6", "#bde0fe", "#94d2bd", "#6c757d"]
+        }
+      };
+      const DEFAULT_PRESET = "balanced";
+      const DEFAULT_MY_COLORS = ["#2563eb", "#22c55e", "#f97316", "#ef4444"];
+      const MAX_MY_COLORS = 16;
+      const TEMPLATE_TONES = {
+        outline: "#2f2f2f",
+        mid: "#8f8f8f",
+        light: "#d6d6d6"
+      };
+      const TEMPLATE_LIBRARY = [
+        { id: "happyFace", category: "Faces", name: "Happy Face", sizes: [16, 32, 64], build: buildHappyFace },
+        { id: "robotBuddy", category: "Faces", name: "Robot Buddy", sizes: [16, 32, 64], build: buildRobotBuddy },
+        { id: "catFace", category: "Animals", name: "Cat Face", sizes: [16, 32, 64], build: buildCatFace },
+        { id: "person", category: "People", name: "Person", sizes: [16, 32, 64], build: buildPerson },
+        { id: "turtle", category: "Animals", name: "Turtle", sizes: [16, 32, 64], build: buildTurtle },
+        { id: "rocket", category: "Space", name: "Rocket", sizes: [16, 32, 64], build: buildRocket },
+        { id: "ringedPlanet", category: "Space", name: "Ringed Planet", sizes: [16, 32, 64], build: buildRingedPlanet },
+        { id: "flower", category: "Nature", name: "Flower", sizes: [16, 32, 64], build: buildFlower },
+        { id: "pineTree", category: "Nature", name: "Pine Tree", sizes: [16, 32, 64], build: buildPineTree },
+        { id: "maze", category: "Patterns", name: "Maze Path", sizes: [16, 32, 64], build: buildMazePath },
+        { id: "pixelHeart", category: "Patterns", name: "Pixel Heart", sizes: [16, 32, 64], build: buildPixelHeart },
+        { id: "starBurst", category: "Patterns", name: "Star Burst", sizes: [16, 32, 64], build: buildStarBurst },
+        { id: "shieldBadge", category: "Patterns", name: "Shield Badge", sizes: [16, 32, 64], build: buildShieldBadge }
+      ];
+
+      const state = {
+        gridSize: 32,
+        pixels: [],
+        tool: "paint",
+        symmetryMode: "off",
+        color: "#2563eb",
+        templateId: "",
+        palettePreset: DEFAULT_PRESET,
+        fixedPalette: PALETTE_PRESETS[DEFAULT_PRESET].colors.slice(),
+        myColors: DEFAULT_MY_COLORS.slice(),
+        selectedMyColor: 0,
+        undoStack: [],
+        drawing: false,
+        lastCellKey: null
+      };
+
+      const el = {
+        canvas: document.getElementById("drawCanvas"),
+        titleInput: document.getElementById("titleInput"),
+        nameInput: document.getElementById("nameInput"),
+        gridSize: document.getElementById("gridSize"),
+        templateSelect: document.getElementById("templateSelect"),
+        loadTemplateBtn: document.getElementById("loadTemplateBtn"),
+        paintBtn: document.getElementById("paintBtn"),
+        eraseBtn: document.getElementById("eraseBtn"),
+        symmetryMode: document.getElementById("symmetryMode"),
+        undoBtn: document.getElementById("undoBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        newBtn: document.getElementById("newBtn"),
+        palettePreset: document.getElementById("palettePreset"),
+        paletteConcept: document.getElementById("paletteConcept"),
+        colorPicker: document.getElementById("colorPicker"),
+        fixedPalette: document.getElementById("fixedPalette"),
+        myPalette: document.getElementById("myPalette"),
+        addMyColorBtn: document.getElementById("addMyColorBtn"),
+        updateMyColorBtn: document.getElementById("updateMyColorBtn"),
+        removeMyColorBtn: document.getElementById("removeMyColorBtn"),
+        pdfGrid: document.getElementById("pdfGrid"),
+        pngBtn: document.getElementById("pngBtn"),
+        pdfBtn: document.getElementById("pdfBtn"),
+        status: document.getElementById("status")
+      };
+
+      const ctx = el.canvas.getContext("2d", { alpha: true });
+
+      function createGrid(size) {
+        return Array.from({ length: size }, () => Array(size).fill(null));
+      }
+
+      function cloneGrid(grid) {
+        return grid.map((row) => row.slice());
+      }
+
+      function setPixel(grid, col, row, color) {
+        if (!color) return;
+        if (row < 0 || col < 0 || row >= grid.length || col >= grid.length) return;
+        grid[row][col] = color;
+      }
+
+      function drawLineOnGrid(grid, x0, y0, x1, y1, color) {
+        let ax = Math.round(x0);
+        let ay = Math.round(y0);
+        const bx = Math.round(x1);
+        const by = Math.round(y1);
+        const dx = Math.abs(bx - ax);
+        const sx = ax < bx ? 1 : -1;
+        const dy = -Math.abs(by - ay);
+        const sy = ay < by ? 1 : -1;
+        let err = dx + dy;
+
+        while (true) {
+          setPixel(grid, ax, ay, color);
+          if (ax === bx && ay === by) break;
+          const e2 = err * 2;
+          if (e2 >= dy) {
+            err += dy;
+            ax += sx;
+          }
+          if (e2 <= dx) {
+            err += dx;
+            ay += sy;
+          }
+        }
+      }
+
+      function drawRectOnGrid(grid, x, y, w, h, outlineColor, fillColor) {
+        const x0 = Math.round(x);
+        const y0 = Math.round(y);
+        const x1 = Math.round(x + w - 1);
+        const y1 = Math.round(y + h - 1);
+
+        if (fillColor) {
+          for (let row = y0 + 1; row <= y1 - 1; row += 1) {
+            for (let col = x0 + 1; col <= x1 - 1; col += 1) {
+              setPixel(grid, col, row, fillColor);
+            }
+          }
+        }
+        if (outlineColor) {
+          drawLineOnGrid(grid, x0, y0, x1, y0, outlineColor);
+          drawLineOnGrid(grid, x1, y0, x1, y1, outlineColor);
+          drawLineOnGrid(grid, x1, y1, x0, y1, outlineColor);
+          drawLineOnGrid(grid, x0, y1, x0, y0, outlineColor);
+        }
+      }
+
+      function drawEllipseOnGrid(grid, cx, cy, rx, ry, outlineColor, fillColor) {
+        const size = grid.length;
+        const tol = 0.95 / Math.max(rx, ry);
+        for (let row = 0; row < size; row += 1) {
+          for (let col = 0; col < size; col += 1) {
+            const nx = (col - cx) / rx;
+            const ny = (row - cy) / ry;
+            const d = nx * nx + ny * ny;
+            if (fillColor && d < 1) {
+              setPixel(grid, col, row, fillColor);
+            }
+            if (outlineColor && Math.abs(d - 1) <= tol) {
+              setPixel(grid, col, row, outlineColor);
+            }
+          }
+        }
+      }
+
+      function drawCircleOnGrid(grid, cx, cy, r, outlineColor, fillColor) {
+        drawEllipseOnGrid(grid, cx, cy, r, r, outlineColor, fillColor);
+      }
+
+      function drawArcOnGrid(grid, cx, cy, r, startAngle, endAngle, color) {
+        const step = Math.max(0.02, 1 / (r * 5));
+        for (let t = startAngle; t <= endAngle; t += step) {
+          const x = cx + Math.cos(t) * r;
+          const y = cy + Math.sin(t) * r;
+          setPixel(grid, Math.round(x), Math.round(y), color);
+        }
+      }
+
+      function fillTriangleOnGrid(grid, a, b, c, color) {
+        const minX = Math.floor(Math.min(a.x, b.x, c.x));
+        const maxX = Math.ceil(Math.max(a.x, b.x, c.x));
+        const minY = Math.floor(Math.min(a.y, b.y, c.y));
+        const maxY = Math.ceil(Math.max(a.y, b.y, c.y));
+
+        const area = (p1, p2, p3) => (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+        const denom = area(a, b, c);
+        if (denom === 0) return;
+
+        for (let y = minY; y <= maxY; y += 1) {
+          for (let x = minX; x <= maxX; x += 1) {
+            const p = { x, y };
+            const w1 = area(p, b, c) / denom;
+            const w2 = area(a, p, c) / denom;
+            const w3 = area(a, b, p) / denom;
+            if (w1 >= 0 && w2 >= 0 && w3 >= 0) {
+              setPixel(grid, x, y, color);
+            }
+          }
+        }
+      }
+
+      function buildHappyFace(size) {
+        const g = createGrid(size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        const r = size * 0.38;
+        drawCircleOnGrid(g, cx, cy, r, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx - r * 0.34, cy - r * 0.2, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, cx + r * 0.34, cy - r * 0.2, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        drawArcOnGrid(g, cx, cy + r * 0.02, r * 0.48, Math.PI * 0.2, Math.PI * 0.8, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildRobotBuddy(size) {
+        const g = createGrid(size);
+        const m = size * 0.16;
+        drawRectOnGrid(g, m, m, size - m * 2, size - m * 2, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawRectOnGrid(g, size * 0.28, size * 0.34, size * 0.14, size * 0.14, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawRectOnGrid(g, size * 0.58, size * 0.34, size * 0.14, size * 0.14, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawRectOnGrid(g, size * 0.32, size * 0.62, size * 0.36, size * 0.08, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.5, size * 0.16, size * 0.5, size * 0.06, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, size * 0.5, size * 0.04, Math.max(1, size * 0.04), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildCatFace(size) {
+        const g = createGrid(size);
+        const cx = (size - 1) / 2;
+        const cy = size * 0.56;
+        const r = size * 0.3;
+        drawCircleOnGrid(g, cx, cy, r, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, { x: size * 0.24, y: size * 0.36 }, { x: size * 0.36, y: size * 0.08 }, { x: size * 0.44, y: size * 0.34 }, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, { x: size * 0.56, y: size * 0.34 }, { x: size * 0.64, y: size * 0.08 }, { x: size * 0.76, y: size * 0.36 }, TEMPLATE_TONES.light);
+        drawLineOnGrid(g, size * 0.24, size * 0.36, size * 0.36, size * 0.08, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.36, size * 0.08, size * 0.44, size * 0.34, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.44, size * 0.34, size * 0.24, size * 0.36, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.56, size * 0.34, size * 0.64, size * 0.08, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.64, size * 0.08, size * 0.76, size * 0.36, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.76, size * 0.36, size * 0.56, size * 0.34, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, size * 0.39, size * 0.54, Math.max(1, size * 0.04), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, size * 0.61, size * 0.54, Math.max(1, size * 0.04), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.6, size * 0.46, size * 0.64, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.5, size * 0.6, size * 0.54, size * 0.64, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.32, size * 0.62, size * 0.08, size * 0.58, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.32, size * 0.67, size * 0.08, size * 0.72, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.68, size * 0.62, size * 0.92, size * 0.58, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.68, size * 0.67, size * 0.92, size * 0.72, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildPerson(size) {
+        const g = createGrid(size);
+        const cx = (size - 1) / 2;
+        const headR = Math.max(2, size * 0.1);
+
+        drawCircleOnGrid(g, cx, size * 0.2, headR, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawLineOnGrid(g, cx, size * 0.31, cx, size * 0.68, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.33, size * 0.46, size * 0.67, size * 0.46, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, cx, size * 0.68, size * 0.37, size * 0.9, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, cx, size * 0.68, size * 0.63, size * 0.9, TEMPLATE_TONES.outline);
+        return g;
+      }
+
+      function buildTurtle(size) {
+        const g = createGrid(size);
+        drawEllipseOnGrid(g, size * 0.5, size * 0.56, size * 0.28, size * 0.22, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, size * 0.5, size * 0.56, size * 0.08, TEMPLATE_TONES.mid, null);
+        drawLineOnGrid(g, size * 0.5, size * 0.34, size * 0.5, size * 0.78, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.3, size * 0.56, size * 0.7, size * 0.56, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.5, size * 0.3, Math.max(1, size * 0.075), TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, size * 0.35, size * 0.72, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.65, size * 0.72, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.35, size * 0.42, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.65, size * 0.42, Math.max(1, size * 0.055), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildRocket(size) {
+        const g = createGrid(size);
+        drawRectOnGrid(g, size * 0.4, size * 0.24, size * 0.2, size * 0.5, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, { x: size * 0.4, y: size * 0.24 }, { x: size * 0.5, y: size * 0.08 }, { x: size * 0.6, y: size * 0.24 }, TEMPLATE_TONES.light);
+        drawLineOnGrid(g, size * 0.4, size * 0.24, size * 0.5, size * 0.08, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.08, size * 0.6, size * 0.24, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.6, size * 0.24, size * 0.4, size * 0.24, TEMPLATE_TONES.outline);
+        fillTriangleOnGrid(g, { x: size * 0.4, y: size * 0.62 }, { x: size * 0.26, y: size * 0.76 }, { x: size * 0.4, y: size * 0.76 }, TEMPLATE_TONES.mid);
+        fillTriangleOnGrid(g, { x: size * 0.6, y: size * 0.62 }, { x: size * 0.6, y: size * 0.76 }, { x: size * 0.74, y: size * 0.76 }, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.4, size * 0.62, size * 0.26, size * 0.76, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.26, size * 0.76, size * 0.4, size * 0.76, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.6, size * 0.62, size * 0.6, size * 0.76, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.6, size * 0.76, size * 0.74, size * 0.76, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, size * 0.5, size * 0.44, Math.max(1, size * 0.06), TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawRectOnGrid(g, size * 0.45, size * 0.74, size * 0.1, size * 0.13, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildRingedPlanet(size) {
+        const g = createGrid(size);
+        drawEllipseOnGrid(g, size * 0.5, size * 0.52, size * 0.36, size * 0.14, TEMPLATE_TONES.mid, null);
+        drawCircleOnGrid(g, size * 0.5, size * 0.52, size * 0.24, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, size * 0.42, size * 0.45, Math.max(1, size * 0.04), TEMPLATE_TONES.mid, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.58, size * 0.6, Math.max(1, size * 0.03), TEMPLATE_TONES.mid, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildFlower(size) {
+        const g = createGrid(size);
+        const cx = size * 0.5;
+        const cy = size * 0.45;
+        const pr = size * 0.11;
+        drawCircleOnGrid(g, cx, cy - size * 0.18, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx + size * 0.18, cy, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx, cy + size * 0.18, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx - size * 0.18, cy, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx + size * 0.13, cy - size * 0.13, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx - size * 0.13, cy - size * 0.13, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx + size * 0.13, cy + size * 0.13, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx - size * 0.13, cy + size * 0.13, pr, TEMPLATE_TONES.outline, TEMPLATE_TONES.light);
+        drawCircleOnGrid(g, cx, cy, size * 0.11, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, cx, cy + size * 0.12, cx, size * 0.9, TEMPLATE_TONES.mid);
+        drawArcOnGrid(g, cx - size * 0.08, size * 0.75, size * 0.1, Math.PI * 0.15, Math.PI * 0.95, TEMPLATE_TONES.mid);
+        drawArcOnGrid(g, cx + size * 0.08, size * 0.83, size * 0.1, Math.PI * 1.05, Math.PI * 1.85, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildPineTree(size) {
+        const g = createGrid(size);
+        fillTriangleOnGrid(g, { x: size * 0.5, y: size * 0.12 }, { x: size * 0.22, y: size * 0.46 }, { x: size * 0.78, y: size * 0.46 }, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, { x: size * 0.5, y: size * 0.28 }, { x: size * 0.2, y: size * 0.62 }, { x: size * 0.8, y: size * 0.62 }, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, { x: size * 0.5, y: size * 0.42 }, { x: size * 0.18, y: size * 0.78 }, { x: size * 0.82, y: size * 0.78 }, TEMPLATE_TONES.light);
+        drawLineOnGrid(g, size * 0.5, size * 0.12, size * 0.22, size * 0.46, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.12, size * 0.78, size * 0.46, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.22, size * 0.46, size * 0.78, size * 0.46, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.28, size * 0.2, size * 0.62, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.28, size * 0.8, size * 0.62, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.2, size * 0.62, size * 0.8, size * 0.62, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.42, size * 0.18, size * 0.78, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.42, size * 0.82, size * 0.78, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.18, size * 0.78, size * 0.82, size * 0.78, TEMPLATE_TONES.outline);
+        drawRectOnGrid(g, size * 0.44, size * 0.78, size * 0.12, size * 0.16, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function buildMazePath(size) {
+        const g = createGrid(size);
+        drawRectOnGrid(g, size * 0.08, size * 0.08, size * 0.84, size * 0.84, TEMPLATE_TONES.outline, null);
+        for (let i = 0; i < 5; i += 1) {
+          const y = size * (0.2 + i * 0.12);
+          drawLineOnGrid(g, size * 0.18, y, size * 0.82, y, TEMPLATE_TONES.mid);
+        }
+        drawLineOnGrid(g, size * 0.18, size * 0.2, size * 0.18, size * 0.68, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.36, size * 0.32, size * 0.36, size * 0.8, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.54, size * 0.2, size * 0.54, size * 0.68, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.72, size * 0.32, size * 0.72, size * 0.8, TEMPLATE_TONES.mid);
+        drawCircleOnGrid(g, size * 0.14, size * 0.14, Math.max(1, size * 0.04), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        drawCircleOnGrid(g, size * 0.86, size * 0.86, Math.max(1, size * 0.04), TEMPLATE_TONES.outline, TEMPLATE_TONES.outline);
+        return g;
+      }
+
+      function buildPixelHeart(size) {
+        const g = createGrid(size);
+        const cx = (size - 1) / 2;
+        const cy = size * 0.53;
+        const s = size * 0.25;
+        for (let row = 0; row < size; row += 1) {
+          for (let col = 0; col < size; col += 1) {
+            const x = (col - cx) / s;
+            const y = (cy - row) / s;
+            const v = Math.pow(x * x + y * y - 1, 3) - (x * x * y * y * y);
+            if (v <= 0) {
+              g[row][col] = TEMPLATE_TONES.light;
+            }
+          }
+        }
+        for (let row = 1; row < size - 1; row += 1) {
+          for (let col = 1; col < size - 1; col += 1) {
+            if (!g[row][col]) continue;
+            if (!g[row - 1][col] || !g[row + 1][col] || !g[row][col - 1] || !g[row][col + 1]) {
+              g[row][col] = TEMPLATE_TONES.outline;
+            }
+          }
+        }
+        return g;
+      }
+
+      function buildStarBurst(size) {
+        const g = createGrid(size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        drawCircleOnGrid(g, cx, cy, size * 0.08, TEMPLATE_TONES.outline, TEMPLATE_TONES.mid);
+        const points = [
+          [cx, size * 0.05], [size * 0.72, size * 0.28], [size * 0.95, cy], [size * 0.72, size * 0.72],
+          [cx, size * 0.95], [size * 0.28, size * 0.72], [size * 0.05, cy], [size * 0.28, size * 0.28]
+        ];
+        points.forEach((p) => drawLineOnGrid(g, cx, cy, p[0], p[1], TEMPLATE_TONES.mid));
+        drawCircleOnGrid(g, cx, cy, size * 0.28, TEMPLATE_TONES.outline, null);
+        return g;
+      }
+
+      function buildShieldBadge(size) {
+        const g = createGrid(size);
+        const top = { x: size * 0.5, y: size * 0.1 };
+        const left = { x: size * 0.2, y: size * 0.24 };
+        const right = { x: size * 0.8, y: size * 0.24 };
+        const bottom = { x: size * 0.5, y: size * 0.88 };
+        fillTriangleOnGrid(g, top, left, right, TEMPLATE_TONES.light);
+        fillTriangleOnGrid(g, left, right, bottom, TEMPLATE_TONES.light);
+        drawLineOnGrid(g, top.x, top.y, left.x, left.y, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, top.x, top.y, right.x, right.y, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, left.x, left.y, bottom.x, bottom.y, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, right.x, right.y, bottom.x, bottom.y, TEMPLATE_TONES.outline);
+        drawLineOnGrid(g, size * 0.5, size * 0.2, size * 0.5, size * 0.72, TEMPLATE_TONES.mid);
+        drawLineOnGrid(g, size * 0.32, size * 0.46, size * 0.68, size * 0.46, TEMPLATE_TONES.mid);
+        return g;
+      }
+
+      function templatesForCurrentGrid() {
+        return TEMPLATE_LIBRARY.filter((template) => template.sizes.includes(state.gridSize));
+      }
+
+      function refreshTemplateControls() {
+        const templates = templatesForCurrentGrid();
+        if (!templates.length) {
+          state.templateId = "";
+          el.templateSelect.innerHTML = "";
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "No templates for this size";
+          el.templateSelect.appendChild(option);
+          el.templateSelect.disabled = true;
+          el.loadTemplateBtn.disabled = true;
+          return;
+        }
+
+        if (!templates.some((template) => template.id === state.templateId)) {
+          state.templateId = templates[0].id;
+        }
+        el.templateSelect.innerHTML = "";
+        templates.forEach((template) => {
+          const option = document.createElement("option");
+          option.value = template.id;
+          option.textContent = template.name;
+          el.templateSelect.appendChild(option);
+        });
+        el.templateSelect.value = state.templateId;
+        el.templateSelect.disabled = false;
+        el.loadTemplateBtn.disabled = false;
+      }
+
+      function loadSelectedTemplate() {
+        const templates = templatesForCurrentGrid();
+        const template = templates.find((item) => item.id === state.templateId);
+        if (!template) {
+          setStatus("Pick a template first.");
+          return;
+        }
+
+        if (hasArtwork() && !window.confirm("Load this template? Your current drawing will be replaced.")) {
+          return;
+        }
+
+        pushUndo();
+        state.pixels = template.build(state.gridSize);
+        state.lastCellKey = null;
+        persist();
+        draw();
+        setStatus("Loaded template: " + template.name + ".");
+      }
+
+      function setStatus(text) {
+        el.status.textContent = text;
+      }
+
+      function persist() {
+        saveToLocal();
+      }
+
+      function pushUndo() {
+        state.undoStack.push(cloneGrid(state.pixels));
+        if (state.undoStack.length > MAX_UNDO) state.undoStack.shift();
+      }
+
+      function undo() {
+        if (!state.undoStack.length) {
+          setStatus("Nothing to undo.");
+          return;
+        }
+        state.pixels = state.undoStack.pop();
+        persist();
+        draw();
+        setStatus("Undo applied.");
+      }
+
+      function toHex(v) {
+        return (v || "#000000").toLowerCase();
+      }
+
+      function safeName(value) {
+        return (value || "pixel-print")
+          .toLowerCase()
+          .replace(/[^a-z0-9\-_]+/g, "-")
+          .replace(/^-+|-+$/g, "") || "pixel-print";
+      }
+
+      function applyPalettePreset(key) {
+        const preset = PALETTE_PRESETS[key] || PALETTE_PRESETS[DEFAULT_PRESET];
+        state.palettePreset = PALETTE_PRESETS[key] ? key : DEFAULT_PRESET;
+        state.fixedPalette = preset.colors.slice();
+        el.palettePreset.value = state.palettePreset;
+        el.paletteConcept.textContent = preset.label + ": " + preset.concept;
+      }
+
+      function onPickColor(color) {
+        state.color = color;
+        el.colorPicker.value = color;
+        setTool("paint");
+        saveToLocal();
+      }
+
+      function renderFixedPalette() {
+        el.fixedPalette.innerHTML = "";
+        state.fixedPalette.forEach((color) => {
+          const sw = document.createElement("button");
+          sw.type = "button";
+          sw.className = "swatch" + (color === state.color ? " active" : "");
+          sw.style.background = color;
+          sw.title = color;
+          sw.addEventListener("click", function () {
+            onPickColor(color);
+            renderFixedPalette();
+            renderMyPalette();
+          });
+          el.fixedPalette.appendChild(sw);
+        });
+      }
+
+      function renderMyPalette() {
+        el.myPalette.innerHTML = "";
+        state.myColors.forEach((color, index) => {
+          const sw = document.createElement("button");
+          sw.type = "button";
+          let cls = "swatch";
+          if (color === state.color) cls += " active";
+          if (index === state.selectedMyColor) cls += " editing";
+          sw.className = cls;
+          sw.style.background = color;
+          sw.title = color + " (My Color)";
+          sw.addEventListener("click", function () {
+            state.selectedMyColor = index;
+            onPickColor(color);
+            renderFixedPalette();
+            renderMyPalette();
+            saveToLocal();
+          });
+          el.myPalette.appendChild(sw);
+        });
+      }
+
+      function renderPalettes() {
+        renderFixedPalette();
+        renderMyPalette();
+      }
+
+      function addMyColor() {
+        const color = toHex(el.colorPicker.value);
+        const existing = state.myColors.indexOf(color);
+        if (existing >= 0) {
+          state.selectedMyColor = existing;
+          renderMyPalette();
+          saveToLocal();
+          setStatus("Color already in My Colors.");
+          return;
+        }
+        if (state.myColors.length >= MAX_MY_COLORS) {
+          setStatus("My Colors is full. Remove one first.");
+          return;
+        }
+        state.myColors.push(color);
+        state.selectedMyColor = state.myColors.length - 1;
+        renderMyPalette();
+        saveToLocal();
+        setStatus("Added to My Colors.");
+      }
+
+      function updateMyColor() {
+        if (state.selectedMyColor === null || state.selectedMyColor >= state.myColors.length) {
+          setStatus("Select a My Color swatch to update.");
+          return;
+        }
+        state.myColors[state.selectedMyColor] = toHex(el.colorPicker.value);
+        renderMyPalette();
+        saveToLocal();
+        setStatus("My Color updated.");
+      }
+
+      function removeMyColor() {
+        if (state.selectedMyColor === null || state.selectedMyColor >= state.myColors.length) {
+          setStatus("Select a My Color swatch to remove.");
+          return;
+        }
+        state.myColors.splice(state.selectedMyColor, 1);
+        if (state.myColors.length === 0) {
+          state.myColors = DEFAULT_MY_COLORS.slice();
+          state.selectedMyColor = 0;
+        } else if (state.selectedMyColor >= state.myColors.length) {
+          state.selectedMyColor = state.myColors.length - 1;
+        }
+        renderMyPalette();
+        saveToLocal();
+        setStatus("My Color removed.");
+      }
+
+      function setTool(tool) {
+        state.tool = tool;
+        el.paintBtn.classList.toggle("active", tool === "paint");
+        el.eraseBtn.classList.toggle("active", tool === "erase");
+      }
+
+      function resizeCanvas() {
+        const rect = el.canvas.getBoundingClientRect();
+        const size = Math.max(260, Math.floor(rect.width));
+        const dpr = window.devicePixelRatio || 1;
+        el.canvas.width = size * dpr;
+        el.canvas.height = size * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        draw();
+      }
+
+      function draw() {
+        const size = el.canvas.clientWidth;
+        const cell = size / state.gridSize;
+
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size, size);
+
+        for (let row = 0; row < state.gridSize; row += 1) {
+          for (let col = 0; col < state.gridSize; col += 1) {
+            const color = state.pixels[row][col];
+            if (!color) continue;
+            ctx.fillStyle = color;
+            ctx.fillRect(col * cell, row * cell, cell, cell);
+          }
+        }
+
+        ctx.strokeStyle = state.gridSize <= 32 ? "rgba(17, 24, 39, 0.18)" : "rgba(17, 24, 39, 0.1)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i <= state.gridSize; i += 1) {
+          const p = Math.round(i * cell) + 0.5;
+          ctx.moveTo(p, 0);
+          ctx.lineTo(p, size);
+          ctx.moveTo(0, p);
+          ctx.lineTo(size, p);
+        }
+        ctx.stroke();
+
+        // Preview-only symmetry guide lines (not included in PNG/PDF exports).
+        const showVertical = state.symmetryMode === "vertical" || state.symmetryMode === "both";
+        const showHorizontal = state.symmetryMode === "horizontal" || state.symmetryMode === "both";
+        if (showVertical || showHorizontal) {
+          const midX = Math.round(size / 2) + 0.5;
+          const midY = Math.round(size / 2) + 0.5;
+          ctx.save();
+          ctx.strokeStyle = "rgba(15, 118, 110, 0.92)";
+          ctx.lineWidth = Math.max(2, Math.floor(cell * 0.16));
+          if (showVertical) {
+            ctx.beginPath();
+            ctx.moveTo(midX, 0);
+            ctx.lineTo(midX, size);
+            ctx.stroke();
+          }
+          if (showHorizontal) {
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(size, midY);
+            ctx.stroke();
+          }
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+          ctx.lineWidth = 1;
+          if (showVertical) {
+            ctx.beginPath();
+            ctx.moveTo(midX, 0);
+            ctx.lineTo(midX, size);
+            ctx.stroke();
+          }
+          if (showHorizontal) {
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(size, midY);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      function getCell(ev) {
+        const rect = el.canvas.getBoundingClientRect();
+        const x = ev.clientX - rect.left;
+        const y = ev.clientY - rect.top;
+        const col = Math.floor((x / rect.width) * state.gridSize);
+        const row = Math.floor((y / rect.height) * state.gridSize);
+        if (row < 0 || col < 0 || row >= state.gridSize || col >= state.gridSize) return null;
+        return { row, col };
+      }
+
+      function paintCell(row, col) {
+        const key = row + ":" + col;
+        if (state.lastCellKey === key) return;
+        state.lastCellKey = key;
+
+        const value = state.tool === "erase" ? null : state.color;
+        const mirroredCol = state.gridSize - 1 - col;
+        const mirroredRow = state.gridSize - 1 - row;
+        const points = [{ row, col }];
+
+        if (state.symmetryMode === "vertical" || state.symmetryMode === "both") {
+          points.push({ row, col: mirroredCol });
+        }
+        if (state.symmetryMode === "horizontal" || state.symmetryMode === "both") {
+          points.push({ row: mirroredRow, col });
+        }
+        if (state.symmetryMode === "both") {
+          points.push({ row: mirroredRow, col: mirroredCol });
+        }
+
+        const painted = new Set();
+        points.forEach((point) => {
+          const pointKey = point.row + ":" + point.col;
+          if (painted.has(pointKey)) return;
+          painted.add(pointKey);
+          state.pixels[point.row][point.col] = value;
+        });
+        persist();
+        draw();
+      }
+
+      function hasArtwork() {
+        for (let row = 0; row < state.gridSize; row += 1) {
+          for (let col = 0; col < state.gridSize; col += 1) {
+            if (state.pixels[row][col]) return true;
+          }
+        }
+        return false;
+      }
+
+      function buildExportCanvas() {
+        const scale = 1;
+        const out = document.createElement("canvas");
+        out.width = state.gridSize * scale;
+        out.height = state.gridSize * scale;
+        const octx = out.getContext("2d", { alpha: true });
+        octx.clearRect(0, 0, out.width, out.height);
+
+        for (let row = 0; row < state.gridSize; row += 1) {
+          for (let col = 0; col < state.gridSize; col += 1) {
+            const color = state.pixels[row][col];
+            if (!color) continue;
+            octx.fillStyle = color;
+            octx.fillRect(col * scale, row * scale, scale, scale);
+          }
+        }
+
+        return out;
+      }
+
+      function exportPng() {
+        const out = buildExportCanvas();
+        const a = document.createElement("a");
+        a.download = safeName(el.titleInput.value) + "-" + state.gridSize + "x" + state.gridSize + ".png";
+        a.href = out.toDataURL("image/png");
+        a.click();
+        setStatus("PNG exported.");
+      }
+
+      function hexToRgb(hex) {
+        const clean = hex.replace("#", "");
+        const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
+        const n = parseInt(full, 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+
+      function exportPdf() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          setStatus("PDF library unavailable right now.");
+          return;
+        }
+        const showGrid = el.pdfGrid.checked;
+
+        const doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter", orientation: "portrait" });
+        const w = doc.internal.pageSize.getWidth();
+        const h = doc.internal.pageSize.getHeight();
+        const margin = 40;
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text(el.titleInput.value || "Pixel Print", margin, margin + 8);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        const nameLine = el.nameInput.value ? "Name: " + el.nameInput.value : "Name: ____________________";
+        doc.text(nameLine, margin, margin + 28);
+
+        const top = margin + 42;
+        const availW = w - margin * 2;
+        const availH = h - top - margin;
+        const cell = Math.floor(Math.min(availW / state.gridSize, availH / state.gridSize));
+        const side = cell * state.gridSize;
+        const startX = Math.floor((w - side) / 2);
+        const startY = top + Math.floor((availH - side) / 2);
+
+        for (let row = 0; row < state.gridSize; row += 1) {
+          for (let col = 0; col < state.gridSize; col += 1) {
+            const x = startX + col * cell;
+            const y = startY + row * cell;
+            const color = state.pixels[row][col];
+
+            if (color) {
+              const rgb = hexToRgb(color);
+              doc.setFillColor(rgb.r, rgb.g, rgb.b);
+            } else {
+              doc.setFillColor(255, 255, 255);
+            }
+            doc.rect(x, y, cell, cell, "F");
+
+            if (showGrid) {
+              doc.setDrawColor(160, 170, 190);
+              doc.setLineWidth(0.35);
+              doc.rect(x, y, cell, cell);
+            }
+          }
+        }
+
+        doc.save(safeName(el.titleInput.value) + "-print.pdf");
+        setStatus(showGrid ? "PDF exported with grid." : "PDF exported without grid.");
+      }
+
+      function saveToLocal() {
+        const payload = {
+          gridSize: state.gridSize,
+          pixels: state.pixels,
+          symmetryMode: state.symmetryMode,
+          templateId: state.templateId,
+          palettePreset: state.palettePreset,
+          myColors: state.myColors,
+          selectedMyColor: state.selectedMyColor,
+          color: state.color,
+          title: el.titleInput.value,
+          name: el.nameInput.value,
+          pdfGrid: el.pdfGrid.checked,
+          updatedAt: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      }
+
+      function loadFromLocal() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+
+        try {
+          const data = JSON.parse(raw);
+          if (!data || !Array.isArray(data.pixels) || !data.pixels.length) return false;
+
+          const size = Number(data.gridSize);
+          if (![16, 32, 64].includes(size)) return false;
+
+          state.gridSize = size;
+          state.pixels = data.pixels.map((row) => row.map((cell) => cell || null));
+          if (typeof data.symmetryMode === "string" && ["off", "vertical", "horizontal", "both"].includes(data.symmetryMode)) {
+            state.symmetryMode = data.symmetryMode;
+          } else if (data.symmetry === true) {
+            state.symmetryMode = "vertical";
+          } else {
+            state.symmetryMode = "off";
+          }
+          state.templateId = typeof data.templateId === "string" ? data.templateId : "";
+          applyPalettePreset(data.palettePreset || DEFAULT_PRESET);
+          if (Array.isArray(data.myColors) && data.myColors.length) {
+            state.myColors = data.myColors.map(toHex).slice(0, MAX_MY_COLORS);
+          } else if (Array.isArray(data.palette) && data.palette.length) {
+            const migrated = data.palette.map(toHex).filter((c) => !state.fixedPalette.includes(c));
+            state.myColors = migrated.length ? migrated.slice(0, MAX_MY_COLORS) : DEFAULT_MY_COLORS.slice();
+          } else {
+            state.myColors = DEFAULT_MY_COLORS.slice();
+          }
+          const savedIndex = Number(data.selectedMyColor);
+          state.selectedMyColor = Number.isInteger(savedIndex) && savedIndex >= 0 && savedIndex < state.myColors.length ? savedIndex : 0;
+          state.color = toHex(data.color || state.myColors[0] || state.fixedPalette[0] || "#2563eb");
+
+          el.gridSize.value = String(state.gridSize);
+          el.titleInput.value = data.title || "Pixel Print";
+          el.nameInput.value = data.name || "";
+          el.colorPicker.value = state.color;
+          el.symmetryMode.value = state.symmetryMode;
+          el.pdfGrid.checked = data.pdfGrid !== false;
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function resetGrid(newSize) {
+        state.gridSize = newSize;
+        state.pixels = createGrid(newSize);
+        state.undoStack = [];
+        state.lastCellKey = null;
+        refreshTemplateControls();
+        persist();
+        resizeCanvas();
+        setStatus("New " + newSize + " x " + newSize + " grid.");
+      }
+
+      function bindEvents() {
+        el.paintBtn.addEventListener("click", function () {
+          setTool("paint");
+        });
+
+        el.eraseBtn.addEventListener("click", function () {
+          setTool("erase");
+        });
+        el.templateSelect.addEventListener("change", function () {
+          state.templateId = el.templateSelect.value;
+          saveToLocal();
+        });
+        el.loadTemplateBtn.addEventListener("click", loadSelectedTemplate);
+        el.symmetryMode.addEventListener("change", function () {
+          state.symmetryMode = el.symmetryMode.value;
+          saveToLocal();
+          draw();
+          if (state.symmetryMode === "off") {
+            setStatus("Symmetry off.");
+            return;
+          }
+          const labels = {
+            vertical: "Vertical symmetry on.",
+            horizontal: "Horizontal symmetry on.",
+            both: "Vertical + horizontal symmetry on."
+          };
+          setStatus(labels[state.symmetryMode] || "Symmetry updated.");
+        });
+
+        el.undoBtn.addEventListener("click", undo);
+
+        el.clearBtn.addEventListener("click", function () {
+          if (!window.confirm("Clear the grid?")) return;
+          pushUndo();
+          state.pixels = createGrid(state.gridSize);
+          persist();
+          draw();
+          setStatus("Grid cleared.");
+        });
+
+        el.newBtn.addEventListener("click", function () {
+          if (hasArtwork() && !window.confirm("Start a new grid?")) return;
+          resetGrid(Number(el.gridSize.value));
+        });
+        el.palettePreset.addEventListener("change", function () {
+          applyPalettePreset(el.palettePreset.value);
+          renderPalettes();
+          saveToLocal();
+          setStatus("Class palette set to " + PALETTE_PRESETS[state.palettePreset].label + ".");
+        });
+
+        el.colorPicker.addEventListener("input", function () {
+          state.color = toHex(el.colorPicker.value);
+          setTool("paint");
+          renderPalettes();
+          saveToLocal();
+        });
+        el.addMyColorBtn.addEventListener("click", addMyColor);
+        el.updateMyColorBtn.addEventListener("click", updateMyColor);
+        el.removeMyColorBtn.addEventListener("click", removeMyColor);
+
+        el.titleInput.addEventListener("input", saveToLocal);
+        el.nameInput.addEventListener("input", saveToLocal);
+        el.pdfGrid.addEventListener("change", saveToLocal);
+        el.gridSize.addEventListener("change", function () {
+          if (hasArtwork() && !window.confirm("Switching size starts a new grid. Continue?")) {
+            el.gridSize.value = String(state.gridSize);
+            return;
+          }
+          resetGrid(Number(el.gridSize.value));
+        });
+
+        el.pngBtn.addEventListener("click", exportPng);
+        el.pdfBtn.addEventListener("click", exportPdf);
+
+        el.canvas.addEventListener("pointerdown", function (ev) {
+          ev.preventDefault();
+          pushUndo();
+          state.drawing = true;
+          state.lastCellKey = null;
+          el.canvas.setPointerCapture(ev.pointerId);
+          const cell = getCell(ev);
+          if (cell) paintCell(cell.row, cell.col);
+        });
+
+        el.canvas.addEventListener("pointermove", function (ev) {
+          if (!state.drawing) return;
+          ev.preventDefault();
+          const cell = getCell(ev);
+          if (cell) paintCell(cell.row, cell.col);
+        });
+
+        function stopDraw() {
+          state.drawing = false;
+          state.lastCellKey = null;
+        }
+
+        el.canvas.addEventListener("pointerup", stopDraw);
+        el.canvas.addEventListener("pointercancel", stopDraw);
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      function init() {
+        applyPalettePreset(DEFAULT_PRESET);
+        const restored = loadFromLocal();
+        refreshTemplateControls();
+        if (!restored) {
+          state.pixels = createGrid(state.gridSize);
+          el.symmetryMode.value = state.symmetryMode;
+          saveToLocal();
+        }
+
+        renderPalettes();
+        bindEvents();
+        requestAnimationFrame(resizeCanvas);
+        setStatus("Ready. Draw, then export PNG or PDF.");
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
