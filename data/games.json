@@ -7,6 +7,13 @@
     "tags": ["tool", "art", "pixel", "single-player"]
   },
   {
+    "slug": "spin-art-studio",
+    "title": "Spin Art Studio",
+    "path": "/spin-art-studio.html",
+    "status": "live",
+    "tags": ["art", "science", "motion", "single-player"]
+  },
+  {
     "slug": "ant-colony",
     "title": "Ant Colony Lab",
     "path": "/games/ant-colony-lab/",
