@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Spin Art Studio</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #6C63FF;
+  --primary-dark: #5A52D5;
+  --accent: #FF6584;
+  --bg: #F0F2F5;
+  --panel-bg: #FFFFFF;
+  --text: #2D3436;
+  --text-light: #636E72;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+header {
+  background: linear-gradient(135deg, var(--primary), #8B83FF);
+  color: white;
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(108,99,255,0.3);
+}
+
+header h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+header .tagline {
+  font-size: 0.85rem;
+  opacity: 0.85;
+  font-weight: 400;
+  margin-left: 12px;
+}
+
+.safety-note {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  background: rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.controls-panel {
+  width: 280px;
+  min-width: 280px;
+  background: var(--panel-bg);
+  padding: 16px;
+  overflow-y: auto;
+  border-right: 1px solid #E0E0E0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.control-group {
+  background: #FAFAFA;
+  border-radius: var(--radius);
+  padding: 12px;
+  border: 1px solid #EEE;
+}
+
+.control-group h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.control-group input[type="text"],
+.control-group input[type="date"] {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #DDD;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.control-group input[type="text"]:focus,
+.control-group input[type="date"]:focus {
+  border-color: var(--primary);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #DDD;
+  outline: none;
+  margin: 6px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-row span {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  min-width: 28px;
+  text-align: right;
+}
+
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { border-color: var(--text); transform: scale(1.15); }
+
+.palette-select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #DDD;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: white;
+  cursor: pointer;
+  outline: none;
+  margin-bottom: 4px;
+  transition: border-color 0.2s;
+}
+
+.palette-select:focus { border-color: var(--primary); }
+
+.palette-hint {
+  font-size: 0.7rem;
+  color: var(--primary);
+  font-style: italic;
+  line-height: 1.3;
+  margin-bottom: 6px;
+  min-height: 1.3em;
+}
+
+.custom-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-color-row input[type="color"] {
+  width: 32px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.custom-color-row span {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  width: 100%;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn-danger {
+  background: var(--accent);
+  color: white;
+}
+.btn-danger:hover { background: #E8527A; }
+
+.btn-secondary {
+  background: #E8E8E8;
+  color: var(--text);
+}
+.btn-secondary:hover { background: #D5D5D5; }
+
+.btn-success {
+  background: #00B894;
+  color: white;
+}
+.btn-success:hover { background: #00A381; }
+
+.btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.toggle-row span {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #CCC;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle.on { background: var(--primary); }
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle.on::after { transform: translateX(20px); }
+
+.teacher-section {
+  border-top: 1px solid #EEE;
+  padding-top: 10px;
+}
+
+.teacher-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 4px 0;
+}
+
+.teacher-toggle .arrow {
+  transition: transform 0.2s;
+  font-size: 0.7rem;
+}
+
+.teacher-toggle .arrow.open { transform: rotate(90deg); }
+
+.teacher-content {
+  display: none;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.teacher-content.visible { display: block; }
+
+.teacher-content ul {
+  margin: 4px 0 8px 16px;
+}
+
+.teacher-content h4 {
+  font-size: 0.78rem;
+  color: var(--text);
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.canvas-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+  background: #E8EAF0;
+  overflow: hidden;
+}
+
+.canvas-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas#spinCanvas {
+  border-radius: 50%;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 0 0 4px #DDD;
+  cursor: crosshair;
+  touch-action: none;
+  background: white;
+}
+
+.spin-indicator {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.spin-indicator.visible { opacity: 1; }
+
+/* Print styles */
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
+#printArea {
+  display: none;
+  padding: 40px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+#printArea.show { display: block; }
+
+#printArea h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+#printArea .print-meta {
+  text-align: center;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+#printArea .print-artwork {
+  text-align: center;
+  margin: 20px 0;
+}
+
+#printArea .print-artwork img {
+  max-width: 400px;
+  border-radius: 50%;
+  border: 2px solid #CCC;
+}
+
+#printArea .question {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #CCC;
+  border-radius: 8px;
+}
+
+#printArea .question h4 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+#printArea .question .lines {
+  border-bottom: 1px solid #DDD;
+  height: 30px;
+  margin-bottom: 4px;
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .main-area {
+    flex-direction: column;
+  }
+  .controls-panel {
+    width: 100%;
+    min-width: unset;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-y: visible;
+    overflow-x: auto;
+    max-height: 200px;
+    padding: 10px;
+    gap: 8px;
+    border-right: none;
+    border-bottom: 1px solid #E0E0E0;
+  }
+  .control-group {
+    min-width: 200px;
+    flex: 1;
+  }
+  .canvas-area {
+    padding: 10px;
+  }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>Spin Art Studio <span class="tagline">Create &bull; Print &bull; Reflect</span></h1>
+    </div>
+    <div class="safety-note">No real paint required &mdash; print your designs!</div>
+  </header>
+
+  <div class="main-area">
+    <div class="controls-panel">
+      <!-- Student Info -->
+      <div class="control-group">
+        <h3>Student Info</h3>
+        <label for="studentName">Name</label>
+        <input type="text" id="studentName" placeholder="Your name">
+        <label for="sessionDate">Date</label>
+        <input type="date" id="sessionDate">
+      </div>
+
+      <!-- Spin Controls -->
+      <div class="control-group">
+        <h3>Spin Controls</h3>
+        <button class="btn btn-primary" id="btnSpin" onclick="toggleSpin()">&#9654; Start Spinning</button>
+        <div style="margin-top:8px">
+          <label>Spin Speed</label>
+          <div class="slider-row">
+            <input type="range" id="speedSlider" min="0" max="100" value="40">
+            <span id="speedVal">0.40</span>
+          </div>
+        </div>
+        <div style="margin-top:4px">
+          <label>Brush Size</label>
+          <div class="slider-row">
+            <input type="range" id="brushSlider" min="1" max="100" value="40">
+            <span id="brushVal">40</span>
+          </div>
+        </div>
+        <div class="toggle-row" style="margin-top:6px">
+          <span>Drip Mode</span>
+          <div class="toggle" id="dripToggle" onclick="toggleDrip()"></div>
+        </div>
+      </div>
+
+      <!-- Colors -->
+      <div class="control-group">
+        <h3>Color Palette</h3>
+        <select class="palette-select" id="paletteSelect" onchange="switchPalette(this.value)"></select>
+        <div class="palette-hint" id="paletteHint"></div>
+        <div class="color-palette" id="colorPalette"></div>
+        <div class="custom-color-row">
+          <input type="color" id="customColor" value="#6C63FF">
+          <span>Custom Color</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="control-group">
+        <h3>Actions</h3>
+        <div class="btn-group">
+          <button class="btn btn-secondary" onclick="undoAction()">&#8630; Undo</button>
+          <button class="btn btn-danger" onclick="clearCanvas()">&#10005; Clear</button>
+          <button class="btn btn-success" onclick="savePNG()">&#8681; Save PNG</button>
+          <button class="btn btn-secondary" onclick="printSheet()">&#9113; Print</button>
+        </div>
+      </div>
+
+      <!-- Teacher Mode -->
+      <div class="control-group teacher-section">
+        <div class="teacher-toggle" onclick="toggleTeacher()">
+          <span>&#128218; Teacher Mode</span>
+          <span class="arrow" id="teacherArrow">&#9654;</span>
+        </div>
+        <div class="teacher-content" id="teacherContent">
+          <h4>Suggested Prompts</h4>
+          <ul>
+            <li>What patterns do you see? Why?</li>
+            <li>Predict what happens at max speed.</li>
+            <li>Compare center drops vs. edge drops.</li>
+          </ul>
+          <h4>Extension Activities</h4>
+          <ul>
+            <li>Test 3 speeds and compare results.</li>
+            <li>Use only 2 colors &mdash; study mixing.</li>
+            <li>Try different brush sizes for texture.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-area">
+      <div class="canvas-wrapper">
+        <canvas id="spinCanvas"></canvas>
+        <div class="spin-indicator" id="spinIndicator">Spinning</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Print Area (hidden until print) -->
+<div id="printArea">
+  <h2>Spin Art Experiment</h2>
+  <div class="print-meta">
+    <strong id="printName"></strong> &bull; <span id="printDate"></span>
+  </div>
+  <div class="print-artwork">
+    <img id="printImg" alt="Spin Art">
+  </div>
+  <div class="question">
+    <h4>1. How did spin speed change your design?</h4>
+    <div class="lines"></div>
+    <div class="lines"></div>
+    <div class="lines"></div>
+  </div>
+  <div class="question">
+    <h4>2. What happened when you dropped paint near the center vs. near the edge?</h4>
+    <div class="lines"></div>
+    <div class="lines"></div>
+    <div class="lines"></div>
+  </div>
+</div>
+
+<script>
+// ====== State ======
+// ====== Color Palettes (color theory for kids) ======
+const PALETTES = {
+  rainbow: {
+    name: '🌈 Rainbow Party',
+    hint: 'All the colors of the rainbow — ROY G. BIV!',
+    colors: ['#FF0000','#FF7F00','#FFD700','#00CC44','#0088FF','#4400CC','#9900FF',
+             '#FF3399','#00CED1','#FF6347','#2D3436','#FFFFFF']
+  },
+  primary: {
+    name: '🔴🔵🟡 Primary Colors',
+    hint: 'Red, Blue & Yellow — the 3 colors you can\'t mix from others!',
+    colors: ['#DD0000','#0044CC','#FFD700','#DD0000','#0044CC','#FFD700',
+             '#AA0000','#002299','#CCB000','#880000','#2D3436','#FFFFFF']
+  },
+  secondary: {
+    name: '🟢🟠🟣 Secondary Colors',
+    hint: 'Mix 2 primaries → Orange, Green & Purple!',
+    colors: ['#FF6600','#00AA44','#8833CC','#FF8800','#00CC66','#AA44EE',
+             '#CC4400','#007733','#6622AA','#FF4400','#2D3436','#FFFFFF']
+  },
+  warm: {
+    name: '🔥 Warm & Toasty',
+    hint: 'Reds, oranges & yellows — colors of fire and sunshine!',
+    colors: ['#FF0000','#FF4500','#FF6B2B','#FF8C00','#FFB700','#FFD700',
+             '#FFEE00','#FF1493','#CC0033','#FF7799','#2D3436','#FFFFFF']
+  },
+  cool: {
+    name: '❄️ Cool & Breezy',
+    hint: 'Blues, greens & purples — colors of water, sky & ice!',
+    colors: ['#0066FF','#00AAFF','#00CED1','#00CC88','#22BBAA','#5577FF',
+             '#8855DD','#44DDDD','#0044AA','#99BBFF','#2D3436','#FFFFFF']
+  },
+  complementary: {
+    name: '⚡ Complementary Clash',
+    hint: 'Opposite colors on the color wheel — maximum contrast!',
+    colors: ['#FF0000','#00CCAA','#FF8800','#0055FF','#FFDD00','#7700DD',
+             '#FF0066','#00CC66','#FF4400','#0088CC','#2D3436','#FFFFFF']
+  },
+  pastel: {
+    name: '🧁 Pastel Dreams',
+    hint: 'Soft, light tints — any color + lots of white!',
+    colors: ['#FFB3BA','#FFCCB6','#FFFFB5','#BAFFC9','#BAE1FF','#D4BAFF',
+             '#FFC8DD','#B5EAD7','#E2F0CB','#FFDAC1','#C0C0C0','#FFFFFF']
+  },
+  earth: {
+    name: '🌿 Earth Tones',
+    hint: 'Colors from nature — soil, leaves, clay & stone.',
+    colors: ['#8B4513','#A0522D','#D2691E','#CD853F','#556B2F','#6B8E23',
+             '#808000','#BC8F8F','#B8860B','#DEB887','#2D3436','#FFFFFF']
+  },
+  monoblue: {
+    name: '🌊 Ocean Mono',
+    hint: 'One color, many shades — this is called "monochromatic"!',
+    colors: ['#001133','#002266','#003399','#0055CC','#0077FF','#3399FF',
+             '#66BBFF','#99DDFF','#CCEDFF','#00AACC','#0D1B2A','#FFFFFF']
+  },
+  neon: {
+    name: '✨ Neon Glow',
+    hint: 'Super bright & saturated — high-energy colors!',
+    colors: ['#FF0055','#FF6600','#FFFF00','#00FF66','#00FFFF','#0066FF',
+             '#AA00FF','#FF00FF','#FF3388','#88FF00','#1A1A2E','#FFFFFF']
+  },
+  // ---- Seasonal Palettes ----
+  spring: {
+    name: '🌸 Spring Bloom',
+    hint: 'Fresh flowers & new leaves — nature waking up from winter!',
+    colors: ['#FF85A2','#FF69B4','#C9E265','#77DD77','#A7F0BA','#FFB7E0',
+             '#B19CD9','#FFFACD','#87CEEB','#FFC0CB','#5D6B4B','#FFFFFF']
+  },
+  summer: {
+    name: '☀️ Summer Splash',
+    hint: 'Hot sun, cool water & tropical fruit — summertime colors!',
+    colors: ['#FF4466','#FF8833','#FFD700','#00CCA3','#00BFFF','#FF1493',
+             '#FF6B6B','#40E0D0','#FFA07A','#7CFC00','#2D3436','#FFFFFF']
+  },
+  autumn: {
+    name: '🍂 Autumn Harvest',
+    hint: 'Falling leaves & cozy sweaters — warm golds, reds & browns!',
+    colors: ['#CC3300','#E65100','#FF8F00','#FFB300','#8D6E63','#795548',
+             '#9E7C0C','#A1887F','#D84315','#BF360C','#33261D','#FFF8E1']
+  },
+  winter: {
+    name: '⛄ Winter Wonderland',
+    hint: 'Icy sparkles & snowy nights — cool blues, silvers & frosty whites!',
+    colors: ['#B3E5FC','#81D4FA','#4FC3F7','#0288D1','#01579B','#E0E0E0',
+             '#CFD8DC','#90A4AE','#BBDEFB','#E1F5FE','#263238','#FFFFFF']
+  },
+  // ---- Fun Theme Palettes ----
+  candy: {
+    name: '🍬 Candy Shop',
+    hint: 'Bubblegum, lollipops & cotton candy — yummy sugar colors!',
+    colors: ['#FF69B4','#FF1493','#FF6EC7','#00CED1','#87CEEB','#DA70D6',
+             '#FFB6C1','#FF4500','#FFD700','#98FB98','#8B008B','#FFFFFF']
+  },
+  beach: {
+    name: '🏖️ Beach Day',
+    hint: 'Sandy shores, ocean waves & sunset skies — a day at the beach!',
+    colors: ['#FFD093','#F4A460','#FF7F50','#FF6347','#00CED1','#20B2AA',
+             '#87CEEB','#FFF8DC','#2E8B57','#FF4500','#1B4F72','#FFFDE7']
+  }
+};
+
+let currentPaletteKey = 'rainbow';
+let COLORS = PALETTES.rainbow.colors;
+
+let spinning = false;
+let dripMode = false;
+let particles = [];
+let undoStack = [];
+const MAX_UNDO = 12;
+let selectedColor = COLORS[0];
+let dripInterval = null;
+let animFrameId = null;
+let lastTime = 0;
+
+// Cached slider values (updated on input, read every frame)
+let cachedSpeed = 0.40;
+let cachedBrush = 40;
+
+// ====== Canvas Setup ======
+const canvas = document.getElementById('spinCanvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+let canvasSize = 0;
+let radius = 0;
+let dpr = 1;
+
+function resizeCanvas() {
+  const area = document.querySelector('.canvas-area');
+  const w = area.clientWidth - 40;
+  const h = area.clientHeight - 40;
+  canvasSize = Math.min(w, h, 700);
+  radius = canvasSize / 2;
+  dpr = window.devicePixelRatio || 1;
+
+  canvas.style.width = canvasSize + 'px';
+  canvas.style.height = canvasSize + 'px';
+  canvas.width = canvasSize * dpr;
+  canvas.height = canvasSize * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Redraw from last undo snapshot if available
+  if (undoStack.length > 0) {
+    const last = undoStack[undoStack.length - 1];
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = last.width;
+    tmpCanvas.height = last.height;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.putImageData(last, 0, 0);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+}
+
+// ====== Init date ======
+function initDate() {
+  const d = new Date();
+  const str = d.toISOString().split('T')[0];
+  document.getElementById('sessionDate').value = str;
+}
+
+// ====== Color Palette ======
+function buildPaletteDropdown() {
+  const sel = document.getElementById('paletteSelect');
+  sel.innerHTML = '';
+  for (const key in PALETTES) {
+    const opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = PALETTES[key].name;
+    sel.appendChild(opt);
+  }
+  sel.value = currentPaletteKey;
+  document.getElementById('paletteHint').textContent = PALETTES[currentPaletteKey].hint;
+}
+
+function buildPalette() {
+  const pal = document.getElementById('colorPalette');
+  pal.innerHTML = '';
+  COLORS.forEach((c, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i === 0 ? ' active' : '');
+    sw.style.background = c;
+    // Add border to very light swatches so they're visible
+    const [cr,cg,cb] = hexToRGB(c);
+    if (cr + cg + cb > 680) sw.style.border = '2px solid #CCC';
+    sw.addEventListener('click', () => selectColor(c, sw));
+    pal.appendChild(sw);
+  });
+  selectedColor = COLORS[0];
+}
+
+function switchPalette(key) {
+  currentPaletteKey = key;
+  COLORS = PALETTES[key].colors;
+  document.getElementById('paletteHint').textContent = PALETTES[key].hint;
+  buildPalette();
+}
+
+function selectColor(c, el) {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  if (el) el.classList.add('active');
+  selectedColor = c;
+}
+
+document.getElementById('customColor').addEventListener('input', function() {
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+  selectedColor = this.value;
+});
+
+// ====== Slider labels + cached values ======
+document.getElementById('speedSlider').addEventListener('input', function() {
+  cachedSpeed = this.value / 100;
+  document.getElementById('speedVal').textContent = cachedSpeed.toFixed(2);
+});
+document.getElementById('brushSlider').addEventListener('input', function() {
+  cachedBrush = parseInt(this.value);
+  document.getElementById('brushVal').textContent = cachedBrush;
+});
+
+// ====== Spin Toggle ======
+function toggleSpin() {
+  spinning = !spinning;
+  const btn = document.getElementById('btnSpin');
+  const ind = document.getElementById('spinIndicator');
+  if (spinning) {
+    btn.innerHTML = '&#9724; Stop Spinning';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-danger');
+    ind.classList.add('visible');
+  } else {
+    btn.innerHTML = '&#9654; Start Spinning';
+    btn.classList.remove('btn-danger');
+    btn.classList.add('btn-primary');
+    ind.classList.remove('visible');
+  }
+}
+
+// ====== Drip Toggle ======
+function toggleDrip() {
+  dripMode = !dripMode;
+  document.getElementById('dripToggle').classList.toggle('on', dripMode);
+}
+
+// ====== Teacher Toggle ======
+function toggleTeacher() {
+  const content = document.getElementById('teacherContent');
+  const arrow = document.getElementById('teacherArrow');
+  content.classList.toggle('visible');
+  arrow.classList.toggle('open');
+}
+
+// ====== Particles ======
+function hexToRGB(hex) {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) {
+    r = parseInt(hex[1]+hex[1], 16);
+    g = parseInt(hex[2]+hex[2], 16);
+    b = parseInt(hex[3]+hex[3], 16);
+  } else if (hex.length === 7) {
+    r = parseInt(hex.substring(1,3), 16);
+    g = parseInt(hex.substring(3,5), 16);
+    b = parseInt(hex.substring(5,7), 16);
+  }
+  return [r, g, b];
+}
+
+function hexToRGBA(hex, alpha) {
+  const [r, g, b] = hexToRGB(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Lighten a hex color by amt (0-1) for impasto highlights
+function lightenHex(hex, amt) {
+  const [r, g, b] = hexToRGB(hex);
+  const lr = Math.min(255, r + (255 - r) * amt) | 0;
+  const lg = Math.min(255, g + (255 - g) * amt) | 0;
+  const lb = Math.min(255, b + (255 - b) * amt) | 0;
+  return `rgb(${lr},${lg},${lb})`;
+}
+
+// Darken a hex color by amt (0-1) for shadows
+function darkenHex(hex, amt) {
+  const [r, g, b] = hexToRGB(hex);
+  const dr = (r * (1 - amt)) | 0;
+  const dg = (g * (1 - amt)) | 0;
+  const db = (b * (1 - amt)) | 0;
+  return `rgb(${dr},${dg},${db})`;
+}
+
+function spawnParticles(px, py) {
+  const brushVal = cachedBrush;
+  const pSize = 1.8 + brushVal * 0.07;
+
+  const cx = canvasSize / 2;
+  const cy = canvasSize / 2;
+  const dropDist = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+  const dropAngle = Math.atan2(py - cy, px - cx);
+
+  const hlColor = lightenHex(selectedColor, 0.3);
+  const shColor = darkenHex(selectedColor, 0.2);
+
+  // === 1) Dense radial spokes — thin spikes radiating outward ===
+  const numArms = Math.floor(40 + brushVal * 0.8);
+
+  for (let a = 0; a < numArms; a++) {
+    const baseAngle = (a / numArms) * Math.PI * 2;
+    const armAngle = baseAngle + (Math.random() - 0.5) * (Math.PI * 2 / numArms) * 0.8;
+    const armSpeed = 1.8 + Math.random() * 3.0;
+    const armWidth = pSize * (0.4 + Math.random() * 0.8);
+    const wobbleFreq = 3 + Math.random() * 5;
+    const wobbleAmp = 0.1 + Math.random() * 0.15;
+
+    const perpJitter = (Math.random() - 0.5) * brushVal * 0.03;
+    const x = px + Math.cos(armAngle + Math.PI/2) * perpJitter;
+    const y = py + Math.sin(armAngle + Math.PI/2) * perpJitter;
+    const dx = x - cx;
+    const dy = y - cy;
+    const speedBoost = 0.4 + (dropDist / radius) * 1.5;
+
+    particles.push({
+      angle: Math.atan2(dy, dx),
+      dist: Math.sqrt(dx * dx + dy * dy),
+      prevAngle: 0, prevDist: 0,
+      radialVel: armSpeed * speedBoost * (0.8 + Math.random() * 0.4),
+      angularJitter: (Math.random() - 0.5) * 0.0008,
+      size: armWidth,
+      color: selectedColor, hlColor, shColor,
+      alpha: 0.85 + Math.random() * 0.15,
+      life: 1.0,
+      decay: 0.001 + Math.random() * 0.002,
+      wobbleFreq, wobbleAmp,
+      age: 0, type: 0
+    });
+  }
+
+  // === 1b) Thick "heavy" spokes — wide ribbons for density ===
+  const thickCount = Math.floor(8 + brushVal * 0.15);
+  for (let a = 0; a < thickCount; a++) {
+    const armAngle = (a / thickCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+    const armSpeed = 0.6 + Math.random() * 1.4;
+    const dx = px - cx;
+    const dy = py - cy;
+    const speedBoost = 0.3 + (dropDist / radius) * 1.0;
+
+    particles.push({
+      angle: armAngle,
+      dist: Math.max(1, Math.sqrt(dx * dx + dy * dy) + Math.random() * 3),
+      prevAngle: 0, prevDist: 0,
+      radialVel: armSpeed * speedBoost,
+      angularJitter: (Math.random() - 0.5) * 0.0006,
+      size: pSize * (1.5 + Math.random() * 2.0),
+      color: selectedColor, hlColor, shColor,
+      alpha: 0.9 + Math.random() * 0.1,
+      life: 1.0,
+      decay: 0.0006 + Math.random() * 0.0012,
+      wobbleFreq: 2 + Math.random() * 3,
+      wobbleAmp: 0.12 + Math.random() * 0.18,
+      age: 0, type: 0
+    });
+  }
+
+  // === 2) Central blob pool (thick acrylic puddle at drop point) ===
+  const blobCount = Math.floor(25 + brushVal * 0.5);
+  for (let i = 0; i < blobCount; i++) {
+    const offR = Math.random() * brushVal * 0.35;
+    const offA = Math.random() * Math.PI * 2;
+    const x = px + Math.cos(offA) * offR;
+    const y = py + Math.sin(offA) * offR;
+    const dx = x - cx;
+    const dy = y - cy;
+
+    particles.push({
+      angle: Math.atan2(dy, dx),
+      dist: Math.sqrt(dx * dx + dy * dy),
+      prevAngle: 0, prevDist: 0,
+      radialVel: 0.03 + Math.random() * 0.2,
+      angularJitter: (Math.random() - 0.5) * 0.001,
+      size: pSize * (1.5 + Math.random() * 2.5),
+      color: selectedColor, hlColor, shColor,
+      alpha: 0.92 + Math.random() * 0.08,
+      life: 1.0,
+      decay: 0.0003 + Math.random() * 0.0006,
+      age: 0, type: 1
+    });
+  }
+
+  // === 3) Micro-splatter dots (fast radial flings) ===
+  const splatCount = Math.floor(14 + brushVal * 0.35);
+  for (let i = 0; i < splatCount; i++) {
+    const splatAngle = Math.random() * Math.PI * 2;
+    const offR = Math.random() * brushVal * 0.2;
+    const x = px + Math.cos(splatAngle) * offR;
+    const y = py + Math.sin(splatAngle) * offR;
+    const dx = x - cx;
+    const dy = y - cy;
+
+    particles.push({
+      angle: Math.atan2(dy, dx),
+      dist: Math.sqrt(dx * dx + dy * dy),
+      prevAngle: 0, prevDist: 0,
+      radialVel: 3.0 + Math.random() * 5.0, // very fast outward
+      angularJitter: (Math.random() - 0.5) * 0.002,
+      size: pSize * (0.25 + Math.random() * 0.5),
+      color: selectedColor,
+      hlColor, shColor,
+      alpha: 0.8 + Math.random() * 0.2,
+      life: 1.0,
+      decay: 0.004 + Math.random() * 0.008,
+      age: 0,
+      type: 2 // 2=splat
+    });
+  }
+}
+
+function saveUndoSnapshot() {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  undoStack.push(data);
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+}
+
+// ====== Pointer Events ======
+let pointerDown = false;
+
+canvas.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  pointerDown = true;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  if (isInsideCircle(x, y)) {
+    saveUndoSnapshot();
+    spawnParticles(x, y);
+    if (dripMode) {
+      startDrip(rect);
+    }
+  }
+});
+
+let lastPointerEvent = null;
+
+canvas.addEventListener('pointermove', (e) => {
+  lastPointerEvent = e;
+  if (!pointerDown) return;
+  e.preventDefault();
+  if (!dripMode) {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    if (isInsideCircle(x, y)) {
+      spawnParticles(x, y);
+    }
+  }
+});
+
+canvas.addEventListener('pointerup', () => {
+  pointerDown = false;
+  stopDrip();
+});
+
+canvas.addEventListener('pointerleave', () => {
+  pointerDown = false;
+  stopDrip();
+});
+
+canvas.addEventListener('pointercancel', () => {
+  pointerDown = false;
+  stopDrip();
+});
+
+function isInsideCircle(x, y) {
+  const cx = canvasSize / 2;
+  const cy = canvasSize / 2;
+  const dx = x - cx;
+  const dy = y - cy;
+  return (dx * dx + dy * dy) <= (radius * radius);
+}
+
+function startDrip(rect) {
+  stopDrip();
+  dripInterval = setInterval(() => {
+    if (!pointerDown || !lastPointerEvent) return;
+    const x = lastPointerEvent.clientX - rect.left;
+    const y = lastPointerEvent.clientY - rect.top;
+    if (isInsideCircle(x, y)) {
+      spawnParticles(x, y);
+    }
+  }, 150);
+}
+
+function stopDrip() {
+  if (dripInterval) {
+    clearInterval(dripInterval);
+    dripInterval = null;
+  }
+}
+
+// ====== Animation Loop ======
+function animate(time) {
+  animFrameId = requestAnimationFrame(animate);
+
+  if (!lastTime) { lastTime = time; return; }
+  const dt = Math.min((time - lastTime) / 16.667, 3);
+  lastTime = time;
+
+  const len = particles.length;
+  if (len === 0) return;
+
+  const cx = canvasSize / 2;
+  const cy = canvasSize / 2;
+  // Very low angular velocity — spokes stay nearly straight with slight curve
+  const angularVel = cachedSpeed * 0.003;
+  const invRadius = 1 / radius;
+  const dragFactor = 1 - 0.008 * dt; // minimal drag — paint shoots to edge
+  // Strong centrifugal push so paint reaches edge fast
+  const centrifugalK = 0.18 * cachedSpeed * invRadius * dt;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 1, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.lineCap = 'round';
+
+  // Process particles; swap-and-pop dead ones
+  let i = 0;
+  let count = particles.length;
+  while (i < count) {
+    const p = particles[i];
+
+    // Save previous polar coords
+    const pa = p.angle;
+    const pd = p.dist;
+
+    // Physics update
+    if (spinning) {
+      p.angle += (angularVel + p.angularJitter) * dt;
+      p.radialVel += centrifugalK * p.dist;
+      p.dist += p.radialVel * dt;
+      p.radialVel *= dragFactor;
+    }
+
+    p.life -= p.decay * dt;
+    p.age += dt;
+
+    // Remove dead particles via swap-and-pop
+    if (p.life <= 0 || p.dist > radius) {
+      const fd = Math.min(p.dist, radius - 1);
+      const fx = cx + Math.cos(p.angle) * fd;
+      const fy = cy + Math.sin(p.angle) * fd;
+      ctx.beginPath();
+      ctx.arc(fx, fy, p.type === 2 ? p.size : p.size * 0.7, 0, Math.PI * 2);
+      ctx.fillStyle = hexToRGBA(p.color, p.alpha * 0.6);
+      ctx.fill();
+      // Swap with last, pop
+      particles[i] = particles[--count];
+      particles.length = count;
+      continue;
+    }
+
+    const prevX = cx + Math.cos(pa) * pd;
+    const prevY = cy + Math.sin(pa) * pd;
+    const curX = cx + Math.cos(p.angle) * p.dist;
+    const curY = cy + Math.sin(p.angle) * p.dist;
+    const alpha = Math.min(1.0, p.alpha * (0.5 + p.life * 0.5));
+
+    if (p.type === 0) {
+      // === STREAK: acrylic ribbon with impasto ===
+      const taper = Math.max(0.25, 1.0 - p.dist * invRadius * 0.75);
+      const wobble = 1.0 + Math.sin(p.age * p.wobbleFreq) * p.wobbleAmp;
+      const w = p.size * taper * wobble;
+
+      // Main opaque stroke
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
+      ctx.lineTo(curX, curY);
+      ctx.lineWidth = w;
+      ctx.strokeStyle = hexToRGBA(p.color, alpha);
+      ctx.stroke();
+
+      // Impasto highlight only on wide strokes (skip for thin = big perf win)
+      if (w > 2.5) {
+        ctx.beginPath();
+        ctx.moveTo(prevX - 0.5, prevY - 0.5);
+        ctx.lineTo(curX - 0.5, curY - 0.5);
+        ctx.lineWidth = w * 0.25;
+        ctx.strokeStyle = p.hlColor;
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+      }
+
+    } else if (p.type === 2) {
+      // === SPLAT: simple opaque dot (1 draw call) ===
+      ctx.beginPath();
+      ctx.arc(curX, curY, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = hexToRGBA(p.color, alpha);
+      ctx.fill();
+
+    } else {
+      // === BLOB: opaque pool (1 stroke + 1 fill) ===
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
+      ctx.lineTo(curX, curY);
+      ctx.lineWidth = p.size;
+      ctx.strokeStyle = hexToRGBA(p.color, alpha);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(curX, curY, p.size * 0.6, 0, Math.PI * 2);
+      ctx.fillStyle = hexToRGBA(p.color, alpha);
+      ctx.fill();
+    }
+
+    i++;
+  }
+
+  ctx.restore();
+}
+
+// ====== Actions ======
+function undoAction() {
+  if (undoStack.length === 0) return;
+  const data = undoStack.pop();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.putImageData(data, 0, 0);
+  ctx.restore();
+  particles = [];
+}
+
+function clearCanvas() {
+  saveUndoSnapshot();
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  particles = [];
+}
+
+function getArtworkDataURL() {
+  // Create export canvas with just the circular artwork
+  const expSize = canvasSize * dpr;
+  const expCanvas = document.createElement('canvas');
+  expCanvas.width = expSize;
+  expCanvas.height = expSize;
+  const expCtx = expCanvas.getContext('2d');
+
+  // White circle background
+  expCtx.fillStyle = '#FFFFFF';
+  expCtx.beginPath();
+  expCtx.arc(expSize / 2, expSize / 2, expSize / 2, 0, Math.PI * 2);
+  expCtx.fill();
+
+  // Clip and draw artwork
+  expCtx.save();
+  expCtx.beginPath();
+  expCtx.arc(expSize / 2, expSize / 2, expSize / 2, 0, Math.PI * 2);
+  expCtx.clip();
+  expCtx.drawImage(canvas, 0, 0);
+  expCtx.restore();
+
+  return expCanvas.toDataURL('image/png');
+}
+
+function savePNG() {
+  const dataUrl = getArtworkDataURL();
+  const name = document.getElementById('studentName').value.trim();
+  const filename = name
+    ? `spin-art-${name.replace(/\s+/g, '-').toLowerCase()}.png`
+    : 'spin-art.png';
+
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function printSheet() {
+  const name = document.getElementById('studentName').value.trim() || 'Student';
+  const date = document.getElementById('sessionDate').value;
+
+  document.getElementById('printName').textContent = name;
+  document.getElementById('printDate').textContent = date;
+  document.getElementById('printImg').src = getArtworkDataURL();
+
+  const printArea = document.getElementById('printArea');
+  printArea.classList.add('show');
+
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => printArea.classList.remove('show'), 500);
+  }, 300);
+}
+
+// ====== Init ======
+function init() {
+  initDate();
+  buildPaletteDropdown();
+  buildPalette();
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  animFrameId = requestAnimationFrame(animate);
+}
+
+init();
+</script>
+</body>
+</html>
