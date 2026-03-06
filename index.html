@@ -57,8 +57,8 @@
       inset: 0;
       pointer-events: none;
       background:
-        linear-gradient(rgba(18, 38, 58, 0.025) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(18, 38, 58, 0.025) 1px, transparent 1px);
+        linear-gradient(rgba(18, 38, 58, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(18, 38, 58, 0.035) 1px, transparent 1px);
       background-size: 24px 24px;
       z-index: -2;
     }
@@ -73,9 +73,9 @@
 
     .motif {
       position: absolute;
-      opacity: 0.18;
+      opacity: 0.24;
       color: #6eb6e4;
-      filter: saturate(108%);
+      filter: saturate(115%);
     }
 
     .motif svg {
@@ -98,7 +98,7 @@
       left: 7%;
       bottom: 96px;
       color: #69cfb1;
-      opacity: 0.15;
+      opacity: 0.20;
       animation: spinReverse 32s linear infinite;
     }
 
@@ -108,7 +108,7 @@
       right: 4.2%;
       top: 164px;
       color: #7384ed;
-      opacity: 0.16;
+      opacity: 0.21;
       animation: floatY 10s ease-in-out infinite;
     }
 
@@ -118,7 +118,7 @@
       right: 8%;
       bottom: 56px;
       color: #f2a162;
-      opacity: 0.16;
+      opacity: 0.20;
       animation: floatY 12s ease-in-out infinite 0.7s;
     }
 
@@ -128,7 +128,7 @@
       right: -22px;
       top: 56%;
       color: #69c9c4;
-      opacity: 0.12;
+      opacity: 0.17;
       animation: floatX 13s ease-in-out infinite;
     }
 
@@ -188,6 +188,58 @@
       top: -160px;
       pointer-events: none;
       animation: floatY 14s ease-in-out infinite;
+    }
+
+    /* Floating doodle icons inside the header */
+    .header-doodle {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0.10;
+      z-index: 0;
+    }
+
+    .header-doodle svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .header-doodle.doodle-atom {
+      width: 72px;
+      height: 72px;
+      left: 3%;
+      top: 12px;
+      color: #7384ed;
+      animation: floatY 9s ease-in-out infinite;
+    }
+
+    .header-doodle.doodle-gear {
+      width: 56px;
+      height: 56px;
+      right: 4%;
+      top: 16px;
+      color: #0ea5a4;
+      animation: spinSlow 30s linear infinite;
+    }
+
+    .header-doodle.doodle-ruler {
+      width: 64px;
+      height: 64px;
+      left: 8%;
+      bottom: 10px;
+      color: #f97316;
+      opacity: 0.08;
+      animation: floatY 11s ease-in-out infinite 1s;
+    }
+
+    .header-doodle.doodle-bulb {
+      width: 52px;
+      height: 52px;
+      right: 7%;
+      bottom: 14px;
+      color: #eab308;
+      opacity: 0.10;
+      animation: floatY 8s ease-in-out infinite 0.5s;
     }
 
     @keyframes borderShift {
@@ -548,8 +600,7 @@
     }
 
     /* Interactive elements sit above the overlay */
-    .card .actions,
-    .card .progress-chip {
+    .card .actions {
       position: relative;
       z-index: 2;
     }
@@ -617,49 +668,6 @@
       line-height: 1.35;
     }
 
-    .progress-row {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 0.5rem;
-    }
-
-    .progress-chip {
-      border: 1px solid #c3d6e9;
-      border-radius: var(--radius-pill);
-      padding: 0.24rem 0.58rem;
-      background: #f5faff;
-      color: #355877;
-      font-size: 0.69rem;
-      line-height: 1;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      transition: transform 140ms ease, background 150ms ease;
-    }
-
-    .progress-chip:hover {
-      transform: translateY(-1px);
-    }
-
-    .progress-chip.state-not-started {
-      border-color: #c8d8ea;
-      background: #f5f8fc;
-      color: #5b738a;
-    }
-
-    .progress-chip.state-in-progress {
-      border-color: #7ed9d5;
-      background: #e5fafa;
-      color: #0f6664;
-    }
-
-    .progress-chip.state-completed {
-      border-color: #9ee7b8;
-      background: #ebfff3;
-      color: #167746;
-    }
-
     .tags {
       display: flex;
       gap: 0.4rem;
@@ -683,6 +691,30 @@
     .tag.logic { border-color: #d4c2ff; color: #5d35ad; background: #f5efff; }
     .tag.sim { border-color: #b5e5fb; color: #0a6fa8; background: #eaf9ff; }
     .tag.break { border-color: #f9e28a; color: #8a6c00; background: #fffbe9; }
+
+    .tag.badge-new {
+      border-color: #7ed9d5;
+      color: #fff;
+      background: linear-gradient(135deg, #0ea5a4, #2563eb);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .tag.badge-featured {
+      border-color: #f9c86b;
+      color: #fff;
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    .tag.badge-beta {
+      border-color: #c4b5f5;
+      color: #fff;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
 
     .actions {
       display: flex;
@@ -1056,6 +1088,19 @@
 
   <header class="site-header">
     <div class="wrap header-shell">
+      <!-- Floating science doodles -->
+      <div class="header-doodle doodle-atom" aria-hidden="true">
+        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="currentColor" stroke-width="3.5"><ellipse cx="45" cy="45" rx="36" ry="14"/><ellipse cx="45" cy="45" rx="36" ry="14" transform="rotate(60 45 45)"/><ellipse cx="45" cy="45" rx="36" ry="14" transform="rotate(-60 45 45)"/></g><circle cx="45" cy="45" r="5" fill="currentColor"/></svg>
+      </div>
+      <div class="header-doodle doodle-gear" aria-hidden="true">
+        <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><g fill="currentColor"><rect x="35" y="2" width="10" height="14" rx="3"/><rect x="35" y="64" width="10" height="14" rx="3"/><rect x="2" y="35" width="14" height="10" rx="3"/><rect x="64" y="35" width="14" height="10" rx="3"/></g><circle cx="40" cy="40" r="22" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="40" cy="40" r="9" fill="none" stroke="currentColor" stroke-width="4"/></svg>
+      </div>
+      <div class="header-doodle doodle-ruler" aria-hidden="true">
+        <svg viewBox="0 0 70 70" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="15" width="50" height="40" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><g stroke="currentColor" stroke-width="2"><line x1="20" y1="15" x2="20" y2="28"/><line x1="30" y1="15" x2="30" y2="24"/><line x1="40" y1="15" x2="40" y2="28"/><line x1="50" y1="15" x2="50" y2="24"/></g></svg>
+      </div>
+      <div class="header-doodle doodle-bulb" aria-hidden="true">
+        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="24" r="16" fill="none" stroke="currentColor" stroke-width="3"/><path d="M24 38h12v6H24z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><line x1="30" y1="4" x2="30" y2="0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="24" x2="52" y2="24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="8" y1="24" x2="12" y2="24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="43" y1="11" x2="46" y2="8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="37" x2="17" y2="34" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      </div>
       <div class="brand-row">
         <div class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
@@ -1097,8 +1142,8 @@
 
   <main class="wrap">
     <section class="catalog-head">
-      <h2>ALL LABS</h2>
-      <p><span id="loadedCount">2</span> labs ready to explore.</p>
+      <h2>Explore the Labs</h2>
+      <p><span id="loadedCount">2</span> experiments ready to launch.</p>
       <div class="highlights" aria-label="Portal Highlights">
         <span class="highlight">NO LOGIN REQUIRED</span>
         <span class="highlight">CLASSROOM SAFE</span>
@@ -1108,7 +1153,7 @@
     </section>
 
     <section id="gameGrid" class="grid" aria-label="Game Catalog">
-      <article class="card" data-theme="science" data-title="Pixel Print Studio" data-lab="pixel-print" data-progress="in-progress" data-categories="tech,art" data-href="pixel-print-classroom.html" id="pixel-print">
+      <article class="card" data-theme="science" data-title="Pixel Print Studio" data-lab="pixel-print" data-categories="tech,art" data-href="pixel-print-classroom.html" id="pixel-print">
         <a class="card-link" href="pixel-print-classroom.html" target="_blank" rel="noopener" aria-label="Open Pixel Print Studio"></a>
         <div class="thumb" aria-hidden="true">
           <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -1130,13 +1175,10 @@
         </div>
         <h3>Pixel Print</h3>
         <p>Design sprites and printable pixel art sheets for class.</p>
-        <div class="progress-row">
-          <button class="progress-chip" type="button" data-role="progress-toggle">IN PROGRESS</button>
-        </div>
         <div class="tags">
           <span class="tag science">TOOL</span>
           <span class="tag sim">SINGLE PLAYER</span>
-          <span class="tag science">LIVE NOW</span>
+          <span class="tag badge-new">NEW</span>
         </div>
         <div class="actions">
           <a class="btn play" href="pixel-print-classroom.html" target="_blank" rel="noopener" data-launch-label="Pixel Print">PLAY NOW</a>
@@ -1144,7 +1186,7 @@
         </div>
       </article>
 
-      <article class="card" data-theme="sim" data-title="Spin Art Studio" data-lab="spin-art-studio" data-progress="in-progress" data-categories="art,science" data-href="spin-art-studio.html" id="spin-art-studio">
+      <article class="card" data-theme="sim" data-title="Spin Art Studio" data-lab="spin-art-studio" data-categories="art,science" data-href="spin-art-studio.html" id="spin-art-studio">
         <a class="card-link" href="spin-art-studio.html" target="_blank" rel="noopener" aria-label="Open Spin Art Studio"></a>
         <div class="thumb" aria-hidden="true">
           <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
@@ -1161,13 +1203,10 @@
         </div>
         <h3>Spin Art Studio</h3>
         <p>Create colorful spin patterns while exploring motion, symmetry, and design.</p>
-        <div class="progress-row">
-          <button class="progress-chip" type="button" data-role="progress-toggle">IN PROGRESS</button>
-        </div>
         <div class="tags">
           <span class="tag break">ART</span>
           <span class="tag science">SCIENCE</span>
-          <span class="tag sim">LIVE NOW</span>
+          <span class="tag badge-featured">FEATURED</span>
         </div>
         <div class="actions">
           <a class="btn play" href="spin-art-studio.html" target="_blank" rel="noopener" data-launch-label="Spin Art Studio">PLAY NOW</a>
@@ -1205,19 +1244,6 @@
 
   <script>
     (function () {
-      const STORAGE_KEY = "steamlab-progress-v1";
-      const STATES = ["not-started", "in-progress", "completed"];
-      const LABELS = {
-        "not-started": "NOT STARTED",
-        "in-progress": "IN PROGRESS",
-        "completed": "COMPLETED"
-      };
-      const STATE_CLASS = {
-        "not-started": "state-not-started",
-        "in-progress": "state-in-progress",
-        "completed": "state-completed"
-      };
-
       const countEl = document.getElementById("loadedCount");
       const headerCountEl = document.getElementById("headerCount");
       const statusStateEl = document.getElementById("statusState");
@@ -1227,17 +1253,10 @@
       const activeFilters = new Set();
 
       let toastTimer = null;
-      let progressMap = {};
 
       function updateExperimentCounts(value) {
         if (countEl) countEl.textContent = String(value);
         if (headerCountEl) headerCountEl.textContent = String(value);
-      }
-
-      try {
-        progressMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      } catch (err) {
-        progressMap = {};
       }
 
       function showToast(message) {
@@ -1250,39 +1269,11 @@
         }, 1800);
       }
 
-      function persistProgress() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(progressMap));
-      }
-
-      function sanitizeId(value) {
-        return (value || "")
-          .toLowerCase()
-          .trim()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-      }
-
-      function applyProgress(card, state) {
-        const chip = card.querySelector("[data-role='progress-toggle']");
-        if (!chip) return;
-        const safeState = STATES.includes(state) ? state : "not-started";
-        card.dataset.progress = safeState;
-        chip.textContent = LABELS[safeState];
-        chip.className = "progress-chip " + STATE_CLASS[safeState];
-        chip.setAttribute("aria-label", "Progress: " + LABELS[safeState] + ". Click to change.");
-      }
-
-      function flashCard(card) {
-        if (!card) return;
-        card.classList.add("focus-pop");
-        setTimeout(() => card.classList.remove("focus-pop"), 650);
-      }
-
-      // Filter cards by STEAM chip selection using each card's data-categories list.
+      // Filter cards by STEAM chip selection
       function getCardCategories(card) {
         const raw = (card.dataset.categories || "")
           .split(",")
-          .map((value) => value.trim().toLowerCase())
+          .map((v) => v.trim().toLowerCase())
           .filter(Boolean);
         if (raw.length) return raw;
 
@@ -1299,80 +1290,50 @@
 
       function cardMatchesFilters(card) {
         if (activeFilters.size === 0) return true;
-        const categories = getCardCategories(card);
-        return categories.some((category) => activeFilters.has(category));
+        return getCardCategories(card).some((c) => activeFilters.has(c));
       }
 
       function applyCategoryFilters() {
         let visibleCount = 0;
-
         cards.forEach((card) => {
           const isVisible = cardMatchesFilters(card);
           card.hidden = !isVisible;
           card.style.display = isVisible ? "" : "none";
           if (isVisible) visibleCount += 1;
         });
-
         updateExperimentCounts(visibleCount);
       }
 
       function syncFilterChipStates() {
         filterChips.forEach((chip) => {
-          const filterName = chip.dataset.filterChip || "";
-          const isSelected = filterName === "all"
-            ? activeFilters.size === 0
-            : activeFilters.has(filterName);
-
-          chip.classList.toggle("is-selected", isSelected);
-          chip.setAttribute("aria-pressed", String(isSelected));
+          const name = chip.dataset.filterChip || "";
+          const selected = name === "all" ? activeFilters.size === 0 : activeFilters.has(name);
+          chip.classList.toggle("is-selected", selected);
+          chip.setAttribute("aria-pressed", String(selected));
         });
-
         if (statusStateEl) {
           statusStateEl.textContent = activeFilters.size > 0
-            ? "Systems Online • Filter Active"
+            ? "Systems Online \u2022 Filter Active"
             : "Systems Online";
         }
       }
 
-      cards.forEach((card) => {
-        const labId = card.dataset.lab || sanitizeId(card.dataset.title);
-        const savedState = progressMap[labId];
-        const initialState = STATES.includes(savedState) ? savedState : card.dataset.progress;
-        card.dataset.lab = labId;
-        applyProgress(card, initialState);
-
-        const chip = card.querySelector("[data-role='progress-toggle']");
-        if (chip) {
-          chip.addEventListener("click", () => {
-            const current = STATES.indexOf(card.dataset.progress);
-            const nextState = STATES[(current + 1) % STATES.length];
-            applyProgress(card, nextState);
-            progressMap[labId] = nextState;
-            persistProgress();
-            showToast(card.dataset.title + ": " + LABELS[nextState]);
-          });
-        }
-      });
-
       if (filterChips.length > 0) {
         filterChips.forEach((chip) => {
           chip.addEventListener("click", () => {
-            const filterName = (chip.dataset.filterChip || "").toLowerCase();
-            if (!filterName) return;
-
-            if (filterName === "all") {
+            const name = (chip.dataset.filterChip || "").toLowerCase();
+            if (!name) return;
+            if (name === "all") {
               activeFilters.clear();
-            } else if (activeFilters.has(filterName)) {
-              activeFilters.delete(filterName);
+            } else if (activeFilters.has(name)) {
+              activeFilters.delete(name);
             } else {
-              activeFilters.add(filterName);
+              activeFilters.add(name);
             }
-
             syncFilterChipStates();
             applyCategoryFilters();
           });
         });
-
         syncFilterChipStates();
         applyCategoryFilters();
       } else {
