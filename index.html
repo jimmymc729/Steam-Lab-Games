@@ -536,6 +536,22 @@
       overflow: hidden;
       transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
       transform-origin: center;
+      cursor: pointer;
+    }
+
+    /* Full-card clickable overlay */
+    .card-link {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      border-radius: var(--radius-lg);
+    }
+
+    /* Interactive elements sit above the overlay */
+    .card .actions,
+    .card .progress-chip {
+      position: relative;
+      z-index: 2;
     }
 
     .card:hover {
@@ -696,12 +712,6 @@
       animation: playPulse 2.3s ease-in-out infinite;
     }
 
-    .btn.profile {
-      border-color: #acd0ff;
-      color: #ddf0ff;
-      background: rgba(0, 0, 0, 0.18);
-    }
-
     .btn.classqr {
       border-color: #d8c9ff;
       color: #f2eaff;
@@ -713,12 +723,6 @@
       color: #fff;
       background: linear-gradient(110deg, #0ea5a4, #2563eb);
       box-shadow: none;
-    }
-
-    .card .btn.profile {
-      border-color: #9ebef7;
-      color: #1f4fae;
-      background: #edf3ff;
     }
 
     .card .btn.classqr {
@@ -1104,7 +1108,8 @@
     </section>
 
     <section id="gameGrid" class="grid" aria-label="Game Catalog">
-      <article class="card" data-theme="science" data-title="Pixel Print Studio" data-lab="pixel-print" data-progress="in-progress" data-categories="tech,art" id="pixel-print">
+      <article class="card" data-theme="science" data-title="Pixel Print Studio" data-lab="pixel-print" data-progress="in-progress" data-categories="tech,art" data-href="pixel-print-classroom.html" id="pixel-print">
+        <a class="card-link" href="pixel-print-classroom.html" target="_blank" rel="noopener" aria-label="Open Pixel Print Studio"></a>
         <div class="thumb" aria-hidden="true">
           <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
             <rect width="300" height="154" fill="#dff8ea" />
@@ -1134,13 +1139,13 @@
           <span class="tag science">LIVE NOW</span>
         </div>
         <div class="actions">
-          <a class="btn play" href="pixel-print-classroom.html" data-launch-label="Pixel Print">PLAY NOW</a>
-          <a class="btn profile" href="#pixel-print" data-launch-label="Pixel Print">OPEN LAB PROFILE</a>
+          <a class="btn play" href="pixel-print-classroom.html" target="_blank" rel="noopener" data-launch-label="Pixel Print">PLAY NOW</a>
           <a class="btn classqr" href="class/index.html?game=pixel-print" target="_blank" rel="noopener">CLASS QR</a>
         </div>
       </article>
 
-      <article class="card" data-theme="sim" data-title="Spin Art Studio" data-lab="spin-art-studio" data-progress="in-progress" data-categories="art,science" id="spin-art-studio">
+      <article class="card" data-theme="sim" data-title="Spin Art Studio" data-lab="spin-art-studio" data-progress="in-progress" data-categories="art,science" data-href="spin-art-studio.html" id="spin-art-studio">
+        <a class="card-link" href="spin-art-studio.html" target="_blank" rel="noopener" aria-label="Open Spin Art Studio"></a>
         <div class="thumb" aria-hidden="true">
           <svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
             <rect width="300" height="154" fill="#e8f7ff" />
@@ -1165,8 +1170,7 @@
           <span class="tag sim">LIVE NOW</span>
         </div>
         <div class="actions">
-          <a class="btn play" href="spin-art-studio.html" data-launch-label="Spin Art Studio">PLAY NOW</a>
-          <a class="btn profile" href="#spin-art-studio" data-launch-label="Spin Art Studio">OPEN LAB PROFILE</a>
+          <a class="btn play" href="spin-art-studio.html" target="_blank" rel="noopener" data-launch-label="Spin Art Studio">PLAY NOW</a>
           <a class="btn classqr" href="class/index.html?game=spin-art-studio" target="_blank" rel="noopener">CLASS QR</a>
         </div>
       </article>
@@ -1375,40 +1379,12 @@
         updateExperimentCounts(cards.length);
       }
 
-      function shouldBypass(event) {
-        return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
-      }
-
-      const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.btn.profile"));
+      // Show toast on play button or card-link click
+      const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.card-link"));
       launchLinks.forEach((link) => {
-        link.addEventListener("click", (event) => {
-          if (shouldBypass(event)) return;
-
-          const href = link.getAttribute("href");
+        link.addEventListener("click", () => {
           const title = link.dataset.launchLabel || link.closest(".card")?.dataset.title || "Lab";
-
-          if (!href || href === "#") {
-            event.preventDefault();
-            showToast(title + " is coming soon.");
-            return;
-          }
-
-          if (href.startsWith("#")) {
-            event.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-              target.scrollIntoView({ behavior: "smooth", block: "center" });
-              flashCard(target);
-            }
-            showToast("Opening " + title + "...");
-            return;
-          }
-
-          event.preventDefault();
           showToast("Launching " + title + "...");
-          setTimeout(() => {
-            window.location.href = href;
-          }, 220);
         });
       });
     })();
