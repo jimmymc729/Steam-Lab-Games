@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maze Generator | STEAM Lab Games</title>
+  <meta name="description" content="Generate a random maze and navigate from start to finish with arrow keys." />
+  <style>
+    :root {
+      --bg-top: #0f202d;
+      --bg-bottom: #162e3f;
+      --panel: #ebf7ff;
+      --panel-border: #9bc5df;
+      --ink: #112230;
+      --maze-wall: #1a4f73;
+      --maze-floor: #d5ebfa;
+      --maze-exit: #7cd2a7;
+      --player: #ff8d61;
+      --ai-player: #7a3ee0;
+      --accent: #0e6fb0;
+      --accent-dark: #0c5b90;
+      --accent-soft: #d6ecfb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 18% 15%, #2e5169 0, transparent 35%), radial-gradient(circle at 82% 22%, #2f6f90 0, transparent 38%), linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+      padding: 24px clamp(14px, 2.4vw, 28px);
+    }
+
+    .layout {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.4fr 1fr;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 2px solid var(--panel-border);
+      border-radius: 18px;
+      box-shadow: 0 14px 30px rgba(5, 20, 31, 0.25);
+    }
+
+    .board-wrap {
+      padding: 18px;
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+      border: 2px solid #82b4d2;
+      background: #f7fcff;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .hint {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.01em;
+      color: #2f5166;
+    }
+
+    .controls {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+      line-height: 1.05;
+      color: #0d3a59;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      font-size: 0.98rem;
+      color: #34576c;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      padding: 10px 9px;
+      border-radius: 12px;
+      background: #f5fbff;
+      border: 1px solid #c4dfef;
+      text-align: center;
+    }
+
+    .stat-label {
+      margin: 0;
+      font-size: 0.77rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #3e657c;
+    }
+
+    .stat-value {
+      margin: 6px 0 0;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #123f5f;
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #1f4b67;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    select,
+    button {
+      border: 1px solid #8eb9d4;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    select {
+      padding: 8px 10px;
+      background: #fff;
+      color: #1a3d54;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      padding: 9px 13px;
+      color: white;
+      background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+      transition: transform 120ms ease, filter 120ms ease;
+      box-shadow: 0 4px 8px rgba(17, 73, 109, 0.2);
+    }
+
+    button.secondary {
+      color: #13405d;
+      background: var(--accent-soft);
+      border-color: #95c1dd;
+      box-shadow: none;
+    }
+
+    button:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .message {
+      min-height: 1.3em;
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: #0e5a3d;
+    }
+
+    .rules {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 0.95rem;
+      color: #355d74;
+      line-height: 1.4;
+    }
+
+    .mobile-controls {
+      border: 1px solid #c3dff0;
+      border-radius: 14px;
+      background: #f5fbff;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+    }
+
+    .touch-label {
+      margin: 0;
+      font-size: 0.84rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #2e5c79;
+      font-weight: 800;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
+      grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .arrow-btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      border: 1px solid #84b5d4;
+      background: linear-gradient(180deg, #eff8ff, #daecf9);
+      color: #123f5f;
+      font-size: 1.6rem;
+      font-weight: 900;
+      line-height: 1;
+      padding: 0;
+      touch-action: manipulation;
+      user-select: none;
+      box-shadow: 0 4px 8px rgba(17, 73, 109, 0.14);
+    }
+
+    .arrow-btn:active {
+      transform: translateY(1px);
+      filter: brightness(0.97);
+    }
+
+    .arrow-btn.up { grid-area: up; }
+    .arrow-btn.left { grid-area: left; }
+    .arrow-btn.right { grid-area: right; }
+    .arrow-btn.down { grid-area: down; }
+
+    .board-wrap.bump {
+      animation: bump-shake 180ms linear;
+    }
+
+    .celebration {
+      position: absolute;
+      inset: 18px;
+      pointer-events: none;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+    }
+
+    .celebration-text {
+      margin: 0;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid #8fc4ae;
+      color: #0f5c3c;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transform: scale(0.9);
+      box-shadow: 0 10px 24px rgba(9, 54, 35, 0.2);
+    }
+
+    .celebration.show {
+      animation: celebration-fade 1200ms ease-out forwards;
+    }
+
+    .celebration.show .celebration-text {
+      animation: celebration-pop 1200ms ease-out forwards;
+    }
+
+    .celebration::before,
+    .celebration::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      opacity: 0;
+    }
+
+    .celebration.show::before {
+      left: 20%;
+      top: 35%;
+      background: #ff8d61;
+      box-shadow:
+        40px -10px 0 #7cd2a7,
+        80px 14px 0 #5aa2d0,
+        120px -16px 0 #ffd166,
+        156px 8px 0 #f78fb2;
+      animation: confetti-burst 1s ease-out;
+    }
+
+    .celebration.show::after {
+      right: 22%;
+      top: 38%;
+      background: #7cd2a7;
+      box-shadow:
+        -42px -6px 0 #ffd166,
+        -86px 12px 0 #5aa2d0,
+        -122px -14px 0 #ff8d61,
+        -158px 10px 0 #c7a8ff;
+      animation: confetti-burst 1s ease-out 80ms;
+    }
+
+    @keyframes bump-shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      50% { transform: translateX(4px); }
+      75% { transform: translateX(-2px); }
+      100% { transform: translateX(0); }
+    }
+
+    @keyframes celebration-fade {
+      0% { opacity: 0; }
+      18% { opacity: 1; }
+      82% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @keyframes celebration-pop {
+      0% { transform: scale(0.82) translateY(16px); }
+      18% { transform: scale(1.06) translateY(0); }
+      100% { transform: scale(1) translateY(-4px); }
+    }
+
+    @keyframes confetti-burst {
+      0% { opacity: 0; transform: translateY(0) scale(0.65); }
+      14% { opacity: 1; }
+      100% { opacity: 0; transform: translateY(22px) scale(1.1); }
+    }
+
+    @media (max-width: 920px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        order: -1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="panel board-wrap" aria-label="Maze Board">
+      <canvas id="mazeCanvas" width="640" height="640" aria-label="Random maze game board"></canvas>
+      <div id="celebration" class="celebration" aria-hidden="true">
+        <p class="celebration-text">Maze Complete!</p>
+      </div>
+      <p class="hint">Use keyboard arrows or touch arrow buttons. In Race mode, beat the purple AI token to the goal.</p>
+    </section>
+
+    <section class="panel controls" aria-label="Game Controls">
+      <header>
+        <h1>Random Maze Generator</h1>
+        <p class="subtitle">Every new run creates a fresh maze. Arrow keys navigate.</p>
+      </header>
+
+      <div class="stats" aria-live="polite">
+        <div class="stat">
+          <p class="stat-label">Moves</p>
+          <p class="stat-value" id="movesValue">0</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Time</p>
+          <p class="stat-value" id="timeValue">0.0s</p>
+        </div>
+        <div class="stat">
+          <p class="stat-label">Size</p>
+          <p class="stat-value" id="sizeValue">21x21</p>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="sizeSelect">Maze Size</label>
+        <select id="sizeSelect">
+          <option value="15">Small (15x15)</option>
+          <option value="21" selected>Medium (21x21)</option>
+          <option value="31">Large (31x31)</option>
+          <option value="41">XL (41x41)</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="modeSelect">Mode</label>
+        <select id="modeSelect">
+          <option value="solo" selected>Solo</option>
+          <option value="race">Race vs AI</option>
+        </select>
+        <label for="aiPaceSelect">AI Pace</label>
+        <select id="aiPaceSelect">
+          <option value="slow">Slow</option>
+          <option value="normal" selected>Normal</option>
+          <option value="fast">Fast</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label for="themeSelect">Color Mode</label>
+        <select id="themeSelect">
+          <option value="ocean" selected>Ocean (Default)</option>
+          <option value="high-contrast">High Contrast</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <button id="newMazeBtn" type="button">New Maze</button>
+        <button id="restartBtn" class="secondary" type="button">Restart Position</button>
+        <button id="soundBtn" class="secondary" type="button" aria-pressed="true">Sound: On</button>
+      </div>
+
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+
+      <div class="mobile-controls" aria-label="Touch Arrow Controls">
+        <p class="touch-label">Touch Arrows</p>
+        <div class="dpad" role="group" aria-label="Move Controls">
+          <button type="button" class="arrow-btn up" data-dir="up" aria-label="Move up">↑</button>
+          <button type="button" class="arrow-btn left" data-dir="left" aria-label="Move left">←</button>
+          <button type="button" class="arrow-btn right" data-dir="right" aria-label="Move right">→</button>
+          <button type="button" class="arrow-btn down" data-dir="down" aria-label="Move down">↓</button>
+        </div>
+      </div>
+
+      <ul class="rules">
+        <li>Controls: keyboard arrows or the touch arrow buttons.</li>
+        <li>Walls block movement.</li>
+        <li>Race mode: beat the AI runner to the goal.</li>
+        <li>Reach the green goal tile to win.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById("mazeCanvas");
+      const ctx = canvas.getContext("2d");
+      const boardWrap = document.querySelector(".board-wrap");
+      const celebrationEl = document.getElementById("celebration");
+      const newMazeBtn = document.getElementById("newMazeBtn");
+      const restartBtn = document.getElementById("restartBtn");
+      const soundBtn = document.getElementById("soundBtn");
+      const sizeSelect = document.getElementById("sizeSelect");
+      const modeSelect = document.getElementById("modeSelect");
+      const aiPaceSelect = document.getElementById("aiPaceSelect");
+      const themeSelect = document.getElementById("themeSelect");
+      const arrowButtons = Array.from(document.querySelectorAll("[data-dir]"));
+      const movesValue = document.getElementById("movesValue");
+      const timeValue = document.getElementById("timeValue");
+      const sizeValue = document.getElementById("sizeValue");
+      const messageEl = document.getElementById("message");
+
+      const WALL = 1;
+      const FLOOR = 0;
+      const START = { x: 1, y: 1 };
+      const MOVE_BY_DIR = {
+        up: { dx: 0, dy: -1 },
+        down: { dx: 0, dy: 1 },
+        left: { dx: -1, dy: 0 },
+        right: { dx: 1, dy: 0 }
+      };
+      const THEMES = {
+        ocean: {
+          "--bg-top": "#9adcf6",
+          "--bg-bottom": "#59bfe6",
+          "--panel": "#f4fdff",
+          "--panel-border": "#69b8d8",
+          "--ink": "#11374a",
+          "--maze-wall": "#0e6f98",
+          "--maze-floor": "#d8f6ff",
+          "--maze-exit": "#39b87a",
+          "--player": "#ff7e47",
+          "--ai-player": "#6b3fd8",
+          "--accent": "#0b8cc5",
+          "--accent-dark": "#0a73a2",
+          "--accent-soft": "#d8f3ff"
+        },
+        "high-contrast": {
+          "--bg-top": "#0a0a0a",
+          "--bg-bottom": "#1a1a1a",
+          "--panel": "#ffffff",
+          "--panel-border": "#111111",
+          "--ink": "#000000",
+          "--maze-wall": "#000000",
+          "--maze-floor": "#ffffff",
+          "--maze-exit": "#00a84f",
+          "--player": "#ff3b30",
+          "--ai-player": "#1a4fff",
+          "--accent": "#111111",
+          "--accent-dark": "#000000",
+          "--accent-soft": "#f1f1f1"
+        },
+        sunset: {
+          "--bg-top": "#3b1d2e",
+          "--bg-bottom": "#57252a",
+          "--panel": "#fff2e8",
+          "--panel-border": "#e2b59a",
+          "--ink": "#2c1a1a",
+          "--maze-wall": "#6b2b36",
+          "--maze-floor": "#ffe6d0",
+          "--maze-exit": "#6bcf9b",
+          "--player": "#f9735b",
+          "--ai-player": "#5c45cc",
+          "--accent": "#c3573b",
+          "--accent-dark": "#a64730",
+          "--accent-soft": "#ffe2cf"
+        },
+        forest: {
+          "--bg-top": "#173326",
+          "--bg-bottom": "#2a4f35",
+          "--panel": "#f3fff1",
+          "--panel-border": "#7ab27f",
+          "--ink": "#1f3321",
+          "--maze-wall": "#2b5a31",
+          "--maze-floor": "#daf0d8",
+          "--maze-exit": "#2f9e44",
+          "--player": "#d97706",
+          "--ai-player": "#5a3fcf",
+          "--accent": "#3b7f43",
+          "--accent-dark": "#2f6636",
+          "--accent-soft": "#dff2de"
+        }
+      };
+
+      let maze = [];
+      let mazeSize = 21;
+      let player = { x: START.x, y: START.y };
+      let aiPlayer = { x: START.x, y: START.y };
+      let aiPath = [];
+      let aiStepIndex = 0;
+      let aiTimer = null;
+      let aiLastCell = { x: START.x, y: START.y };
+      let aiMistakeCooldown = 0;
+      let aiRenderPos = { x: START.x, y: START.y };
+      let aiGlideFrom = { x: START.x, y: START.y };
+      let aiGlideTo = { x: START.x, y: START.y };
+      let aiGlideStartAt = 0;
+      let aiGlideDurationMs = 0;
+      let aiIsGliding = false;
+      let aiWinPending = false;
+      let exitCell = { x: 19, y: 19 };
+      let moves = 0;
+      let raceMode = false;
+      let gameOver = false;
+      let startTime = 0;
+      let finishTime = 0;
+      let frameHandle = 0;
+      let soundEnabled = true;
+      let blockedHitsWithoutSound = 0;
+      let audioCtx = null;
+
+      function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const temp = array[i];
+          array[i] = array[j];
+          array[j] = temp;
+        }
+        return array;
+      }
+
+      function inBounds(x, y) {
+        return x > 0 && y > 0 && x < mazeSize - 1 && y < mazeSize - 1;
+      }
+
+      function getAiStepDelayMs() {
+        const pace = String(aiPaceSelect.value || "normal");
+        if (pace === "slow") return 280;
+        if (pace === "fast") return 120;
+        return 190;
+      }
+
+      function getAiGlideDurationMs(stepDelay) {
+        return Math.max(70, Math.floor(stepDelay * 0.78));
+      }
+
+      function getAiMistakeChance() {
+        const pace = String(aiPaceSelect.value || "normal");
+        if (pace === "slow") return 0.09;
+        if (pace === "fast") return 0.03;
+        return 0.06;
+      }
+
+      function stopAiRunner() {
+        if (aiTimer !== null) {
+          clearInterval(aiTimer);
+          aiTimer = null;
+        }
+      }
+
+      function beginAiGlide(fromCell, toCell, durationMs) {
+        aiGlideFrom = { x: fromCell.x, y: fromCell.y };
+        aiGlideTo = { x: toCell.x, y: toCell.y };
+        aiGlideStartAt = performance.now();
+        aiGlideDurationMs = Math.max(1, durationMs);
+        aiIsGliding = true;
+      }
+
+      function updateAiRenderPosition() {
+        if (!aiIsGliding) {
+          aiRenderPos = { x: aiPlayer.x, y: aiPlayer.y };
+          return;
+        }
+
+        const elapsed = performance.now() - aiGlideStartAt;
+        const t = Math.max(0, Math.min(1, elapsed / aiGlideDurationMs));
+        const eased = t * t * (3 - 2 * t);
+        aiRenderPos = {
+          x: aiGlideFrom.x + (aiGlideTo.x - aiGlideFrom.x) * eased,
+          y: aiGlideFrom.y + (aiGlideTo.y - aiGlideFrom.y) * eased
+        };
+
+        if (t >= 1) {
+          aiIsGliding = false;
+          aiRenderPos = { x: aiGlideTo.x, y: aiGlideTo.y };
+        }
+      }
+
+      function finalizeAiWin() {
+        if (gameOver || !raceMode) return;
+        gameOver = true;
+        finishTime = performance.now();
+        setMessage("AI reached the finish first. Press Restart Position to race again.");
+        updateHud();
+        stopAiRunner();
+      }
+
+      function setRaceMode(nextRaceMode) {
+        raceMode = Boolean(nextRaceMode);
+        aiPaceSelect.disabled = !raceMode;
+      }
+
+      function findShortestPath(start, end) {
+        const queue = [{ x: start.x, y: start.y }];
+        const visited = new Set([start.x + "," + start.y]);
+        const parent = new Map();
+        const dirs = [
+          { dx: 0, dy: -1 },
+          { dx: 1, dy: 0 },
+          { dx: 0, dy: 1 },
+          { dx: -1, dy: 0 }
+        ];
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          if (current.x === end.x && current.y === end.y) {
+            break;
+          }
+          for (const dir of dirs) {
+            const nx = current.x + dir.dx;
+            const ny = current.y + dir.dy;
+            if (nx < 0 || ny < 0 || nx >= mazeSize || ny >= mazeSize) continue;
+            if (maze[ny][nx] !== FLOOR) continue;
+            const key = nx + "," + ny;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            parent.set(key, current.x + "," + current.y);
+            queue.push({ x: nx, y: ny });
+          }
+        }
+
+        const targetKey = end.x + "," + end.y;
+        if (!visited.has(targetKey)) {
+          return [{ x: start.x, y: start.y }];
+        }
+
+        const path = [];
+        let cursor = targetKey;
+        while (cursor) {
+          const parts = cursor.split(",");
+          path.push({ x: Number(parts[0]), y: Number(parts[1]) });
+          if (cursor === start.x + "," + start.y) break;
+          cursor = parent.get(cursor);
+        }
+        path.reverse();
+        return path;
+      }
+
+      function startAiRunner() {
+        stopAiRunner();
+        if (!raceMode) return;
+
+        aiPath = findShortestPath(START, exitCell);
+        aiStepIndex = 0;
+        aiPlayer = { x: START.x, y: START.y };
+        aiRenderPos = { x: START.x, y: START.y };
+        aiLastCell = { x: START.x, y: START.y };
+        aiMistakeCooldown = 0;
+        aiIsGliding = false;
+        aiWinPending = false;
+        draw();
+
+        const stepDelay = getAiStepDelayMs();
+        aiTimer = window.setInterval(() => {
+          if (!raceMode || gameOver) {
+            stopAiRunner();
+            return;
+          }
+
+          if (aiStepIndex >= aiPath.length - 1) {
+            stopAiRunner();
+            return;
+          }
+
+          const nextStep = aiPath[aiStepIndex + 1];
+          const canTryMistake = aiMistakeCooldown <= 0;
+          if (canTryMistake && Math.random() < getAiMistakeChance()) {
+            const neighbors = [
+              { x: aiPlayer.x, y: aiPlayer.y - 1 },
+              { x: aiPlayer.x + 1, y: aiPlayer.y },
+              { x: aiPlayer.x, y: aiPlayer.y + 1 },
+              { x: aiPlayer.x - 1, y: aiPlayer.y }
+            ];
+            const detourOptions = neighbors.filter((cell) => {
+              if (cell.x < 0 || cell.y < 0 || cell.x >= mazeSize || cell.y >= mazeSize) return false;
+              if (maze[cell.y][cell.x] !== FLOOR) return false;
+              if (cell.x === nextStep.x && cell.y === nextStep.y) return false;
+              if (cell.x === aiLastCell.x && cell.y === aiLastCell.y) return false;
+              return true;
+            });
+
+            if (detourOptions.length > 0 && Math.random() < 0.45) {
+              aiLastCell = { x: aiPlayer.x, y: aiPlayer.y };
+              const pick = detourOptions[Math.floor(Math.random() * detourOptions.length)];
+              const fromCell = { x: aiPlayer.x, y: aiPlayer.y };
+              aiPlayer = { x: pick.x, y: pick.y };
+              beginAiGlide(fromCell, aiPlayer, getAiGlideDurationMs(stepDelay));
+              aiPath = findShortestPath(aiPlayer, exitCell);
+              aiStepIndex = 0;
+              aiMistakeCooldown = 5;
+              draw();
+              return;
+            }
+
+            aiMistakeCooldown = 4;
+            return;
+          }
+
+          if (aiMistakeCooldown > 0) aiMistakeCooldown -= 1;
+          aiLastCell = { x: aiPlayer.x, y: aiPlayer.y };
+          const fromCell = { x: aiPlayer.x, y: aiPlayer.y };
+          aiStepIndex += 1;
+          aiPlayer = { x: aiPath[aiStepIndex].x, y: aiPath[aiStepIndex].y };
+          beginAiGlide(fromCell, aiPlayer, getAiGlideDurationMs(stepDelay));
+          draw();
+
+          if (aiPlayer.x === exitCell.x && aiPlayer.y === exitCell.y) {
+            aiWinPending = true;
+          }
+        }, stepDelay);
+      }
+
+      function generateMaze(size) {
+        mazeSize = size % 2 === 0 ? size + 1 : size;
+        sizeValue.textContent = mazeSize + "x" + mazeSize;
+
+        maze = Array.from({ length: mazeSize }, () => Array.from({ length: mazeSize }, () => WALL));
+
+        const stack = [{ x: START.x, y: START.y }];
+        maze[START.y][START.x] = FLOOR;
+
+        while (stack.length > 0) {
+          const current = stack[stack.length - 1];
+          const options = [];
+          const dirs = shuffle([
+            { dx: 0, dy: -2 },
+            { dx: 2, dy: 0 },
+            { dx: 0, dy: 2 },
+            { dx: -2, dy: 0 }
+          ]);
+
+          for (const dir of dirs) {
+            const nx = current.x + dir.dx;
+            const ny = current.y + dir.dy;
+            if (inBounds(nx, ny) && maze[ny][nx] === WALL) {
+              options.push({ nx: nx, ny: ny, wx: current.x + dir.dx / 2, wy: current.y + dir.dy / 2 });
+            }
+          }
+
+          if (options.length === 0) {
+            stack.pop();
+            continue;
+          }
+
+          const next = options[Math.floor(Math.random() * options.length)];
+          maze[next.wy][next.wx] = FLOOR;
+          maze[next.ny][next.nx] = FLOOR;
+          stack.push({ x: next.nx, y: next.ny });
+        }
+
+        exitCell = { x: mazeSize - 2, y: mazeSize - 2 };
+      }
+
+      function getElapsedSeconds() {
+        if (!startTime) return 0;
+        const end = gameOver ? finishTime : performance.now();
+        return Math.max(0, (end - startTime) / 1000);
+      }
+
+      function updateHud() {
+        movesValue.textContent = String(moves);
+        timeValue.textContent = getElapsedSeconds().toFixed(1) + "s";
+      }
+
+      function draw() {
+        updateAiRenderPosition();
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const displaySize = Math.max(320, Math.floor(Math.min(window.innerWidth * 0.86, window.innerHeight * 0.72, 740)));
+        canvas.style.width = displaySize + "px";
+        canvas.style.height = displaySize + "px";
+        canvas.width = Math.floor(displaySize * dpr);
+        canvas.height = Math.floor(displaySize * dpr);
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, displaySize, displaySize);
+
+        const cellSize = displaySize / mazeSize;
+        const wallColor = getCssVar("--maze-wall", "#1a4f73");
+        const floorColor = getCssVar("--maze-floor", "#d5ebfa");
+        const exitColor = getCssVar("--maze-exit", "#7cd2a7");
+        const playerColor = getCssVar("--player", "#ff8d61");
+        const aiColor = getCssVar("--ai-player", "#7a3ee0");
+        for (let y = 0; y < mazeSize; y += 1) {
+          for (let x = 0; x < mazeSize; x += 1) {
+            ctx.fillStyle = maze[y][x] === WALL ? wallColor : floorColor;
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize + 0.2, cellSize + 0.2);
+          }
+        }
+
+        ctx.fillStyle = exitColor;
+        ctx.fillRect(exitCell.x * cellSize, exitCell.y * cellSize, cellSize, cellSize);
+
+        const px = player.x * cellSize + cellSize / 2;
+        const py = player.y * cellSize + cellSize / 2;
+        ctx.fillStyle = playerColor;
+        ctx.beginPath();
+        ctx.arc(px, py, cellSize * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (raceMode) {
+          const ax = aiRenderPos.x * cellSize + cellSize / 2;
+          const ay = aiRenderPos.y * cellSize + cellSize / 2;
+          ctx.fillStyle = aiColor;
+          ctx.beginPath();
+          ctx.arc(ax, ay, cellSize * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
+          ctx.beginPath();
+          ctx.arc(ax, ay, cellSize * 0.11, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function setMessage(text) {
+        messageEl.textContent = text || "";
+      }
+
+      function getCssVar(name, fallback) {
+        const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return value || fallback;
+      }
+
+      function applyTheme(themeName) {
+        const theme = THEMES[themeName] || THEMES.ocean;
+        Object.keys(theme).forEach((key) => {
+          document.documentElement.style.setProperty(key, theme[key]);
+        });
+        draw();
+      }
+
+      function triggerBumpAnimation() {
+        if (!boardWrap) return;
+        boardWrap.classList.remove("bump");
+        void boardWrap.offsetWidth;
+        boardWrap.classList.add("bump");
+      }
+
+      function triggerCelebration() {
+        if (!celebrationEl) return;
+        celebrationEl.classList.remove("show");
+        void celebrationEl.offsetWidth;
+        celebrationEl.classList.add("show");
+      }
+
+      function ensureAudioContext() {
+        if (!soundEnabled) return null;
+        if (typeof window.AudioContext === "undefined" && typeof window.webkitAudioContext === "undefined") {
+          return null;
+        }
+        if (!audioCtx) {
+          const AudioCtor = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioCtor();
+        }
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      function playTone(frequency, duration, gain, type, delay) {
+        const ctx = ensureAudioContext();
+        if (!ctx) return;
+        const startAt = ctx.currentTime + (delay || 0);
+        const osc = ctx.createOscillator();
+        const amp = ctx.createGain();
+        osc.type = type || "sine";
+        osc.frequency.setValueAtTime(frequency, startAt);
+        amp.gain.setValueAtTime(gain, startAt);
+        amp.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+        osc.connect(amp);
+        amp.connect(ctx.destination);
+        osc.start(startAt);
+        osc.stop(startAt + duration + 0.03);
+      }
+
+      function playMoveSound() {
+        playTone(480, 0.06, 0.035, "triangle", 0);
+      }
+
+      function playBlockedSound() {
+        playTone(190, 0.07, 0.05, "square", 0);
+        playTone(128, 0.06, 0.04, "square", 0.05);
+      }
+
+      function playWinSound() {
+        const notes = [392, 523, 659, 784];
+        notes.forEach((frequency, index) => {
+          playTone(frequency, 0.12, 0.04, "triangle", index * 0.08);
+        });
+      }
+
+      function setSoundEnabled(nextEnabled) {
+        soundEnabled = Boolean(nextEnabled);
+        if (soundBtn) {
+          soundBtn.textContent = soundEnabled ? "Sound: On" : "Sound: Off";
+          soundBtn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+        }
+      }
+
+      function startTimerLoop() {
+        cancelAnimationFrame(frameHandle);
+        const tick = () => {
+          if (aiIsGliding) draw();
+          if (raceMode && aiWinPending && !aiIsGliding && !gameOver) {
+            aiWinPending = false;
+            finalizeAiWin();
+          }
+          updateHud();
+          if (!gameOver) frameHandle = requestAnimationFrame(tick);
+        };
+        frameHandle = requestAnimationFrame(tick);
+      }
+
+      function resetRun(resetMessage) {
+        stopAiRunner();
+        player = { x: START.x, y: START.y };
+        aiPlayer = { x: START.x, y: START.y };
+        aiRenderPos = { x: START.x, y: START.y };
+        aiLastCell = { x: START.x, y: START.y };
+        aiPath = [];
+        aiStepIndex = 0;
+        aiMistakeCooldown = 0;
+        aiIsGliding = false;
+        aiWinPending = false;
+        moves = 0;
+        gameOver = false;
+        finishTime = 0;
+        blockedHitsWithoutSound = 0;
+        startTime = performance.now();
+        if (raceMode) {
+          setMessage(resetMessage || "Race mode active. Reach the goal before the AI.");
+        } else {
+          setMessage(resetMessage || "Maze ready. Navigate with keyboard arrows or touch arrows.");
+        }
+        draw();
+        updateHud();
+        startTimerLoop();
+        if (raceMode) startAiRunner();
+      }
+
+      function buildNewMaze() {
+        const selected = Number(sizeSelect.value) || 21;
+        generateMaze(selected);
+        resetRun("New random maze generated.");
+      }
+
+      function canMoveTo(x, y) {
+        return y >= 0 && y < mazeSize && x >= 0 && x < mazeSize && maze[y][x] === FLOOR;
+      }
+
+      function onMove(dx, dy) {
+        if (gameOver) return "over";
+
+        const nextX = player.x + dx;
+        const nextY = player.y + dy;
+        if (!canMoveTo(nextX, nextY)) return "blocked";
+
+        player.x = nextX;
+        player.y = nextY;
+        moves += 1;
+        draw();
+        updateHud();
+
+        if (player.x === exitCell.x && player.y === exitCell.y) {
+          gameOver = true;
+          finishTime = performance.now();
+          updateHud();
+          if (raceMode) {
+            setMessage("You beat the AI in " + moves + " moves.");
+          } else {
+            setMessage("You escaped in " + moves + " moves. Press New Maze to play again.");
+          }
+          aiWinPending = false;
+          aiIsGliding = false;
+          stopAiRunner();
+          return "win";
+        }
+
+        return "moved";
+      }
+
+      function handleMove(dx, dy) {
+        const outcome = onMove(dx, dy);
+        if (outcome === "blocked") {
+          blockedHitsWithoutSound += 1;
+          if (blockedHitsWithoutSound >= 2) {
+            triggerBumpAnimation();
+            playBlockedSound();
+            blockedHitsWithoutSound = 0;
+          }
+        } else if (outcome === "moved") {
+          blockedHitsWithoutSound = 0;
+          playMoveSound();
+        } else if (outcome === "win") {
+          blockedHitsWithoutSound = 0;
+          triggerCelebration();
+          playWinSound();
+        }
+      }
+
+      function bindEvents() {
+        document.addEventListener("keydown", (event) => {
+          if (event.defaultPrevented) return;
+          const target = event.target;
+          const tagName = target && target.tagName ? target.tagName.toLowerCase() : "";
+          if (tagName === "select" || tagName === "input" || tagName === "textarea" || (target && target.isContentEditable)) {
+            return;
+          }
+
+          const key = event.key;
+          if (key === "ArrowUp") {
+            event.preventDefault();
+            handleMove(0, -1);
+          } else if (key === "ArrowDown") {
+            event.preventDefault();
+            handleMove(0, 1);
+          } else if (key === "ArrowLeft") {
+            event.preventDefault();
+            handleMove(-1, 0);
+          } else if (key === "ArrowRight") {
+            event.preventDefault();
+            handleMove(1, 0);
+          }
+        });
+
+        newMazeBtn.addEventListener("click", buildNewMaze);
+        restartBtn.addEventListener("click", () => resetRun("Position reset to start."));
+        soundBtn.addEventListener("click", () => {
+          setSoundEnabled(!soundEnabled);
+          if (soundEnabled) playTone(620, 0.08, 0.03, "triangle", 0);
+        });
+        arrowButtons.forEach((button) => {
+          button.addEventListener("click", (event) => {
+            event.preventDefault();
+            button.blur();
+            const dir = String(button.dataset.dir || "");
+            const delta = MOVE_BY_DIR[dir];
+            if (!delta) return;
+            handleMove(delta.dx, delta.dy);
+          });
+        });
+        sizeSelect.addEventListener("change", buildNewMaze);
+        modeSelect.addEventListener("change", () => {
+          const isRace = modeSelect.value === "race";
+          setRaceMode(isRace);
+          resetRun(isRace ? "Race mode active. Reach the goal before the AI." : "Solo mode active.");
+        });
+        aiPaceSelect.addEventListener("change", () => {
+          if (raceMode) {
+            resetRun("AI pace updated. Race on.");
+          }
+        });
+        themeSelect.addEventListener("change", () => {
+          applyTheme(themeSelect.value);
+        });
+        window.addEventListener("resize", draw);
+      }
+
+      setSoundEnabled(true);
+      setRaceMode(modeSelect.value === "race");
+      bindEvents();
+      buildNewMaze();
+      applyTheme(themeSelect.value);
+    })();
+  </script>
+</body>
+</html>

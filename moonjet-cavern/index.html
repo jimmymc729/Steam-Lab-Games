@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <title>Moonjet Cavern</title>
+    <style>
+      :root {
+        --bg-0: #03040a;
+        --bg-1: #0a1124;
+        --panel: rgba(8, 12, 24, 0.72);
+        --ink: #e9f1ff;
+        --accent: #90d7ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 30%, #111a33 0%, var(--bg-1) 38%, var(--bg-0) 100%);
+        color: var(--ink);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      body {
+        position: relative;
+        overscroll-behavior: none;
+      }
+
+      #gameCanvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+        touch-action: none;
+      }
+
+      #muteBtn {
+        position: fixed;
+        top: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 1px solid rgba(255, 255, 255, 0.24);
+        background: var(--panel);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 13px;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+        z-index: 10;
+      }
+
+      #muteBtn:active {
+        transform: translateX(-50%) scale(0.97);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gameCanvas" aria-label="Moonjet Cavern game canvas"></canvas>
+    <button id="muteBtn" type="button" aria-label="Toggle sound">Sound: On</button>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const BASE_WIDTH = 960;
+        const BASE_HEIGHT = 540;
+        const BEST_KEY = "moonjet-cavern-best";
+        const ASTRONAUT_SPRITE_SRC = "assets/astronaut.png";
+        // Normalized crop tuned for this sprite artwork.
+        const ASTRONAUT_DEFAULT_CROP = { x: 0.27, y: 0.12, w: 0.64, h: 0.6 };
+
+        const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+        const rand = (min, max) => min + Math.random() * (max - min);
+
+        class SoundManager {
+          constructor(button) {
+            this.button = button;
+            this.context = null;
+            this.master = null;
+            this.muted = false;
+            this.lastThrustTime = 0;
+            this.updateButton();
+          }
+
+          updateButton() {
+            this.button.textContent = this.muted ? "Sound: Off" : "Sound: On";
+          }
+
+          toggleMute() {
+            this.muted = !this.muted;
+            this.updateButton();
+          }
+
+          unlock() {
+            if (!this.context) {
+              const Ctx = window.AudioContext || window.webkitAudioContext;
+              if (!Ctx) return;
+              this.context = new Ctx();
+              this.master = this.context.createGain();
+              this.master.gain.value = 0.24;
+              this.master.connect(this.context.destination);
+            }
+            if (this.context.state === "suspended") {
+              this.context.resume();
+            }
+          }
+
+          pulse(type, fromHz, toHz, duration, gainValue) {
+            if (this.muted || !this.context || !this.master) return;
+            const now = this.context.currentTime;
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(fromHz, now);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(20, toHz), now + duration);
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.exponentialRampToValueAtTime(gainValue, now + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+            osc.connect(gain);
+            gain.connect(this.master);
+            osc.start(now);
+            osc.stop(now + duration + 0.01);
+          }
+
+          playThrust() {
+            if (!this.context) return;
+            const now = this.context.currentTime;
+            if (now - this.lastThrustTime < 0.045) return;
+            this.lastThrustTime = now;
+            this.pulse("triangle", 240, 160, 0.08, 0.12);
+          }
+
+          playScore() {
+            this.pulse("sine", 720, 1180, 0.12, 0.14);
+          }
+
+          playCrash() {
+            this.pulse("sawtooth", 110, 44, 0.28, 0.18);
+            this.pulse("square", 65, 38, 0.24, 0.08);
+          }
+        }
+
+        class Player {
+          constructor() {
+            this.x = BASE_WIDTH * 0.28;
+            this.y = BASE_HEIGHT * 0.5;
+            this.vy = 0;
+            this.radius = 16;
+            // Flappy-like tuning: higher gravity + fixed flap velocity.
+            this.gravity = 1180;
+            this.flapVelocity = -315;
+            this.maxFall = 620;
+            this.maxRise = -360;
+            this.thrustVisual = 0;
+          }
+
+          reset() {
+            this.y = BASE_HEIGHT * 0.5;
+            this.vy = 0;
+            this.thrustVisual = 0;
+          }
+
+          thrust() {
+            // Match Flappy Bird feel: each tap sets a consistent upward kick.
+            this.vy = this.flapVelocity;
+            this.vy = clamp(this.vy, this.maxRise, this.maxFall);
+            this.thrustVisual = 0.14;
+          }
+
+          update(dt) {
+            this.vy += this.gravity * dt;
+            this.vy = Math.min(this.vy, this.maxFall);
+            this.y += this.vy * dt;
+            this.thrustVisual = Math.max(0, this.thrustVisual - dt);
+          }
+
+          drawFallbackAstronaut(ctx) {
+            ctx.fillStyle = "#5f6d8e";
+            ctx.fillRect(-18, -7, 12, 14);
+
+            ctx.fillStyle = "#f2f6ff";
+            ctx.beginPath();
+            const rx = -8;
+            const ry = -10;
+            const rw = 20;
+            const rh = 20;
+            const rr = 7;
+            ctx.moveTo(rx + rr, ry);
+            ctx.lineTo(rx + rw - rr, ry);
+            ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + rr);
+            ctx.lineTo(rx + rw, ry + rh - rr);
+            ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - rr, ry + rh);
+            ctx.lineTo(rx + rr, ry + rh);
+            ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - rr);
+            ctx.lineTo(rx, ry + rr);
+            ctx.quadraticCurveTo(rx, ry, rx + rr, ry);
+            ctx.fill();
+
+            ctx.fillStyle = "#8fd8ff";
+            ctx.beginPath();
+            ctx.arc(5, -1, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255,255,255,0.75)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(5, -1, 8, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+
+          draw(ctx, timeSec, sprite) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            const tilt = clamp(this.vy / 650, -0.5, 0.75);
+            ctx.rotate(tilt);
+
+            if (this.thrustVisual > 0) {
+              const flamePulse = 1 + Math.sin(timeSec * 70) * 0.2;
+              const flameLen = (18 + this.thrustVisual * 80) * flamePulse;
+              ctx.fillStyle = "rgba(255, 157, 49, 0.92)";
+              ctx.beginPath();
+              ctx.moveTo(-14, 2);
+              ctx.lineTo(-26 - flameLen, 0);
+              ctx.lineTo(-14, -2);
+              ctx.closePath();
+              ctx.fill();
+
+              ctx.fillStyle = "rgba(255, 233, 161, 0.9)";
+              ctx.beginPath();
+              ctx.moveTo(-14, 1.4);
+              ctx.lineTo(-22 - flameLen * 0.55, 0);
+              ctx.lineTo(-14, -1.4);
+              ctx.closePath();
+              ctx.fill();
+            }
+
+            if (sprite && sprite.loaded && sprite.frame.sw > 8 && sprite.frame.sh > 8) {
+              const frame = sprite.frame;
+              const targetHeight = 54;
+              const targetWidth = targetHeight * (frame.sw / frame.sh);
+              const drawX = -targetWidth * 0.45;
+              const drawY = -targetHeight * 0.58;
+              const smoothPrev = ctx.imageSmoothingEnabled;
+              ctx.imageSmoothingEnabled = false;
+              ctx.drawImage(
+                sprite.image,
+                frame.sx,
+                frame.sy,
+                frame.sw,
+                frame.sh,
+                drawX,
+                drawY,
+                targetWidth,
+                targetHeight
+              );
+              ctx.imageSmoothingEnabled = smoothPrev;
+            } else {
+              this.drawFallbackAstronaut(ctx);
+            }
+
+            ctx.restore();
+          }
+        }
+
+        class ObstacleManager {
+          constructor() {
+            this.obstacles = [];
+            this.currentSpeed = 220;
+            this.currentGap = 190;
+            this.currentSpacing = 290;
+            this.nextSpawnX = BASE_WIDTH + 240;
+          }
+
+          reset() {
+            this.obstacles.length = 0;
+            this.currentSpeed = 220;
+            this.currentGap = 190;
+            this.currentSpacing = 290;
+            this.nextSpawnX = BASE_WIDTH + 240;
+          }
+
+          createObstacle(x, gapH) {
+            const margin = 78;
+            const gapY = rand(margin, BASE_HEIGHT - margin - gapH);
+            const width = rand(86, 108);
+            return {
+              x,
+              width,
+              gapY,
+              gapH,
+              passed: false,
+              topTipX: rand(0.4, 0.6),
+              botTipX: rand(0.38, 0.62),
+              topShoulder: rand(18, 34),
+              botShoulder: rand(18, 34),
+              topChip: rand(0.08, 0.16),
+              botChip: rand(0.08, 0.16),
+            };
+          }
+
+          update(dt, elapsed, score, player, onPass) {
+            // Gradual ramp: faster scroll and a tighter tunnel as the run continues.
+            this.currentSpeed = 220 + Math.min(170, elapsed * 5 + score * 3.6);
+            this.currentGap = 190 - Math.min(62, elapsed * 0.55 + score * 1.1);
+            this.currentSpacing = 290 - Math.min(88, elapsed * 0.45 + score * 1.25);
+            // Move the spawn cursor with the scrolling world, then refill ahead of view.
+            this.nextSpawnX -= this.currentSpeed * dt;
+
+            while (this.nextSpawnX < BASE_WIDTH + this.currentSpacing + 260) {
+              const gapSize = this.currentGap + rand(-8, 12);
+              this.obstacles.push(this.createObstacle(this.nextSpawnX, gapSize));
+              this.nextSpawnX += this.currentSpacing + rand(-34, 34);
+            }
+
+            for (let i = this.obstacles.length - 1; i >= 0; i -= 1) {
+              const o = this.obstacles[i];
+              o.x -= this.currentSpeed * dt;
+              if (!o.passed && o.x + o.width < player.x - player.radius) {
+                o.passed = true;
+                onPass(o);
+              }
+              if (o.x + o.width < -140) {
+                this.obstacles.splice(i, 1);
+              }
+            }
+          }
+
+          collides(player) {
+            for (const o of this.obstacles) {
+              if (player.x + player.radius < o.x || player.x - player.radius > o.x + o.width) {
+                continue;
+              }
+              if (player.y - player.radius < o.gapY || player.y + player.radius > o.gapY + o.gapH) {
+                return true;
+              }
+            }
+            return false;
+          }
+
+          drawTopRock(ctx, o) {
+            const base = o.gapY;
+            const tipX = o.x + o.width * o.topTipX;
+            const leftShoulderX = o.x + o.width * 0.12;
+            const rightShoulderX = o.x + o.width * 0.88;
+            const chipDepth = o.topShoulder * (1 + o.topChip);
+
+            const grad = ctx.createLinearGradient(0, 0, 0, base + 24);
+            grad.addColorStop(0, "#7788a1");
+            grad.addColorStop(0.55, "#5a6780");
+            grad.addColorStop(1, "#3d485e");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(o.x, 0);
+            ctx.lineTo(o.x + o.width, 0);
+            ctx.lineTo(rightShoulderX, base - o.topShoulder * 0.85);
+            ctx.lineTo(tipX + o.width * 0.08, base - o.topShoulder * 0.25);
+            ctx.lineTo(tipX, base);
+            ctx.lineTo(tipX - o.width * 0.08, base - chipDepth * 0.25);
+            ctx.lineTo(leftShoulderX, base - chipDepth);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(223, 235, 255, 0.28)";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(leftShoulderX + 3, base - chipDepth + 2);
+            ctx.lineTo(tipX, base - 2);
+            ctx.lineTo(rightShoulderX - 3, base - o.topShoulder * 0.85 + 3);
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(21, 31, 46, 0.45)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(tipX - o.width * 0.03, base - 1);
+            ctx.lineTo(tipX - o.width * 0.08, base - o.topShoulder * 0.52);
+            ctx.moveTo(tipX + o.width * 0.02, base - 2);
+            ctx.lineTo(tipX + o.width * 0.11, base - o.topShoulder * 0.6);
+            ctx.stroke();
+          }
+
+          drawBottomRock(ctx, o) {
+            const base = o.gapY + o.gapH;
+            const tipX = o.x + o.width * o.botTipX;
+            const leftShoulderX = o.x + o.width * 0.14;
+            const rightShoulderX = o.x + o.width * 0.86;
+            const chipDepth = o.botShoulder * (1 + o.botChip);
+
+            const grad = ctx.createLinearGradient(0, base - 20, 0, BASE_HEIGHT);
+            grad.addColorStop(0, "#6e7e95");
+            grad.addColorStop(0.55, "#4f5c74");
+            grad.addColorStop(1, "#384359");
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(o.x, BASE_HEIGHT);
+            ctx.lineTo(o.x + o.width, BASE_HEIGHT);
+            ctx.lineTo(rightShoulderX, base + o.botShoulder * 0.9);
+            ctx.lineTo(tipX + o.width * 0.08, base + chipDepth * 0.26);
+            ctx.lineTo(tipX, base);
+            ctx.lineTo(tipX - o.width * 0.07, base + o.botShoulder * 0.26);
+            ctx.lineTo(leftShoulderX, base + chipDepth);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(223, 235, 255, 0.24)";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(leftShoulderX + 3, base + chipDepth - 2);
+            ctx.lineTo(tipX, base + 2);
+            ctx.lineTo(rightShoulderX - 3, base + o.botShoulder * 0.9 - 3);
+            ctx.stroke();
+
+            ctx.strokeStyle = "rgba(21, 31, 46, 0.44)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(tipX + o.width * 0.03, base + 2);
+            ctx.lineTo(tipX + o.width * 0.11, base + o.botShoulder * 0.58);
+            ctx.moveTo(tipX - o.width * 0.02, base + 1);
+            ctx.lineTo(tipX - o.width * 0.09, base + chipDepth * 0.54);
+            ctx.stroke();
+          }
+
+          draw(ctx) {
+            for (const o of this.obstacles) {
+              this.drawTopRock(ctx, o);
+              this.drawBottomRock(ctx, o);
+
+              ctx.strokeStyle = "rgba(142, 164, 196, 0.22)";
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(o.x + o.width * 0.25, 0);
+              ctx.lineTo(o.x + o.width * 0.34, o.gapY - o.topShoulder * 0.4);
+              ctx.moveTo(o.x + o.width * 0.7, BASE_HEIGHT);
+              ctx.lineTo(o.x + o.width * 0.58, o.gapY + o.gapH + o.botShoulder * 0.34);
+              ctx.stroke();
+            }
+          }
+        }
+
+        class Particles {
+          constructor() {
+            this.dust = [];
+            this.bursts = [];
+            this.time = 0;
+          }
+
+          reset() {
+            this.time = 0;
+            this.bursts.length = 0;
+            this.dust = Array.from({ length: 68 }, () => ({
+              x: rand(0, BASE_WIDTH),
+              y: rand(24, BASE_HEIGHT - 24),
+              r: rand(0.8, 2.3),
+              vx: rand(8, 42),
+              alpha: rand(0.08, 0.35),
+              sway: rand(0.8, 2.2),
+            }));
+          }
+
+          spawnPassBurst(x, y) {
+            for (let i = 0; i < 12; i += 1) {
+              this.bursts.push({
+                x,
+                y,
+                vx: rand(-110, 40),
+                vy: rand(-70, 70),
+                life: rand(0.28, 0.46),
+                maxLife: rand(0.28, 0.46),
+                size: rand(1.8, 3.6),
+                color: i % 2 ? "#9ae8ff" : "#fff3c4",
+              });
+            }
+          }
+
+          spawnCrashBurst(x, y) {
+            for (let i = 0; i < 28; i += 1) {
+              this.bursts.push({
+                x,
+                y,
+                vx: rand(-180, 120),
+                vy: rand(-180, 180),
+                life: rand(0.45, 0.85),
+                maxLife: rand(0.45, 0.85),
+                size: rand(2.2, 5),
+                color: i % 3 ? "#ff9d4f" : "#ffe6b4",
+              });
+            }
+          }
+
+          update(dt, scrollSpeed) {
+            this.time += dt;
+            for (const d of this.dust) {
+              d.x -= (d.vx + scrollSpeed * 0.08) * dt;
+              d.y += Math.sin(this.time * d.sway + d.x * 0.015) * dt * 8;
+              if (d.x < -20) {
+                d.x = BASE_WIDTH + rand(0, 220);
+                d.y = rand(22, BASE_HEIGHT - 22);
+              }
+              if (d.y < 16) d.y = 16;
+              if (d.y > BASE_HEIGHT - 16) d.y = BASE_HEIGHT - 16;
+            }
+
+            for (let i = this.bursts.length - 1; i >= 0; i -= 1) {
+              const p = this.bursts[i];
+              p.life -= dt;
+              if (p.life <= 0) {
+                this.bursts.splice(i, 1);
+                continue;
+              }
+              p.x += p.vx * dt;
+              p.y += p.vy * dt;
+              p.vx *= 0.985;
+              p.vy *= 0.982;
+            }
+          }
+
+          draw(ctx) {
+            for (const d of this.dust) {
+              ctx.fillStyle = `rgba(195, 223, 255, ${d.alpha})`;
+              ctx.beginPath();
+              ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            for (const p of this.bursts) {
+              const a = clamp(p.life / p.maxLife, 0, 1);
+              ctx.fillStyle = p.color;
+              ctx.globalAlpha = a;
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        class UI {
+          draw(ctx, state, score, best) {
+            ctx.fillStyle = "rgba(255,255,255,0.94)";
+            ctx.font = "700 34px Trebuchet MS, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(`Score: ${score}`, 22, 40);
+
+            ctx.textAlign = "right";
+            ctx.fillText(`Best: ${best}`, BASE_WIDTH - 22, 40);
+
+            if (state === "idle") {
+              this.drawOverlay(ctx, "Moonjet Cavern", "Click / Tap / Space to Start");
+            } else if (state === "gameover") {
+              this.drawOverlay(ctx, "Game Over", "Click / Tap / Space to Restart");
+            }
+          }
+
+          drawOverlay(ctx, title, subtitle) {
+            ctx.fillStyle = "rgba(4, 8, 17, 0.54)";
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+            ctx.fillStyle = "#f3f7ff";
+            ctx.textAlign = "center";
+            ctx.font = "700 56px Trebuchet MS, sans-serif";
+            ctx.fillText(title, BASE_WIDTH / 2, BASE_HEIGHT / 2 - 10);
+
+            ctx.font = "600 26px Trebuchet MS, sans-serif";
+            ctx.fillStyle = "#cae5ff";
+            ctx.fillText(subtitle, BASE_WIDTH / 2, BASE_HEIGHT / 2 + 38);
+          }
+        }
+
+        class ParallaxCave {
+          constructor() {
+            this.layers = [
+              { speed: 0.12, topBase: 82, bottomBase: 78, amp: 16, freq: 0.01, color: "#2c3442", edge: "rgba(161,177,201,0.28)", offset: 0 },
+              { speed: 0.22, topBase: 66, bottomBase: 64, amp: 13, freq: 0.013, color: "#3a4456", edge: "rgba(188,204,228,0.24)", offset: 0 },
+              { speed: 0.34, topBase: 50, bottomBase: 48, amp: 10, freq: 0.018, color: "#4a5568", edge: "rgba(219,229,245,0.2)", offset: 0 },
+            ];
+            this.features = this.layers.map(() =>
+              Array.from({ length: 26 }, () => ({
+                x: rand(0, BASE_WIDTH),
+                y: rand(0.08, 0.92),
+                r: rand(2, 8),
+                a: rand(0.08, 0.22),
+              }))
+            );
+          }
+
+          reset() {
+            for (const layer of this.layers) {
+              layer.offset = 0;
+            }
+          }
+
+          update(dt, speed) {
+            for (const layer of this.layers) {
+              layer.offset += speed * layer.speed * dt;
+            }
+          }
+
+          edgeY(layer, x, top) {
+            if (top) {
+              return (
+                layer.topBase +
+                Math.sin((x + layer.offset) * layer.freq) * layer.amp +
+                Math.sin((x + layer.offset) * layer.freq * 0.46 + 2.2) * layer.amp * 0.36
+              );
+            }
+            return (
+              BASE_HEIGHT -
+              (layer.bottomBase +
+                Math.sin((x + layer.offset * 0.94) * layer.freq + 1.2) * layer.amp +
+                Math.sin((x + layer.offset * 0.9) * layer.freq * 0.49 + 3.3) * layer.amp * 0.34)
+            );
+          }
+
+          drawEdgePath(ctx, layer, top) {
+            const step = 28;
+            if (top) {
+              ctx.beginPath();
+              ctx.moveTo(0, 0);
+              for (let x = 0; x <= BASE_WIDTH + step; x += step) {
+                ctx.lineTo(x, this.edgeY(layer, x, true));
+              }
+              ctx.lineTo(BASE_WIDTH, 0);
+              ctx.closePath();
+            } else {
+              ctx.beginPath();
+              ctx.moveTo(0, BASE_HEIGHT);
+              for (let x = 0; x <= BASE_WIDTH + step; x += step) {
+                ctx.lineTo(x, this.edgeY(layer, x, false));
+              }
+              ctx.lineTo(BASE_WIDTH, BASE_HEIGHT);
+              ctx.closePath();
+            }
+            ctx.fill();
+          }
+
+          drawFeatureLayer(ctx, layer, featureSet, top) {
+            for (const f of featureSet) {
+              let x = f.x - layer.offset * layer.speed * 0.22;
+              while (x < -20) x += BASE_WIDTH + 40;
+              while (x > BASE_WIDTH + 20) x -= BASE_WIDTH + 40;
+              const baseDepth = top ? layer.topBase : layer.bottomBase;
+              const y = top ? 6 + f.y * Math.max(8, baseDepth - 18) : BASE_HEIGHT - (6 + f.y * Math.max(8, baseDepth - 18));
+              ctx.fillStyle = `rgba(22, 28, 39, ${f.a})`;
+              ctx.beginPath();
+              ctx.arc(x, y, f.r, 0, Math.PI * 2);
+              ctx.fill();
+
+              ctx.strokeStyle = `rgba(209, 220, 240, ${f.a * 0.38})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.arc(x - f.r * 0.18, y - f.r * 0.14, f.r * 0.56, Math.PI * 0.2, Math.PI * 1.2);
+              ctx.stroke();
+            }
+          }
+
+          draw(ctx) {
+            for (let i = 0; i < this.layers.length; i += 1) {
+              const layer = this.layers[i];
+              ctx.fillStyle = layer.color;
+              this.drawEdgePath(ctx, layer, true);
+              this.drawEdgePath(ctx, layer, false);
+
+              this.drawFeatureLayer(ctx, layer, this.features[i], true);
+              this.drawFeatureLayer(ctx, layer, this.features[i], false);
+
+              ctx.strokeStyle = layer.edge;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              for (let x = 0; x <= BASE_WIDTH; x += 24) {
+                const y = this.edgeY(layer, x, true);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+
+              ctx.beginPath();
+              for (let x = 0; x <= BASE_WIDTH; x += 24) {
+                const y = this.edgeY(layer, x, false);
+                if (x === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.stroke();
+            }
+          }
+        }
+
+        class Game {
+          constructor(canvas, muteBtn) {
+            this.canvas = canvas;
+            this.ctx = canvas.getContext("2d");
+            this.sound = new SoundManager(muteBtn);
+            this.player = new Player();
+            this.obstacles = new ObstacleManager();
+            this.particles = new Particles();
+            this.ui = new UI();
+            this.parallax = new ParallaxCave();
+            this.astronautSprite = {
+              image: new Image(),
+              loaded: false,
+              frame: { sx: 0, sy: 0, sw: 256, sh: 256 },
+            };
+            this.loadAstronautSprite();
+
+            this.starfield = Array.from({ length: 110 }, () => ({
+              x: rand(0, BASE_WIDTH),
+              y: rand(0, BASE_HEIGHT),
+              size: rand(0.8, 2.2),
+              alpha: rand(0.2, 0.9),
+              twinkle: rand(2, 9),
+            }));
+
+            this.state = "idle";
+            this.score = 0;
+            this.best = Number.parseInt(localStorage.getItem(BEST_KEY) || "0", 10) || 0;
+            this.elapsed = 0;
+            this.lastTime = 0;
+            this.shakeTimer = 0;
+            this.shakePower = 0;
+            this.topLimit = 12;
+            this.bottomLimit = 12;
+
+            this.view = {
+              dpr: 1,
+              cssW: 1,
+              cssH: 1,
+              scale: 1,
+              offsetX: 0,
+              offsetY: 0,
+            };
+
+            this.resize = this.resize.bind(this);
+            this.frame = this.frame.bind(this);
+
+            this.setupInput(muteBtn);
+            this.resize();
+            this.resetWorld();
+            requestAnimationFrame(this.frame);
+          }
+
+          loadAstronautSprite() {
+            const image = this.astronautSprite.image;
+            image.addEventListener("load", () => {
+              this.astronautSprite.loaded = true;
+              const w = image.naturalWidth || image.width;
+              const h = image.naturalHeight || image.height;
+              let frame = this.defaultSpriteFrame(w || 1024, h || 1024);
+              // Some browsers/file:// contexts can block pixel reads; keep sprite visible either way.
+              try {
+                frame = this.computeSpriteFrame(image);
+              } catch (error) {
+                frame = this.defaultSpriteFrame(w || 1024, h || 1024);
+              }
+              this.astronautSprite.frame = frame;
+            });
+            image.addEventListener("error", () => {
+              this.astronautSprite.loaded = false;
+            });
+            image.src = ASTRONAUT_SPRITE_SRC;
+          }
+
+          defaultSpriteFrame(w, h) {
+            return {
+              sx: Math.floor(w * ASTRONAUT_DEFAULT_CROP.x),
+              sy: Math.floor(h * ASTRONAUT_DEFAULT_CROP.y),
+              sw: Math.floor(w * ASTRONAUT_DEFAULT_CROP.w),
+              sh: Math.floor(h * ASTRONAUT_DEFAULT_CROP.h),
+            };
+          }
+
+          computeSpriteFrame(image) {
+            const w = image.naturalWidth || image.width;
+            const h = image.naturalHeight || image.height;
+            if (!w || !h) return this.defaultSpriteFrame(1024, 1024);
+
+            const offscreen = document.createElement("canvas");
+            offscreen.width = w;
+            offscreen.height = h;
+            const offctx = offscreen.getContext("2d", { willReadFrequently: true });
+            if (!offctx) return this.defaultSpriteFrame(w, h);
+
+            offctx.drawImage(image, 0, 0);
+            const data = offctx.getImageData(0, 0, w, h).data;
+
+            let minX = w;
+            let minY = h;
+            let maxX = -1;
+            let maxY = -1;
+            // Ignore faint glow pixels so the visible sprite anchor stays consistent.
+            const alphaThreshold = 140;
+
+            for (let y = 0; y < h; y += 1) {
+              for (let x = 0; x < w; x += 1) {
+                const alpha = data[(y * w + x) * 4 + 3];
+                if (alpha < alphaThreshold) continue;
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
+              }
+            }
+
+            if (maxX < minX || maxY < minY) {
+              return this.defaultSpriteFrame(w, h);
+            }
+
+            const pad = 8;
+            minX = Math.max(0, minX - pad);
+            minY = Math.max(0, minY - pad);
+            maxX = Math.min(w - 1, maxX + pad);
+            maxY = Math.min(h - 1, maxY + pad);
+
+            const frame = {
+              sx: minX,
+              sy: minY,
+              sw: maxX - minX + 1,
+              sh: maxY - minY + 1,
+            };
+
+            // If crop still looks like the full source, use the tuned default crop.
+            const fullArea = w * h;
+            const frameArea = frame.sw * frame.sh;
+            if (frameArea > fullArea * 0.74) {
+              return this.defaultSpriteFrame(w, h);
+            }
+            return frame;
+          }
+
+          setupInput(muteBtn) {
+            const trigger = (event) => {
+              event.preventDefault();
+              this.sound.unlock();
+              if (this.state !== "running") {
+                this.startRun();
+              }
+              this.player.thrust();
+              this.sound.playThrust();
+            };
+
+            this.canvas.addEventListener("pointerdown", trigger, { passive: false });
+            this.canvas.addEventListener("touchmove", (event) => event.preventDefault(), { passive: false });
+            this.canvas.addEventListener("touchstart", (event) => event.preventDefault(), { passive: false });
+
+            window.addEventListener("keydown", (event) => {
+              if (event.repeat) return;
+              if (event.code !== "Space") return;
+              trigger(event);
+            });
+
+            muteBtn.addEventListener("click", (event) => {
+              event.preventDefault();
+              this.sound.toggleMute();
+            });
+
+            window.addEventListener("resize", this.resize);
+          }
+
+          resetWorld() {
+            this.player.reset();
+            this.obstacles.reset();
+            this.particles.reset();
+            this.parallax.reset();
+            this.elapsed = 0;
+            this.score = 0;
+            this.shakeTimer = 0;
+            this.shakePower = 0;
+          }
+
+          startRun() {
+            this.resetWorld();
+            this.state = "running";
+          }
+
+          crash() {
+            if (this.state !== "running") return;
+            this.state = "gameover";
+            this.shakeTimer = 0.22;
+            this.shakePower = 10;
+            this.sound.playCrash();
+            this.particles.spawnCrashBurst(this.player.x, this.player.y);
+            if (this.score > this.best) {
+              this.best = this.score;
+              localStorage.setItem(BEST_KEY, String(this.best));
+            }
+          }
+
+          onPassObstacle(obstacle) {
+            this.score += 1;
+            this.sound.playScore();
+            this.particles.spawnPassBurst(obstacle.x + obstacle.width * 0.5, obstacle.gapY + obstacle.gapH * 0.5);
+          }
+
+          update(dt) {
+            // Clamp delta to keep physics stable across tab switches / frame drops.
+            const safeDt = Math.min(0.033, dt);
+            const driftSpeed = this.state === "running" ? this.obstacles.currentSpeed : 80;
+            this.particles.update(safeDt, driftSpeed);
+            this.parallax.update(safeDt, driftSpeed);
+            if (this.shakeTimer > 0) {
+              this.shakeTimer = Math.max(0, this.shakeTimer - safeDt);
+            }
+
+            if (this.state !== "running") {
+              return;
+            }
+
+            this.elapsed += safeDt;
+            this.player.update(safeDt);
+
+            this.obstacles.update(safeDt, this.elapsed, this.score, this.player, (o) => this.onPassObstacle(o));
+
+            const hitWall =
+              this.player.y - this.player.radius < this.topLimit ||
+              this.player.y + this.player.radius > BASE_HEIGHT - this.bottomLimit;
+
+            if (hitWall || this.obstacles.collides(this.player)) {
+              this.crash();
+            }
+          }
+
+          drawBackground(timeSec) {
+            const { ctx } = this;
+            const grad = ctx.createLinearGradient(0, 0, 0, BASE_HEIGHT);
+            grad.addColorStop(0, "#050915");
+            grad.addColorStop(0.5, "#0a152e");
+            grad.addColorStop(1, "#060b18");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+            for (const star of this.starfield) {
+              const pulse = 0.6 + 0.4 * Math.sin(timeSec * star.twinkle + star.x * 0.03);
+              ctx.fillStyle = `rgba(197,220,255,${star.alpha * pulse})`;
+              ctx.beginPath();
+              ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          resize() {
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const cssW = window.innerWidth;
+            const cssH = window.innerHeight;
+            this.canvas.width = Math.floor(cssW * dpr);
+            this.canvas.height = Math.floor(cssH * dpr);
+            this.canvas.style.width = `${cssW}px`;
+            this.canvas.style.height = `${cssH}px`;
+
+            // Keep a fixed internal world while scaling with letterboxing.
+            const scale = Math.min(cssW / BASE_WIDTH, cssH / BASE_HEIGHT);
+            this.view.dpr = dpr;
+            this.view.cssW = cssW;
+            this.view.cssH = cssH;
+            this.view.scale = scale;
+            this.view.offsetX = (cssW - BASE_WIDTH * scale) * 0.5;
+            this.view.offsetY = (cssH - BASE_HEIGHT * scale) * 0.5;
+          }
+
+          frame(timestampMs) {
+            if (!this.lastTime) this.lastTime = timestampMs;
+            const dt = (timestampMs - this.lastTime) / 1000;
+            this.lastTime = timestampMs;
+            this.update(dt);
+            this.render(timestampMs / 1000);
+            requestAnimationFrame(this.frame);
+          }
+
+          render(timeSec) {
+            const { ctx, view } = this;
+            ctx.setTransform(view.dpr, 0, 0, view.dpr, 0, 0);
+            ctx.clearRect(0, 0, view.cssW, view.cssH);
+            ctx.fillStyle = "#010205";
+            ctx.fillRect(0, 0, view.cssW, view.cssH);
+
+            ctx.save();
+            ctx.translate(view.offsetX, view.offsetY);
+            ctx.scale(view.scale, view.scale);
+
+            if (this.shakeTimer > 0) {
+              const strength = this.shakePower * (this.shakeTimer / 0.22);
+              const dx = rand(-1, 1) * strength;
+              const dy = rand(-1, 1) * strength;
+              ctx.translate(dx, dy);
+            }
+
+            this.drawBackground(timeSec);
+            this.parallax.draw(ctx);
+            this.particles.draw(ctx);
+            this.obstacles.draw(ctx);
+            this.player.draw(ctx, timeSec, this.astronautSprite);
+            this.ui.draw(ctx, this.state, this.score, this.best);
+
+            ctx.restore();
+          }
+        }
+
+        const canvas = document.getElementById("gameCanvas");
+        const muteBtn = document.getElementById("muteBtn");
+        new Game(canvas, muteBtn);
+      })();
+    </script>
+  </body>
+</html>

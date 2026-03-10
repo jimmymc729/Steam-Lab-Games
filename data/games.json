@@ -14,6 +14,20 @@
     "tags": ["art", "science", "motion", "single-player"]
   },
   {
+    "slug": "buoyancy-sandbox",
+    "title": "Buoyancy Sandbox",
+    "path": "/buoyancy-sandbox.html",
+    "status": "live",
+    "tags": ["science", "engineering", "physics", "simulation", "single-player"]
+  },
+  {
+    "slug": "maze-generator",
+    "title": "Random Maze Generator",
+    "path": "/maze-generator.html",
+    "status": "live",
+    "tags": ["math", "logic", "single-player", "puzzle"]
+  },
+  {
     "slug": "ant-colony",
     "title": "Ant Colony Lab",
     "path": "/games/ant-colony-lab/",

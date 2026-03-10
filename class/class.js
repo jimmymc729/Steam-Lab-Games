@@ -16,6 +16,8 @@
   const FALLBACK_GAMES = [
     { slug: "pixel-print", title: "Pixel Print Studio", path: "/pixel-print-classroom.html", status: "live" },
     { slug: "spin-art-studio", title: "Spin Art Studio", path: "/spin-art-studio.html", status: "live" },
+    { slug: "buoyancy-sandbox", title: "Buoyancy Sandbox", path: "/buoyancy-sandbox.html", status: "live" },
+    { slug: "maze-generator", title: "Random Maze Generator", path: "/maze-generator.html", status: "live" },
     { slug: "ant-colony", title: "Ant Colony Lab", path: "/games/ant-colony-lab/", status: "coming_soon" },
     { slug: "moonjet-cavern", title: "Moonjet Cavern", path: "/games/moonjet-cavern/", status: "coming_soon" },
     { slug: "bridge-builder", title: "Bridge Builder", path: "/games/bridge-builder/", status: "coming_soon" },
