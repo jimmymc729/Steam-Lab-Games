@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rube Goldberg Machine Builder — steamlab.games</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #e8ecf1; }
+
+/* ── Layout ───────────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-rows: 56px 1fr 64px;
+  grid-template-columns: 110px 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar canvas"
+    "footer footer";
+  height: 100vh;
+}
+
+/* ── Title Bar ────────────────────────────────────────────── */
+#header {
+  grid-area: header;
+  background: linear-gradient(135deg, #4a6cf7 0%, #6c5ce7 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(74,108,247,.35);
+  z-index: 10;
+  user-select: none;
+}
+#header span.subtitle { font-size: 12px; font-weight: 400; opacity: .75; }
+
+/* ── Sidebar / Toolbox ────────────────────────────────────── */
+#sidebar {
+  grid-area: sidebar;
+  background: #fff;
+  border-right: 1px solid #d1d9e6;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 8px;
+  gap: 6px;
+  overflow-y: auto;
+  z-index: 5;
+}
+#sidebar h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8a95a8;
+  text-align: center;
+  margin-bottom: 2px;
+}
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: #f4f6fa;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.tool-btn:hover { background: #e8ecf7; border-color: #b8c4e8; }
+.tool-btn.active { background: #eef0ff; border-color: #4a6cf7; box-shadow: 0 0 0 3px rgba(74,108,247,.15); }
+.tool-btn .icon { font-size: 28px; line-height: 1; }
+.tool-btn .label { font-size: 10px; font-weight: 600; color: #555; }
+
+/* select tool (top of sidebar, visually distinct) */
+.tool-btn.select-tool { background: #e8ecf7; border: 2px dashed #b0b8d0; }
+.tool-btn.select-tool:hover { border-color: #4a6cf7; background: #dfe4f7; }
+.tool-btn.select-tool.active { background: #dce3ff; border: 2px solid #4a6cf7; border-style: solid; box-shadow: 0 0 0 3px rgba(74,108,247,.15); }
+
+/* divider between select and placement tools */
+.sidebar-divider {
+  height: 1px;
+  background: #e2e6ee;
+  margin: 2px 0;
+}
+
+/* edit actions (rotate / delete) */
+#edit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid #e2e6ee;
+}
+#edit-actions h3 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #8a95a8;
+  text-align: center;
+  margin-bottom: 0;
+}
+.rotate-row {
+  display: flex;
+  gap: 4px;
+}
+.edit-btn {
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: #f0f2f8;
+  cursor: pointer;
+  font-weight: 700;
+  color: #555;
+  transition: all .15s;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edit-btn:hover { background: #e0e4f0; color: #333; }
+.edit-btn.rotate {
+  flex: 1;
+  height: 42px;
+  font-size: 22px;
+  background: #eef0ff;
+  border: 2px solid #c8d0f0;
+}
+.edit-btn.rotate:hover { background: #dce3ff; border-color: #4a6cf7; color: #4a6cf7; }
+.edit-btn.danger {
+  height: 34px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e74c3c;
+}
+.edit-btn.danger:hover { background: #fde8e8; }
+
+/* ── Canvas Area ──────────────────────────────────────────── */
+#canvas-wrap {
+  grid-area: canvas;
+  position: relative;
+  overflow: hidden;
+  background: #f7f8fc;
+}
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+#game-canvas.dragging { cursor: grabbing; }
+#game-canvas.running { cursor: default; }
+
+/* grid overlay */
+#canvas-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(180,190,210,.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(180,190,210,.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* success overlay */
+#success-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+#success-overlay.visible { display: flex; }
+#success-msg {
+  background: linear-gradient(135deg, #f9ca24, #f0932b);
+  color: #fff;
+  font-size: 36px;
+  font-weight: 800;
+  padding: 18px 48px;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(240,147,43,.45);
+  animation: popIn .4s cubic-bezier(.17,.67,.29,1.4);
+  text-shadow: 0 2px 4px rgba(0,0,0,.15);
+}
+@keyframes popIn {
+  0%   { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* confetti canvas */
+#confetti-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 19;
+}
+
+/* ── Footer / Controls ────────────────────────────────────── */
+#footer {
+  grid-area: footer;
+  background: #fff;
+  border-top: 1px solid #d1d9e6;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 10;
+}
+.footer-buttons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.ctrl-btn {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+  letter-spacing: .3px;
+}
+.ctrl-btn:active { transform: scale(.96); }
+#btn-start { background: #27ae60; color: #fff; }
+#btn-start:hover { background: #219a52; }
+#btn-start:disabled { background: #a3d9b8; cursor: default; }
+#btn-reset { background: #3498db; color: #fff; }
+#btn-reset:hover { background: #2980b9; }
+#btn-reset:disabled { background: #a8cde4; cursor: default; }
+#btn-clear { background: #e74c3c; color: #fff; }
+#btn-clear:hover { background: #c0392b; }
+
+#status {
+  flex: 1;
+  text-align: right;
+  font-size: 13px;
+  color: #7a8599;
+  font-weight: 500;
+  padding-left: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- Title Bar -->
+  <header id="header">
+    ⚙️ Rube Goldberg Machine Builder
+    <span class="subtitle">steamlab.games</span>
+  </header>
+
+  <!-- Sidebar Toolbox -->
+  <aside id="sidebar">
+    <h3>Tools</h3>
+    <div class="tool-btn select-tool" id="btn-select" data-tool="select">
+      <span class="icon">👆</span>
+      <span class="label">Select</span>
+    </div>
+    <button class="edit-btn" id="btn-undo" title="Undo last action (Ctrl+Z)" style="width:100%;margin:4px 0;padding:6px 0;font-size:13px;border:1px solid #ccc;border-radius:6px;background:#f0f2f5;cursor:pointer;">↩ Undo</button>
+    <div class="sidebar-divider"></div>
+    <div class="tool-btn" data-tool="ball">
+      <span class="icon">🟠</span>
+      <span class="label">Ball</span>
+    </div>
+    <div class="tool-btn" data-tool="surface">
+      <span class="icon">📐</span>
+      <span class="label">Surface</span>
+    </div>
+    <div class="tool-btn" data-tool="curve">
+      <span class="icon">🥣</span>
+      <span class="label">Curve</span>
+    </div>
+    <div class="tool-btn" data-tool="bumpy">
+      <span class="icon">〰️</span>
+      <span class="label">Bumpy</span>
+    </div>
+    <div class="tool-btn" data-tool="domino">
+      <span class="icon">🀄</span>
+      <span class="label">Domino</span>
+    </div>
+    <div class="tool-btn" data-tool="spring">
+      <span class="icon">🟩</span>
+      <span class="label">Spring</span>
+    </div>
+    <div class="tool-btn" data-tool="bell">
+      <span class="icon">🔔</span>
+      <span class="label">Bell</span>
+    </div>
+    <div class="tool-btn" data-tool="wheel">
+      <span class="icon">☸️</span>
+      <span class="label">Wheel</span>
+    </div>
+    <div class="tool-btn" data-tool="mill">
+      <span class="icon">🎡</span>
+      <span class="label">Mill</span>
+    </div>
+    <div id="edit-actions">
+      <h3>Edit</h3>
+      <div class="rotate-row">
+        <button class="edit-btn rotate" id="btn-rot-left" title="Rotate Left 5°">↺</button>
+        <button class="edit-btn rotate" id="btn-rot-right" title="Rotate Right 5°">↻</button>
+      </div>
+      <button class="edit-btn danger" id="btn-delete">✕ Delete</button>
+    </div>
+  </aside>
+
+  <!-- Canvas -->
+  <div id="canvas-wrap">
+    <canvas id="game-canvas"></canvas>
+    <canvas id="confetti-canvas"></canvas>
+    <div id="success-overlay">
+      <div id="success-msg">🔔 Bell Rung!</div>
+    </div>
+  </div>
+
+  <!-- Footer Controls -->
+  <footer id="footer">
+    <div class="footer-buttons">
+      <button class="ctrl-btn" id="btn-start">▶ Start</button>
+      <button class="ctrl-btn" id="btn-reset" disabled>↺ Reset</button>
+      <button class="ctrl-btn" id="btn-clear">✕ Clear</button>
+    </div>
+    <span id="status">Place objects, then press Start.</span>
+  </footer>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  RUBE GOLDBERG MACHINE BUILDER  —  steamlab.games
+//  A single-file classroom chain-reaction sandbox
+// ═══════════════════════════════════════════════════════════════
+
+(function () {
+  'use strict';
+
+  // ── Matter.js aliases ────────────────────────────────────────
+  const { Engine, World, Bodies, Body, Runner, Events, Composite, Vector, Constraint } = Matter;
+
+  // ═══════════════════════════════════════════════════════════
+  //  SOUND EFFECTS (Web Audio API — no external files)
+  // ═══════════════════════════════════════════════════════════
+  const SFX = (function () {
+    let actx = null;
+    const _last = {};
+
+    function ctx() {
+      if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    }
+
+    function ok(name, ms) {
+      const now = performance.now();
+      if (_last[name] && now - _last[name] < ms) return false;
+      _last[name] = now;
+      return true;
+    }
+
+    function tone(freq, dur, type, vol) {
+      const c = ctx(), t = c.currentTime;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(vol || 0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur);
+    }
+
+    // Ball hits surface/wall — soft low thud
+    function bounce() {
+      if (!ok('bounce', 60)) return;
+      tone(80 + Math.random() * 40, 0.12, 'sine', 0.25);
+    }
+
+    // Domino collision — sharp click
+    function domino() {
+      if (!ok('domino', 40)) return;
+      tone(800 + Math.random() * 200, 0.04, 'square', 0.12);
+    }
+
+    // Spring launch — rising boing
+    function spring() {
+      if (!ok('spring', 100)) return;
+      const c = ctx(), t = c.currentTime;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(200, t);
+      o.frequency.exponentialRampToValueAtTime(800, t + 0.15);
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.3);
+    }
+
+    // Bell ring — shimmering harmonics (WIN sound)
+    function bell() {
+      const c = ctx(), t = c.currentTime;
+      [660, 1320, 1980].forEach((f, i) => {
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, t);
+        const v = [0.3, 0.15, 0.08][i];
+        g.gain.setValueAtTime(v, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + 1.0);
+      });
+    }
+
+    // Wheel/Mill hit — metallic clank
+    function clank() {
+      if (!ok('clank', 80)) return;
+      const c = ctx(), t = c.currentTime;
+      ['triangle', 'square'].forEach((type, i) => {
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = type;
+        o.frequency.setValueAtTime((i === 0 ? 300 : 600) + Math.random() * 100, t);
+        g.gain.setValueAtTime(i === 0 ? 0.18 : 0.06, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        o.connect(g); g.connect(c.destination);
+        o.start(t); o.stop(t + 0.08);
+      });
+    }
+
+    // Object placement — soft pop
+    function pop() {
+      const c = ctx(), t = c.currentTime;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(400, t);
+      o.frequency.exponentialRampToValueAtTime(200, t + 0.08);
+      g.gain.setValueAtTime(0.2, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.1);
+    }
+
+    // Start simulation — ascending tone
+    function start() {
+      const c = ctx(), t = c.currentTime;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(300, t);
+      o.frequency.exponentialRampToValueAtTime(600, t + 0.15);
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.2);
+    }
+
+    // Reset — descending tone
+    function reset() {
+      const c = ctx(), t = c.currentTime;
+      const o = c.createOscillator();
+      const g = c.createGain();
+      o.type = 'square';
+      o.frequency.setValueAtTime(500, t);
+      o.frequency.exponentialRampToValueAtTime(250, t + 0.15);
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + 0.2);
+    }
+
+    // Delete — quick low tone
+    function del() {
+      tone(150, 0.12, 'sine', 0.18);
+    }
+
+    // Victory fanfare — C-E-G-C arpeggio
+    function fanfare() {
+      const c = ctx(), t = c.currentTime;
+      [523, 659, 784, 1047].forEach((f, i) => {
+        const o = c.createOscillator();
+        const g = c.createGain();
+        o.type = 'square';
+        o.frequency.setValueAtTime(f, t + i * 0.12);
+        g.gain.setValueAtTime(0.001, t);
+        g.gain.setValueAtTime(0.13, t + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.2);
+        o.connect(g); g.connect(c.destination);
+        o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.2);
+      });
+    }
+
+    return { bounce, domino, spring, bell, clank, pop, start, reset, delete: del, fanfare };
+  })();
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  const canvas      = document.getElementById('game-canvas');
+  const ctx         = canvas.getContext('2d');
+  const canvasWrap  = document.getElementById('canvas-wrap');
+  const confettiCvs = document.getElementById('confetti-canvas');
+  const confettiCtx = confettiCvs.getContext('2d');
+  const statusEl    = document.getElementById('status');
+  const successOvr  = document.getElementById('success-overlay');
+
+  const btnStart    = document.getElementById('btn-start');
+  const btnReset    = document.getElementById('btn-reset');
+  const btnClear    = document.getElementById('btn-clear');
+  const btnRotLeft  = document.getElementById('btn-rot-left');
+  const btnRotRight = document.getElementById('btn-rot-right');
+  const btnDelete   = document.getElementById('btn-delete');
+  const btnUndo     = document.getElementById('btn-undo');
+  const btnSelect   = document.getElementById('btn-select');
+  const placementBtns = document.querySelectorAll('.tool-btn[data-tool]:not([data-tool="select"])');
+  const toolBtns      = document.querySelectorAll('.tool-btn[data-tool]');
+
+  // ── State ────────────────────────────────────────────────────
+  let engine, runner;
+  let running   = false;                 // simulation active?
+  let bellRung  = false;                 // success triggered this run?
+  let activeTool = null;                 // 'ball' | 'surface' | 'curve' | 'bumpy' | etc.
+  let selectedId = null;                 // id of selected placed object
+  let dragging   = null;                 // { id, offsetX, offsetY } while drag
+  let undoStack  = [];                   // undo history
+  let placedObjects = [];                // array of placed-obj descriptors
+  /*  placedObject = {
+        id, type, x, y, angle,          // editor state
+        body,                            // Matter body (created on start)
+        startX, startY, startAngle      // snapshot for reset
+      }
+  */
+  let nextId = 1;
+  let confettiParts = [];
+  let confettiAnim  = null;
+
+  // ── Object visual / physics configs ──────────────────────────
+  const COLORS = {
+    ball:    '#f39c12',
+    surface: '#2ecc71',
+    curve:   '#1abc9c',
+    bumpy:   '#e67e22',
+    domino:  '#3498db',
+    spring:  '#9b59b6',
+    bell:    '#e74c3c',
+    wheel:   '#e056a0',
+    mill:    '#b8860b',
+  };
+  const OUTLINE = {
+    ball:    '#d68910',
+    surface: '#27ae60',
+    curve:   '#16a085',
+    bumpy:   '#d35400',
+    domino:  '#2471a3',
+    spring:  '#7d3c98',
+    bell:    '#c0392b',
+    wheel:   '#c0407a',
+    mill:    '#8B6914',
+  };
+
+  const OBJ_DEFS = {
+    ball:    { radius: 18, w: 36,  h: 36  },
+    surface: { w: 160, h: 14 },
+    curve:   { w: 136, h: 14, arcDepth: 28, segments: 12 },
+    bumpy:   { w: 160, h: 14, bumps: 3, amplitude: 4, segments: 16 },
+    domino:  { w: 18,  h: 72 },
+    spring:  { w: 50,  h: 30 },
+    bell:    { w: 36,  h: 36 },
+    wheel:   { w: 80,  h: 80, paddles: 4, paddleW: 35, paddleH: 10, hubR: 10 },
+    mill:    { w: 240, h: 240, paddles: 8, paddleW: 60, paddleH: 12, hubR: 40 },
+  };
+
+  function isSurfaceType(type) {
+    return type === 'surface' || type === 'curve' || type === 'bumpy';
+  }
+
+  // ── Canvas sizing ────────────────────────────────────────────
+  function resizeCanvas() {
+    const r = canvasWrap.getBoundingClientRect();
+    canvas.width  = r.width;
+    canvas.height = r.height;
+    confettiCvs.width  = r.width;
+    confettiCvs.height = r.height;
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  // ── Physics engine setup ─────────────────────────────────────
+  function createEngine() {
+    engine = Engine.create({ gravity: { x: 0, y: 1.8 }, enableSleeping: true });
+    // Higher solver iterations for reliable thin-body collisions
+    engine.positionIterations = 16;
+    engine.velocityIterations = 10;
+    runner = Runner.create();
+
+    // Floor + walls
+    const w = canvas.width, h = canvas.height;
+    const floorOpts = { isStatic: true, friction: 0.25, frictionStatic: 0.4, restitution: 0.1, label: 'wall' };
+    const wallOpts = { isStatic: true, friction: 0.3, restitution: 0.4, label: 'wall' };
+    World.add(engine.world, [
+      Bodies.rectangle(w / 2, h + 25, w + 200, 50, floorOpts),  // floor
+      Bodies.rectangle(-25, h / 2, 50, h + 200, wallOpts),      // left
+      Bodies.rectangle(w + 25, h / 2, 50, h + 200, wallOpts),   // right
+    ]);
+
+    // Collision handler for springs, bells, and domino chain assist
+    Events.on(engine, 'collisionStart', onCollision);
+
+    // ── Rolling assist for balls on gentle slopes ────────────────
+    // Matter.js Verlet solver over-damps tangential velocity on gentle slopes.
+    // Neither setVelocity nor applyForce survives the position-solving iterations.
+    // Fix: Body.translate in afterUpdate directly shifts position, creating Verlet
+    // velocity (pos - posPrev) that the solver treats as existing momentum.
+    const _ballSlope = new Map();  // ball.id → { body, sinA }
+
+    Events.on(engine, 'collisionActive', function(event) {
+      for (const pair of event.pairs) {
+        handleDominoChainSustained(pair.bodyA, pair.bodyB);
+        trackBallSlope(pair.bodyA, pair.bodyB, _ballSlope);
+      }
+    });
+    Events.on(engine, 'collisionEnd', function(event) {
+      for (const pair of event.pairs) {
+        const tA = getBodyType(pair.bodyA), tB = getBodyType(pair.bodyB);
+        const ball = tA === 'ball' ? pair.bodyA : tB === 'ball' ? pair.bodyB : null;
+        if (!ball) continue;
+        // Transfer accumulated slope velocity into physics velocity on leaving surface
+        const data = _ballSlope.get(ball.id);
+        if (data && ball._slopeV) {
+          const cosA = Math.sqrt(1 - data.sinA * data.sinA);
+          Body.setVelocity(ball, {
+            x: ball.velocity.x + ball._slopeV * cosA,
+            y: ball.velocity.y + Math.abs(ball._slopeV * data.sinA),
+          });
+        }
+        delete ball._slopeV;
+        _ballSlope.delete(ball.id);
+      }
+    });
+    // Manual rolling simulation — move pos AND posPrev together so the Verlet
+    // solver doesn't see a velocity change and fight us.  We track our own
+    // accumulated slope speed in body._slopeV.
+    Events.on(engine, 'afterUpdate', function() {
+      for (const [id, { body, sinA }] of _ballSlope) {
+        if (!body._slopeV) body._slopeV = 0;
+        const cosA = Math.sqrt(1 - sinA * sinA);
+
+        // Accelerate down slope (factor tuned for satisfying game feel)
+        body._slopeV += 0.05 * sinA;
+        body._slopeV *= 0.993;   // gentle drag → natural terminal velocity
+
+        // Shift both pos & posPrev — invisible to Verlet solver
+        const dx = body._slopeV * cosA;
+        const dy = body._slopeV * Math.abs(sinA);
+        body.position.x += dx;
+        body.position.y += dy;
+        body.positionPrev.x += dx;
+        body.positionPrev.y += dy;
+      }
+    });
+  }
+
+  // ── Collision handler ────────────────────────────────────────
+  // Resolve object type for compound body parts (wheel, mill, curve, bumpy)
+  function getBodyType(b) {
+    return b.objType || (b.parent && b.parent !== b ? b.parent.objType : null);
+  }
+
+  // Domino chain assist — velocity-proportional nudge compensates for Matter.js
+  // under-transferring angular momentum on thin rectangular bodies.
+  function handleDominoChain(bodyA, bodyB) {
+    if (bodyA.isStatic || bodyB.isStatic) return;
+    const tA = getBodyType(bodyA), tB = getBodyType(bodyB);
+    const domino = tA === 'domino' ? bodyA : tB === 'domino' ? bodyB : null;
+    if (!domino) return;
+    // Only assist nearly-upright dominoes (within ~23°)
+    const ang = ((domino.angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    if (ang > 0.4 && ang < Math.PI * 2 - 0.4) return;
+    const other = domino === bodyA ? bodyB : bodyA;
+    const dx = domino.position.x - other.position.x;
+    // Scale nudge by impact energy — fast hits = big nudge, tiny vibrations = ignored
+    const speed = Math.sqrt(other.velocity.x ** 2 + other.velocity.y ** 2);
+    const impact = speed + Math.abs(other.angularVelocity) * 15;
+    const nudge = Math.min(impact * 0.07, 0.30);
+    if (nudge < 0.015) return;
+    Body.setAngularVelocity(domino, domino.angularVelocity + (dx > 0 ? nudge : -nudge));
+  }
+
+  // Gentle sustained push — only between two dominoes when one is actively falling
+  function handleDominoChainSustained(bodyA, bodyB) {
+    if (bodyA.isStatic || bodyB.isStatic) return;
+    const tA = getBodyType(bodyA), tB = getBodyType(bodyB);
+    if (tA !== 'domino' || tB !== 'domino') return;
+    // Find which one is more tilted (the pusher) and which is more upright (the target)
+    const angA = Math.abs(Math.sin(bodyA.angle));
+    const angB = Math.abs(Math.sin(bodyB.angle));
+    const pusher = angA > angB ? bodyA : bodyB;
+    const target = pusher === bodyA ? bodyB : bodyA;
+    // Only push if target is still mostly upright (< ~35°)
+    if (Math.abs(Math.sin(target.angle)) > 0.55) return;
+    // Only push if pusher is actually falling (> ~10°)
+    if (Math.abs(Math.sin(pusher.angle)) < 0.17) return;
+    const dx = target.position.x - pusher.position.x;
+    Body.setAngularVelocity(target, target.angularVelocity + (dx > 0 ? 0.032 : -0.032));
+  }
+
+  // Track balls rolling on sloped static surfaces (for beforeUpdate force assist)
+  function trackBallSlope(bodyA, bodyB, map) {
+    const tA = getBodyType(bodyA), tB = getBodyType(bodyB);
+    const ball = tA === 'ball' ? bodyA : tB === 'ball' ? bodyB : null;
+    if (!ball) return;
+    const other = ball === bodyA ? bodyB : bodyA;
+    if (!other.isStatic) return;
+    const angle = other.angle || 0;
+    const sinA = Math.sin(angle);
+    // Skip near-flat (<0.5°) and very steep (>20°) — steep slopes work fine already
+    if (Math.abs(sinA) < 0.009 || Math.abs(angle) > 0.35) return;
+    // Keep steepest slope if ball touches multiple surfaces
+    const existing = map.get(ball.id);
+    if (!existing || Math.abs(sinA) > Math.abs(existing.sinA)) {
+      map.set(ball.id, { body: ball, sinA });
+    }
+  }
+
+  function onCollision(event) {
+    for (const pair of event.pairs) {
+      const a = pair.bodyA, b = pair.bodyB;
+      handleSpring(a, b);
+      handleSpring(b, a);
+      handleBell(a, b);
+      handleBell(b, a);
+      handleDominoChain(a, b);
+
+      // Sound dispatch (priority order)
+      const tA = getBodyType(a), tB = getBodyType(b);
+      if (tA === 'spring' || tB === 'spring') SFX.spring();
+      else if (tA === 'bell' || tB === 'bell') SFX.bell();
+      else if (tA === 'wheel' || tB === 'wheel' || tA === 'mill' || tB === 'mill') SFX.clank();
+      else if (tA === 'domino' || tB === 'domino') SFX.domino();
+      else SFX.bounce();
+    }
+  }
+
+  function handleSpring(springBody, otherBody) {
+    if (springBody.objType !== 'spring') return;
+    if (otherBody.isStatic) return;
+    // Launch with instant velocity change (feels like a real spring!)
+    const angle = springBody.angle;
+    const launchSpeed = 22;
+    const vx = Math.sin(angle) * launchSpeed * 0.4 + otherBody.velocity.x * 0.3;
+    const vy = -launchSpeed;
+    Body.setVelocity(otherBody, { x: vx, y: vy });
+  }
+
+  function handleBell(bellBody, otherBody) {
+    if (bellBody.objType !== 'bell') return;
+    if (bellRung) return;
+    bellRung = true;
+    showSuccess();
+  }
+
+
+  // ── Success effects ──────────────────────────────────────────
+  function showSuccess() {
+    successOvr.classList.add('visible');
+    statusEl.textContent = '🔔 Bell rung! Amazing chain reaction!';
+    launchConfetti();
+    SFX.fanfare();
+  }
+  function hideSuccess() {
+    successOvr.classList.remove('visible');
+  }
+
+  // ── Confetti ─────────────────────────────────────────────────
+  function launchConfetti() {
+    confettiParts = [];
+    const w = confettiCvs.width, h = confettiCvs.height;
+    for (let i = 0; i < 120; i++) {
+      confettiParts.push({
+        x: w / 2 + (Math.random() - .5) * w * .5,
+        y: h * 0.4,
+        vx: (Math.random() - .5) * 12,
+        vy: -Math.random() * 14 - 4,
+        size: Math.random() * 8 + 4,
+        color: ['#f39c12','#e74c3c','#3498db','#2ecc71','#9b59b6','#1abc9c'][Math.floor(Math.random()*6)],
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - .5) * .3,
+        life: 1,
+      });
+    }
+    if (confettiAnim) cancelAnimationFrame(confettiAnim);
+    animConfetti();
+  }
+  function animConfetti() {
+    confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+    let alive = false;
+    for (const p of confettiParts) {
+      if (p.life <= 0) continue;
+      alive = true;
+      p.x   += p.vx;
+      p.y   += p.vy;
+      p.vy  += 0.35;
+      p.rot += p.vr;
+      p.life -= 0.008;
+      confettiCtx.save();
+      confettiCtx.translate(p.x, p.y);
+      confettiCtx.rotate(p.rot);
+      confettiCtx.globalAlpha = Math.max(0, p.life);
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+      confettiCtx.restore();
+    }
+    if (alive) {
+      confettiAnim = requestAnimationFrame(animConfetti);
+    } else {
+      confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  OBJECT CREATION (editor descriptors → Matter bodies)
+  // ═══════════════════════════════════════════════════════════
+
+  /** Create an editor-only descriptor (no physics body yet) */
+  function pushUndo(action) { undoStack.push(action); if (undoStack.length > 50) undoStack.shift(); }
+
+  function performUndo() {
+    if (running || undoStack.length === 0) return;
+    const action = undoStack.pop();
+    switch (action.type) {
+      case 'place':
+        placedObjects = placedObjects.filter(o => o.id !== action.id);
+        selectedId = null;
+        break;
+      case 'delete':
+        placedObjects.push(action.obj);
+        selectedId = action.obj.id;
+        break;
+      case 'rotate':
+        { const o = placedObjects.find(o => o.id === action.id);
+          if (o) o.angle = action.oldAngle; }
+        break;
+      case 'drag':
+        { const o = placedObjects.find(o => o.id === action.id);
+          if (o) { o.x = action.oldX; o.y = action.oldY; o.angle = action.oldAngle; if (action.oldW != null) o.w = action.oldW; } }
+        break;
+    }
+    statusEl.textContent = 'Undone.';
+  }
+
+  function createPlacedObject(type, x, y) {
+    const obj = {
+      id: nextId++,
+      type,
+      x, y,
+      angle: 0,  // all objects start horizontal; rotate to adjust
+      body: null,
+      startX: 0, startY: 0, startAngle: 0,
+    };
+    // Surface types get a per-object width so handles can resize them
+    if (isSurfaceType(type)) obj.w = OBJ_DEFS[type].w;
+    placedObjects.push(obj);
+    pushUndo({ type: 'place', id: obj.id });
+    SFX.pop();
+    return obj;
+  }
+
+  /** Build a compound body of small rectangles along a curve path */
+  function buildSegmentedBody(obj, yFunc) {
+    const def = OBJ_DEFS[obj.type];
+    const w = obj.w || def.w;
+    const hw = w / 2;
+    const numSegs = def.segments;
+    const segWidth = w / numSegs;
+    const thickness = def.h;
+    const cos0 = Math.cos(obj.angle), sin0 = Math.sin(obj.angle);
+    const parts = [];
+
+    for (let i = 0; i < numSegs; i++) {
+      const tLeft = i / numSegs, tRight = (i + 1) / numSegs, tMid = (i + 0.5) / numSegs;
+      const localX = -hw + (i + 0.5) * segWidth;
+      const localY = yFunc(tMid);
+      const segAngle = Math.atan2(yFunc(tRight) - yFunc(tLeft), segWidth);
+
+      // Rotate local position by obj.angle and offset to world position
+      const wx = obj.x + cos0 * localX - sin0 * localY;
+      const wy = obj.y + sin0 * localX + cos0 * localY;
+
+      const isBumpy = obj.type === 'bumpy';
+      const part = Bodies.rectangle(wx, wy, segWidth + 2, thickness, {
+        isStatic: true,
+        friction: isBumpy ? 0.02 : 0.12,
+        frictionStatic: isBumpy ? 0.05 : 0.15,
+        restitution: isBumpy ? 0.5 : 0.1,
+      });
+      Body.setAngle(part, obj.angle + segAngle);
+      parts.push(part);
+    }
+
+    const body = Body.create({ parts, isStatic: true, label: obj.type });
+    return body;
+  }
+
+  /** Build a Matter.js body for a placed object */
+  function buildBody(obj) {
+    const def = OBJ_DEFS[obj.type];
+    let body;
+    switch (obj.type) {
+      case 'ball':
+        body = Bodies.circle(obj.x, obj.y, def.radius, {
+          restitution: 0.6, friction: 0.01, frictionStatic: 0.02,
+          frictionAir: 0.0003, density: 0.002, label: 'ball',
+          sleepThreshold: Infinity, // never sleep — ball must keep rolling on gentle slopes
+        });
+        break;
+      case 'surface':
+        body = Bodies.rectangle(obj.x, obj.y, obj.w || def.w, def.h, {
+          isStatic: true, friction: 0.12, frictionStatic: 0.15, restitution: 0.1, label: 'surface',
+        });
+        break;
+      case 'curve': {
+        const arcScale = (obj.w || def.w) / def.w;
+        body = buildSegmentedBody(obj, t => {
+          const n = 2 * t - 1;
+          return def.arcDepth * arcScale * (1 - n * n);
+        });
+        break;
+      }
+      case 'bumpy':
+        body = buildSegmentedBody(obj, t => {
+          return def.amplitude * Math.sin(t * def.bumps * Math.PI);
+        });
+        break;
+      case 'domino':
+        body = Bodies.rectangle(obj.x, obj.y, def.w, def.h, {
+          restitution: 0.3, friction: 0.5, frictionStatic: 0.6,
+          frictionAir: 0.001, density: 0.003, label: 'domino',
+        });
+        break;
+      case 'spring':
+        body = Bodies.rectangle(obj.x, obj.y, def.w, def.h, {
+          isStatic: true, friction: 0.2, restitution: 0.9, label: 'spring',
+        });
+        break;
+      case 'bell':
+        body = Bodies.circle(obj.x, obj.y, def.w / 2, {
+          isStatic: true, isSensor: true, label: 'bell',
+        });
+        break;
+      case 'wheel': {
+        // Compound body: central hub + 4 paddles — spins freely when hit
+        const hub = Bodies.circle(obj.x, obj.y, def.hubR, { density: 0.003 });
+        const paddles = [];
+        for (let i = 0; i < def.paddles; i++) {
+          const a = obj.angle + (i * Math.PI / 2);
+          const cx = obj.x + Math.cos(a) * (def.paddleW / 2 + def.hubR / 2);
+          const cy = obj.y + Math.sin(a) * (def.paddleW / 2 + def.hubR / 2);
+          const p = Bodies.rectangle(cx, cy, def.paddleW, def.paddleH, {
+            density: 0.002, friction: 0.3, restitution: 0.4,
+          });
+          Body.setAngle(p, a);
+          paddles.push(p);
+        }
+        body = Body.create({ parts: [hub, ...paddles], label: 'wheel' });
+        // Low inertia so it spins easily, very low air friction so it keeps spinning
+        Body.setInertia(body, body.inertia * 0.3);
+        body.frictionAir = 0.002;
+        // Pin to editor position so it rotates in place but doesn't drift
+        const pin = Constraint.create({
+          pointA: { x: obj.x, y: obj.y },
+          bodyB: body,
+          pointB: { x: 0, y: 0 },
+          length: 0,
+          stiffness: 1,
+        });
+        obj.constraint = pin;
+        break;
+      }
+      case 'mill': {
+        // Compound body: central hub + 8 paddles — big free-spinning water wheel
+        const hub = Bodies.circle(obj.x, obj.y, def.hubR, { density: 0.003 });
+        const paddles = [];
+        for (let i = 0; i < def.paddles; i++) {
+          const a = obj.angle + (i * Math.PI * 2 / def.paddles);
+          const cx = obj.x + Math.cos(a) * (def.paddleW / 2 + def.hubR / 2);
+          const cy = obj.y + Math.sin(a) * (def.paddleW / 2 + def.hubR / 2);
+          const p = Bodies.rectangle(cx, cy, def.paddleW, def.paddleH, {
+            density: 0.002, friction: 0.3, restitution: 0.4,
+          });
+          Body.setAngle(p, a);
+          paddles.push(p);
+        }
+        body = Body.create({ parts: [hub, ...paddles], label: 'mill' });
+        // Heavier than small wheel (0.5 vs 0.3) — slower spin-up, more momentum
+        Body.setInertia(body, body.inertia * 0.5);
+        body.frictionAir = 0.002;
+        // Pin to editor position
+        const pin = Constraint.create({
+          pointA: { x: obj.x, y: obj.y },
+          bodyB: body,
+          pointB: { x: 0, y: 0 },
+          length: 0,
+          stiffness: 1,
+        });
+        obj.constraint = pin;
+        break;
+      }
+    }
+    body.objType = obj.type;
+    body.objId   = obj.id;
+    if (!isSurfaceType(obj.type) || obj.type === 'surface') {
+      Body.setAngle(body, obj.angle);
+    }
+    obj.body = body;
+    return body;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  SELECTION & EDITING
+  // ═══════════════════════════════════════════════════════════
+
+  function selectObject(id) {
+    selectedId = id;
+  }
+  function getSelected() {
+    return placedObjects.find(o => o.id === selectedId) || null;
+  }
+
+  const HANDLE_GRAB_R = 14;   // generous grab radius for surface endpoint dots
+
+  function hitTestSurfaceHandle(px, py, obj) {
+    // Transform point into surface's local frame
+    const cos = Math.cos(-obj.angle), sin = Math.sin(-obj.angle);
+    const lx = cos * (px - obj.x) - sin * (py - obj.y);
+    const ly = sin * (px - obj.x) + cos * (py - obj.y);
+    const hw = (obj.w || OBJ_DEFS[obj.type].w) / 2;
+    if (Math.hypot(lx - hw, ly) <= HANDLE_GRAB_R) return 'right';
+    if (Math.hypot(lx + hw, ly) <= HANDLE_GRAB_R) return 'left';
+    return null;
+  }
+
+  function hitTest(px, py) {
+    // Test placed objects back-to-front, return the topmost hit
+    for (let i = placedObjects.length - 1; i >= 0; i--) {
+      const o = placedObjects[i];
+      const d = OBJ_DEFS[o.type];
+      if (o.type === 'ball' || o.type === 'bell' || o.type === 'wheel' || o.type === 'mill') {
+        const r = (d.radius || d.w / 2) + 6;
+        if (Math.hypot(px - o.x, py - o.y) <= r) return o;
+      } else {
+        // Expanded bounding box for curve/bumpy shapes
+        const hw = ((o.w || d.w) / 2) + 8;
+        const hh = o.type === 'curve' ? (d.arcDepth + d.h) / 2 + 12
+                 : o.type === 'bumpy' ? d.amplitude + d.h / 2 + 8
+                 : (d.h / 2) + 8;
+        // Rotate point into object local frame
+        const cos = Math.cos(-o.angle), sin = Math.sin(-o.angle);
+        const lx = cos * (px - o.x) - sin * (py - o.y);
+        const ly = sin * (px - o.x) + cos * (py - o.y);
+        if (Math.abs(lx) <= hw && Math.abs(ly) <= hh) return o;
+      }
+    }
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  RENDERING (custom canvas, not Matter.Render)
+  // ═══════════════════════════════════════════════════════════
+
+  function render() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw floor
+    ctx.fillStyle = '#c8d6e5';
+    ctx.fillRect(0, h - 25, w, 25);
+    ctx.fillStyle = '#b2bec3';
+    ctx.fillRect(0, h - 25, w, 3);
+
+    // Draw each placed object
+    for (const obj of placedObjects) {
+      const isSelected = obj.id === selectedId && !running;
+
+      // If running, read position from physics body (skip for surface types — they're static)
+      let x = obj.x, y = obj.y, angle = obj.angle;
+      if (running && obj.body && !isSurfaceType(obj.type)) {
+        x = obj.body.position.x;
+        y = obj.body.position.y;
+        angle = obj.body.angle;
+      }
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      // Selection highlight
+      if (isSelected) {
+        ctx.shadowColor = '#4a6cf7';
+        ctx.shadowBlur = 16;
+      }
+
+      drawObject(ctx, obj.type, isSelected, obj);
+      ctx.restore();
+
+      // Draw angle label for selected surfaces
+      if (isSelected && isSurfaceType(obj.type)) {
+        const deg = Math.round(angle * 180 / Math.PI);
+        ctx.save();
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#4a6cf7';
+        ctx.fillText(deg + '°', x, y - 20);
+        ctx.restore();
+      }
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  function drawObject(ctx, type, selected, obj) {
+    const d = OBJ_DEFS[type];
+    const objW = (obj && obj.w) || d.w;  // per-object width for resizable surfaces
+    const fill = COLORS[type];
+    const stroke = OUTLINE[type];
+
+    ctx.lineWidth = selected ? 3 : 2;
+    ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+    ctx.fillStyle = fill;
+
+    switch (type) {
+      case 'ball': {
+        ctx.beginPath();
+        ctx.arc(0, 0, d.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Shine
+        ctx.beginPath();
+        ctx.arc(-5, -6, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fill();
+        break;
+      }
+      case 'surface': {
+        const hw = objW / 2, hh = d.h / 2;
+        ctx.beginPath();
+        ctx.roundRect(-hw, -hh, objW, d.h, 4);
+        ctx.fill();
+        ctx.stroke();
+        // Grip lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        for (let i = -hw + 20; i < hw - 10; i += 18) {
+          ctx.beginPath();
+          ctx.moveTo(i, -hh + 3);
+          ctx.lineTo(i, hh - 3);
+          ctx.stroke();
+        }
+        // End-dot handles when selected (grab these to rotate)
+        if (selected) {
+          ctx.fillStyle = '#4a6cf7';
+          ctx.beginPath(); ctx.arc(-hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(-hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+      case 'curve': {
+        const hw = objW / 2, thick = d.h;
+        const arcScale = objW / d.w;  // scale arc depth proportionally
+        const arcD = d.arcDepth * arcScale;
+        const steps = 40;
+        // Filled curve path
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const px = -hw + t * objW;
+          const n = 2 * t - 1;
+          const py = arcD * (1 - n * n) - thick / 2;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        for (let i = steps; i >= 0; i--) {
+          const t = i / steps;
+          const px = -hw + t * objW;
+          const n = 2 * t - 1;
+          const py = arcD * (1 - n * n) + thick / 2;
+          ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Grip lines following the curve
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        for (let gx = -hw + 20; gx < hw - 10; gx += 18) {
+          const t = (gx + hw) / objW;
+          const n = 2 * t - 1;
+          const cy = arcD * (1 - n * n);
+          ctx.beginPath();
+          ctx.moveTo(gx, cy - thick / 2 + 2);
+          ctx.lineTo(gx, cy + thick / 2 - 2);
+          ctx.stroke();
+        }
+        // Endpoint handles
+        if (selected) {
+          ctx.fillStyle = '#4a6cf7';
+          ctx.beginPath(); ctx.arc(-hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(-hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+      case 'bumpy': {
+        const hw = objW / 2, thick = d.h;
+        const steps = 60;
+        // Filled bumpy path
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const px = -hw + t * objW;
+          const py = d.amplitude * Math.sin(t * d.bumps * Math.PI) - thick / 2;
+          i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        }
+        for (let i = steps; i >= 0; i--) {
+          const t = i / steps;
+          const px = -hw + t * objW;
+          const py = d.amplitude * Math.sin(t * d.bumps * Math.PI) + thick / 2;
+          ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Grip lines following the wave
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        for (let gx = -hw + 15; gx < hw - 10; gx += 16) {
+          const t = (gx + hw) / objW;
+          const cy = d.amplitude * Math.sin(t * d.bumps * Math.PI);
+          ctx.beginPath();
+          ctx.moveTo(gx, cy - thick / 2 + 2);
+          ctx.lineTo(gx, cy + thick / 2 - 2);
+          ctx.stroke();
+        }
+        // Endpoint handles
+        if (selected) {
+          ctx.fillStyle = '#4a6cf7';
+          ctx.beginPath(); ctx.arc(-hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(-hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc( hw, 0, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+      case 'domino': {
+        const hw = d.w / 2, hh = d.h / 2;
+        ctx.beginPath();
+        ctx.roundRect(-hw, -hh, d.w, d.h, 3);
+        ctx.fill();
+        ctx.stroke();
+        // Dots
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(0, -hh / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0,  hh / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      }
+      case 'spring': {
+        const hw = d.w / 2, hh = d.h / 2;
+        // Base block
+        ctx.fillStyle = '#7d3c98';
+        ctx.beginPath();
+        ctx.roundRect(-hw, -hh, d.w, d.h, 5);
+        ctx.fill();
+        ctx.stroke();
+        // Zigzag spring lines
+        ctx.strokeStyle = '#f1c40f';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        const segs = 5;
+        const segW = d.w / segs;
+        ctx.moveTo(-hw + 4, 0);
+        for (let i = 0; i < segs; i++) {
+          const xBase = -hw + 4 + i * segW;
+          const yOff = (i % 2 === 0) ? -hh + 4 : hh - 4;
+          ctx.lineTo(xBase + segW / 2, yOff);
+          ctx.lineTo(xBase + segW, 0);
+        }
+        ctx.stroke();
+        // Arrow up
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath();
+        ctx.moveTo(0, -hh - 10);
+        ctx.lineTo(-6, -hh - 2);
+        ctx.lineTo(6, -hh - 2);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      }
+      case 'bell': {
+        const r = d.w / 2;
+        // Bell body
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Bell icon (simple)
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('♪', 0, 0);
+        break;
+      }
+      case 'wheel': {
+        // Draw 4 paddles
+        const pW = d.paddleW, pH = d.paddleH, hub = d.hubR;
+        ctx.fillStyle = fill;
+        for (let i = 0; i < d.paddles; i++) {
+          const a = i * Math.PI / 2;
+          ctx.save();
+          ctx.rotate(a);
+          ctx.beginPath();
+          ctx.roundRect(hub / 2, -pH / 2, pW, pH, 3);
+          ctx.fill();
+          ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+          ctx.lineWidth = selected ? 3 : 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+        // Central hub
+        ctx.fillStyle = stroke;
+        ctx.beginPath();
+        ctx.arc(0, 0, hub, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+        ctx.lineWidth = selected ? 3 : 2;
+        ctx.stroke();
+        // Center dot
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'mill': {
+        const pW = d.paddleW, pH = d.paddleH, hub = d.hubR;
+        ctx.fillStyle = fill;
+        // Draw 8 paddles
+        for (let i = 0; i < d.paddles; i++) {
+          const a = i * Math.PI * 2 / d.paddles;
+          ctx.save();
+          ctx.rotate(a);
+          ctx.beginPath();
+          ctx.roundRect(hub / 2, -pH / 2, pW, pH, 3);
+          ctx.fill();
+          ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+          ctx.lineWidth = selected ? 3 : 2;
+          ctx.stroke();
+          ctx.restore();
+        }
+        // Subtle outer rim circle
+        ctx.beginPath();
+        ctx.arc(0, 0, hub + pW - 4, 0, Math.PI * 2);
+        ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+        ctx.lineWidth = selected ? 2 : 1;
+        ctx.globalAlpha = 0.25;
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        // Central hub
+        ctx.fillStyle = stroke;
+        ctx.beginPath();
+        ctx.arc(0, 0, hub, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = selected ? '#4a6cf7' : stroke;
+        ctx.lineWidth = selected ? 3 : 2;
+        ctx.stroke();
+        // Center dot
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  SIMULATION START / RESET / CLEAR
+  // ═══════════════════════════════════════════════════════════
+
+  function startSimulation() {
+    if (running) return;
+    if (placedObjects.length === 0) {
+      statusEl.textContent = 'Place some objects first!';
+      return;
+    }
+
+    running  = true;
+    bellRung = false;
+    hideSuccess();
+    SFX.start();
+    selectedId = null;
+
+    // Snapshot positions and create physics bodies
+    createEngine();
+    const bodies = [];
+    for (const obj of placedObjects) {
+      obj.startX     = obj.x;
+      obj.startY     = obj.y;
+      obj.startAngle = obj.angle;
+      if (obj.w != null) obj.startW = obj.w;
+      bodies.push(buildBody(obj));
+    }
+    World.add(engine.world, bodies);
+
+    // Add wheel constraints and spin event
+    const constraints = [];
+    for (const obj of placedObjects) {
+      if (obj.constraint) constraints.push(obj.constraint);
+    }
+    if (constraints.length) World.add(engine.world, constraints);
+
+    Runner.run(runner, engine);
+
+    canvas.classList.add('running');
+    canvas.classList.remove('dragging');
+    btnStart.disabled = true;
+    btnReset.disabled = false;
+    statusEl.textContent = 'Simulation running…';
+    updateToolSelection();
+  }
+
+  function resetSimulation() {
+    if (!running) return;
+    running = false;
+    SFX.reset();
+
+    Runner.stop(runner);
+    World.clear(engine.world, false);
+    Engine.clear(engine);
+
+    // Restore editor positions
+    for (const obj of placedObjects) {
+      obj.x     = obj.startX;
+      obj.y     = obj.startY;
+      obj.angle = obj.startAngle;
+      if (obj.startW != null) obj.w = obj.startW;
+      obj.body  = null;
+      obj.constraint = null;
+    }
+
+    canvas.classList.remove('running');
+    btnStart.disabled = false;
+    btnReset.disabled = true;
+    bellRung = false;
+    hideSuccess();
+    confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+    if (confettiAnim) { cancelAnimationFrame(confettiAnim); confettiAnim = null; }
+    statusEl.textContent = 'Objects restored. Tweak and try again!';
+  }
+
+  function clearAll() {
+    if (running) {
+      Runner.stop(runner);
+      World.clear(engine.world, false);
+      Engine.clear(engine);
+      running = false;
+    }
+    placedObjects = [];
+    undoStack  = [];
+    selectedId = null;
+    dragging   = null;
+    bellRung   = false;
+    hideSuccess();
+    confettiCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+    if (confettiAnim) { cancelAnimationFrame(confettiAnim); confettiAnim = null; }
+
+    canvas.classList.remove('running', 'dragging');
+    btnStart.disabled = false;
+    btnReset.disabled = true;
+    statusEl.textContent = 'All clear. Place objects to begin!';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  TOOL SELECTION UI
+  // ═══════════════════════════════════════════════════════════
+
+  function updateToolSelection() {
+    // Highlight placement tools
+    placementBtns.forEach(b => b.classList.toggle('active', b.dataset.tool === activeTool && !running));
+    // Highlight select tool when no placement tool is active
+    btnSelect.classList.toggle('active', activeTool === null && !running);
+  }
+
+  // Select (pointer) tool
+  btnSelect.addEventListener('click', () => {
+    if (running) return;
+    activeTool = null;
+    updateToolSelection();
+    statusEl.textContent = 'Click an object to select it, then drag, rotate, or delete.';
+  });
+
+  // Placement tools
+  placementBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (running) return;
+      const t = btn.dataset.tool;
+      activeTool = (activeTool === t) ? null : t;  // toggle off if same tool
+      selectedId = null;
+      updateToolSelection();
+      statusEl.textContent = activeTool
+        ? `Click the canvas to place a ${activeTool}. Click again to place more.`
+        : 'Click an object to select it, then drag, rotate, or delete.';
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  CANVAS INPUT HANDLING
+  // ═══════════════════════════════════════════════════════════
+
+  function canvasCoords(e) {
+    const r = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - r.left, y: clientY - r.top };
+  }
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (running) return;
+    const { x, y } = canvasCoords(e);
+
+    // If a tool is active, place an object (tool stays active for rapid placement)
+    if (activeTool) {
+      createPlacedObject(activeTool, x, y);
+      selectedId = null;  // don't auto-select; keeps tool ready for next placement
+      statusEl.textContent = `${activeTool.charAt(0).toUpperCase() + activeTool.slice(1)} placed! Keep clicking to place more, or pick Select.`;
+      return;
+    }
+
+    // Otherwise, try to select / start dragging an existing object
+    const hit = hitTest(x, y);
+    if (hit) {
+      selectObject(hit.id);
+      // For surfaces: check if clicking an endpoint dot (rotate+resize) vs body (move)
+      let mode = 'move', handle = null;
+      if (isSurfaceType(hit.type)) {
+        handle = hitTestSurfaceHandle(x, y, hit);
+        if (handle) mode = 'rotate';
+      }
+      dragging = { id: hit.id, offsetX: x - hit.x, offsetY: y - hit.y, mode, handle,
+                    oldX: hit.x, oldY: hit.y, oldAngle: hit.angle, oldW: hit.w };
+      canvas.classList.add('dragging');
+      if (isSurfaceType(hit.type)) {
+        statusEl.textContent = mode === 'rotate'
+          ? `Drag to rotate & resize ${hit.type}.`
+          : `Selected ${hit.type}. Drag body to move, dots to rotate & resize.`;
+      } else {
+        statusEl.textContent = `Selected ${hit.type}. Drag to move, or use rotate / delete.`;
+      }
+    } else {
+      selectedId = null;
+      statusEl.textContent = 'Select an object from the toolbox, or click an existing object.';
+    }
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (running || !dragging) return;
+    const { x, y } = canvasCoords(e);
+    const obj = placedObjects.find(o => o.id === dragging.id);
+    if (!obj) return;
+
+    if (dragging.mode === 'rotate') {
+      // Rotate & resize: the opposite endpoint stays fixed as a pivot
+      const hw = (obj.w || OBJ_DEFS[obj.type].w) / 2;
+      const cos0 = Math.cos(obj.angle), sin0 = Math.sin(obj.angle);
+      // Calculate the fixed pivot (the OTHER endpoint)
+      const sign = dragging.handle === 'right' ? -1 : 1;
+      const pivotX = obj.x + sign * hw * cos0;
+      const pivotY = obj.y + sign * hw * sin0;
+      // New angle and width from pivot to cursor
+      const dx = x - pivotX, dy = y - pivotY;
+      const newW = Math.max(40, Math.hypot(dx, dy));
+      const newAngle = dragging.handle === 'right'
+        ? Math.atan2(dy, dx)
+        : Math.atan2(-dy, -dx);  // left handle: angle points from left→right
+      // Update object: center is midpoint of pivot and cursor
+      obj.x = (pivotX + x) / 2;
+      obj.y = (pivotY + y) / 2;
+      obj.w = newW;
+      obj.angle = newAngle;
+    } else {
+      // Move: drag repositions the object
+      obj.x = x - dragging.offsetX;
+      obj.y = y - dragging.offsetY;
+    }
+  });
+
+  canvas.addEventListener('pointerup', () => {
+    if (dragging) {
+      const obj = placedObjects.find(o => o.id === dragging.id);
+      if (obj && (obj.x !== dragging.oldX || obj.y !== dragging.oldY || obj.angle !== dragging.oldAngle || obj.w !== dragging.oldW)) {
+        pushUndo({ type: 'drag', id: dragging.id, oldX: dragging.oldX, oldY: dragging.oldY, oldAngle: dragging.oldAngle, oldW: dragging.oldW });
+      }
+      dragging = null;
+      canvas.classList.remove('dragging');
+    }
+  });
+
+  canvas.addEventListener('pointerleave', () => {
+    if (dragging) {
+      dragging = null;
+      canvas.classList.remove('dragging');
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  ROTATE / DELETE
+  // ═══════════════════════════════════════════════════════════
+
+  btnRotLeft.addEventListener('click', () => {
+    if (running) return;
+    const sel = getSelected();
+    if (sel) { pushUndo({ type: 'rotate', id: sel.id, oldAngle: sel.angle }); sel.angle -= Math.PI / 36; }
+  });
+  btnRotRight.addEventListener('click', () => {
+    if (running) return;
+    const sel = getSelected();
+    if (sel) { pushUndo({ type: 'rotate', id: sel.id, oldAngle: sel.angle }); sel.angle += Math.PI / 36; }
+  });
+  btnDelete.addEventListener('click', () => {
+    if (running) return;
+    const sel = getSelected();
+    if (sel) {
+      SFX.delete();
+      pushUndo({ type: 'delete', obj: { ...sel } });
+      placedObjects = placedObjects.filter(o => o.id !== sel.id);
+      selectedId = null;
+      statusEl.textContent = `${sel.type.charAt(0).toUpperCase() + sel.type.slice(1)} deleted.`;
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  UNDO
+  // ═══════════════════════════════════════════════════════════
+
+  btnUndo.addEventListener('click', performUndo);
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      performUndo();
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  //  CONTROL BUTTONS
+  // ═══════════════════════════════════════════════════════════
+
+  btnStart.addEventListener('click', startSimulation);
+  btnReset.addEventListener('click', resetSimulation);
+  btnClear.addEventListener('click', clearAll);
+
+  // ═══════════════════════════════════════════════════════════
+  //  INIT
+  // ═══════════════════════════════════════════════════════════
+
+  resizeCanvas();
+  render();
+
+  statusEl.textContent = 'Place objects, then press Start.';
+})();
+</script>
+
+</body>
+</html>

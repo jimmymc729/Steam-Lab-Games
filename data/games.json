@@ -28,6 +28,20 @@
     "tags": ["math", "logic", "single-player", "puzzle"]
   },
   {
+    "slug": "quake-lab",
+    "title": "Quake Lab",
+    "path": "/quake-lab/index.html",
+    "status": "live",
+    "tags": ["science", "engineering", "physics", "simulation", "single-player"]
+  },
+  {
+    "slug": "rube-goldberg-machine",
+    "title": "Rube Goldberg Machine Builder",
+    "path": "/rube-goldberg%20copy.html",
+    "status": "live",
+    "tags": ["engineering", "physics", "chain-reaction", "sandbox", "single-player"]
+  },
+  {
     "slug": "ant-colony",
     "title": "Ant Colony Lab",
     "path": "/games/ant-colony-lab/",

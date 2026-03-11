@@ -1,0 +1,3624 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quake Lab - Beam Builder Earthquake Simulator</title>
+  <style>
+    :root {
+      --bg: #eef3f8;
+      --panel: #ffffff;
+      --ink: #1c2f45;
+      --muted: #56728e;
+      --line: #c7dcef;
+      --aqua: #12a7b0;
+      --blue: #2877c7;
+      --orange: #ff9448;
+      --green: #1ba66d;
+      --warn: #e39d16;
+      --bad: #d6545f;
+      --shadow: 0 6px 16px rgba(28, 47, 69, 0.08);
+      --radius-lg: 16px;
+      --radius-md: 11px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .topbar {
+      background: #1f7fb7;
+      color: #fff;
+      border-radius: var(--radius-lg);
+      padding: 12px 16px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2vw, 1.65rem);
+      letter-spacing: 0.4px;
+    }
+
+    .topbar p {
+      margin: 4px 0 0;
+      opacity: 0.9;
+      font-size: 0.87rem;
+    }
+
+    .status-pill {
+      border: 1px solid rgba(255, 255, 255, 0.36);
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-weight: 700;
+      font-size: 0.84rem;
+      white-space: nowrap;
+    }
+
+    .sound-toggle {
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.14);
+      color: #fff;
+      border-radius: 999px;
+      min-height: 0;
+      padding: 7px 11px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .sound-toggle:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.56);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 260px minmax(560px, 1fr) 280px;
+      gap: 12px;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      overflow: auto;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .btn-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .btn {
+      min-height: 40px;
+      border-radius: 9px;
+      border: 1px solid #a9bfd3;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 10px;
+      transition: 0.16s ease;
+    }
+
+    .btn:hover {
+      background: #f3f8fc;
+      border-color: #879fb5;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.active {
+      background: #e8f2fa;
+      border-color: #5c8cb1;
+      color: #1a4668;
+    }
+
+    .btn.primary {
+      background: #ff9b53;
+      border-color: #eb7f29;
+      color: #fff;
+    }
+
+    .btn.safe {
+      background: #23a877;
+      border-color: #19885f;
+      color: #fff;
+    }
+
+    .btn.warn {
+      background: #e9bc3d;
+      border-color: #cd940f;
+      color: #4e3900;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 9px;
+      min-height: 48px;
+    }
+
+    .tool-title {
+      margin: 0;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .tool-meta {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.25;
+    }
+
+    .swatch {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 0, 0, 0.26);
+      flex-shrink: 0;
+    }
+
+    .small-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fbfdff;
+      padding: 8px;
+      margin-top: 8px;
+    }
+
+    .small-box p,
+    .small-box ul {
+      margin: 0;
+      font-size: 0.82rem;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .small-box ul {
+      padding-left: 17px;
+      margin-top: 6px;
+    }
+
+    .small-box summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.86rem;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .value {
+      color: #0a6f8d;
+      font-weight: 800;
+    }
+
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      background: #fcfeff;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      border: 1px solid #b5cfe6;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #e9f7ff 0%, #fbfeff 58%, #fff9ed 100%);
+      touch-action: manipulation;
+    }
+
+    .canvas-help {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .controls .small-box {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      text-align: center;
+      background: #fff;
+      padding: 6px;
+    }
+
+    .stat .label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .stat .num {
+      margin: 4px 0 0;
+      font-size: 1.08rem;
+      font-weight: 800;
+    }
+
+    .results ul,
+    .learn ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.38;
+      font-size: 0.84rem;
+    }
+
+    .results ul {
+      min-height: 90px;
+    }
+
+    .challenge-box select {
+      width: 100%;
+      min-height: 38px;
+      border-radius: 8px;
+      border: 1px solid #87b0d0;
+      padding: 8px;
+      background: #fff;
+      margin: 6px 0;
+    }
+
+    .cost-breakdown {
+      margin-top: 6px;
+      font-size: 0.76rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .footer {
+      text-align: center;
+      color: #6484a2;
+      font-size: 0.77rem;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 1220px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-panel {
+        order: -1;
+      }
+
+      .tool-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .btn-grid-2,
+      .stats,
+      .tool-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .canvas-help {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>Quake Lab</h1>
+        <p>Pick a material, connect two joints, and test your design.</p>
+      </div>
+      <div class="topbar-right">
+        <button class="btn sound-toggle" id="soundToggle" type="button">Sound: On</button>
+        <div class="status-pill" id="runStatus">Build Phase</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="panel">
+        <h2>Build Tools</h2>
+
+        <div class="tool-grid" id="toolGrid"></div>
+
+        <details class="small-box" id="beamHintBox">
+          <summary>Quick build tips</summary>
+          <ul>
+            <li>Click start joint, then end joint to place a beam.</li>
+            <li>Right-click to remove a beam.</li>
+            <li>Use diagonal beams and wider bases for better stability.</li>
+          </ul>
+        </details>
+
+        <div class="small-box challenge-box">
+          <h2 style="margin:0;font-size:0.98rem;">Random Build</h2>
+          <p style="font-size:0.86rem;color:var(--muted);margin:2px 0 8px;">
+            Auto-build a new frame to test.
+          </p>
+          <button class="btn safe" id="randomBuildBtn" style="width:100%;">Random Build</button>
+        </div>
+      </aside>
+
+      <section class="canvas-panel">
+        <div class="canvas-wrap">
+          <canvas id="simCanvas" width="980" height="620" aria-label="Quake Lab simulation area"></canvas>
+          <div class="canvas-help">
+            <span>Build: click two joints for beams. R: cancel beam start.</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel controls">
+        <h2>Earthquake Controls</h2>
+
+        <div class="small-box">
+          <div class="row"><span>Magnitude</span><span class="value" id="magValue">6.0</span></div>
+          <input type="range" id="magnitude" min="3" max="8" step="0.1" value="6.0" style="width:100%;" />
+
+          <div class="row" style="margin-top:8px;"><span>Duration (s)</span><span class="value" id="durValue">10</span></div>
+          <input type="range" id="duration" min="4" max="24" step="1" value="10" style="width:100%;" />
+
+          <div class="btn-grid-2" style="margin-bottom:8px;">
+            <button class="btn primary" id="startBtn">Start Earthquake</button>
+            <button class="btn" id="resetModelBtn">Reset Model</button>
+          </div>
+          <button class="btn warn" id="resetBtn" style="width:100%;margin-bottom:8px;">Clear All</button>
+        </div>
+
+        <h2>Key Stats</h2>
+        <div class="stats">
+          <div class="stat"><p class="label" id="stabilityLabel">Design Score</p><p class="num" id="stabilityStat">0</p></div>
+          <div class="stat"><p class="label">Damage %</p><p class="num" id="damageStat">0</p></div>
+        </div>
+
+        <div class="small-box">
+          <div class="row" style="margin:0;"><span>Total Material Cost</span><span class="value" id="costStat">$0</span></div>
+          <p class="cost-breakdown" id="costBreakdown">No materials placed yet.</p>
+        </div>
+
+        <div class="small-box results">
+          <h2 style="margin:0 0 8px;font-size:0.98rem;">Feedback</h2>
+          <ul id="resultsList">
+            <li>Build a frame, then press Start Earthquake.</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <div class="footer">Quake Lab uses simplified arcade-style physics for structural learning.</div>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("simCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const WORLD = {
+        x: 86,
+        y: 64,
+        cols: 24,
+        cell: 32,
+        nodeRows: 14,
+        floorRow: 13
+      };
+      WORLD.width = WORLD.cols * WORLD.cell;
+      WORLD.height = WORLD.floorRow * WORLD.cell;
+      WORLD.groundY = WORLD.y + WORLD.floorRow * WORLD.cell;
+
+      const DEFAULT_MAGNITUDE = 6.0;
+      const DEFAULT_DURATION = 10;
+      const DEFAULT_DEPTH = "shallow";
+      const POST_QUAKE_SETTLE_SECONDS = 10.0;
+      const SETTLE_EXTENSION_STEP_SECONDS = 1.5;
+      const SETTLE_EXTENSION_LIMIT_SECONDS = 12.0;
+      const ACTIVE_COLLAPSE_MOTION_THRESHOLD = 0.42;
+      const ACTIVE_COLLAPSE_MOTION_WINDOW = 0.95;
+      const ACTIVE_COLLAPSE_BREAK_WINDOW = 1.4;
+      const INTACT_DRIFT_CAP_MULTIPLIER = 0.72;
+      const INTACT_VERTICAL_CAP_MULTIPLIER = 0.78;
+
+      const MATERIALS = {
+        wood: {
+          label: "Wood Beam",
+          color: "#c78f4b",
+          k: 200,
+          damp: 24,
+          strength: 140,
+          flex: 1.08,
+          brittle: 0.9,
+          costUnit: 14,
+          info: "Light, flexible, medium strength"
+        },
+        steel: {
+          label: "Steel Beam",
+          color: "#74889d",
+          k: 300,
+          damp: 31,
+          strength: 220,
+          flex: 1.1,
+          brittle: 0.8,
+          costUnit: 28,
+          info: "Strong, flexible, expensive"
+        },
+        concrete: {
+          label: "Concrete Beam",
+          color: "#a1acb7",
+          k: 350,
+          damp: 18,
+          strength: 180,
+          flex: 0.62,
+          brittle: 1.25,
+          costUnit: 20,
+          info: "Strong but heavy and more brittle"
+        }
+      };
+
+      const OBJECT_DEFS = {
+        bookshelf: {
+          label: "Bookshelf",
+          color: "#8b5a2c",
+          w: 1,
+          h: 2,
+          cost: 90,
+          mass: 2.2,
+          hazard: 2.5,
+          tall: true,
+          info: "Secure tall shelves to reduce hazards"
+        },
+        computerCart: {
+          label: "Computer Cart",
+          color: "#4b85a8",
+          w: 1,
+          h: 1,
+          cost: 70,
+          mass: 1.8,
+          hazard: 2.0,
+          wheeled: true,
+          info: "Can roll if not anchored"
+        },
+        desk: {
+          label: "Desk",
+          color: "#d1a06e",
+          w: 2,
+          h: 1,
+          cost: 85,
+          mass: 1.5,
+          hazard: 0.8,
+          cover: true,
+          info: "Can provide cover for people"
+        },
+        hangingLight: {
+          label: "Hanging Light",
+          color: "#f0d35f",
+          w: 1,
+          h: 1,
+          cost: 60,
+          mass: 0.7,
+          hazard: 1.8,
+          hanging: true,
+          info: "Swings and may fall if unsecured"
+        },
+        person: {
+          label: "Person",
+          color: "#5f3d98",
+          w: 1,
+          h: 1,
+          cost: 0,
+          info: "Place students in the room"
+        }
+      };
+
+      const BUILD_TOOLS = ["wood", "steel", "concrete"];
+
+      const state = {
+        selectedTool: "wood",
+        depth: "shallow",
+        running: false,
+        pendingNodeId: null,
+        nodes: [],
+        nodeMap: new Map(),
+        beams: [],
+        roofs: [],
+        objects: [],
+        people: [],
+        nextId: 1,
+        run: null,
+        lastQuakeMetrics: null,
+        results: ["Build a frame, then press Start Earthquake."],
+        metrics: { stability: 0, damage: 0, hazards: 0, safety: 0, cost: 0 },
+        touchHoldTimer: null,
+        touchRemoved: false,
+        touchCell: null,
+        ignoreNextClick: false,
+        sound: {
+          enabled: true,
+          ctx: null,
+          master: null,
+          rumble: null,
+          noiseBuffer: null,
+          lastCollapseAt: -999,
+          lastQuakeHitAt: -999
+        }
+      };
+
+      const ui = {
+        toolGrid: document.getElementById("toolGrid"),
+        soundToggle: document.getElementById("soundToggle"),
+        beamHintBox: document.getElementById("beamHintBox"),
+        magnitude: document.getElementById("magnitude"),
+        duration: document.getElementById("duration"),
+        magValue: document.getElementById("magValue"),
+        durValue: document.getElementById("durValue"),
+        startBtn: document.getElementById("startBtn"),
+        resetModelBtn: document.getElementById("resetModelBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        randomBuildBtn: document.getElementById("randomBuildBtn"),
+        runStatus: document.getElementById("runStatus"),
+        stabilityLabel: document.getElementById("stabilityLabel"),
+        stabilityStat: document.getElementById("stabilityStat"),
+        damageStat: document.getElementById("damageStat"),
+        costStat: document.getElementById("costStat"),
+        costBreakdown: document.getElementById("costBreakdown"),
+        resultsList: document.getElementById("resultsList")
+      };
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function dist(ax, ay, bx, by) {
+        return Math.hypot(ax - bx, ay - by);
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function randomPick(values) {
+        return values[randInt(0, values.length - 1)];
+      }
+
+      function fmtMoney(value) {
+        return "$" + Math.round(value).toLocaleString();
+      }
+
+      function updateSoundToggleLabel() {
+        ui.soundToggle.textContent = state.sound.enabled ? "Sound: On" : "Sound: Off";
+      }
+
+      function applyControlDefaults() {
+        ui.magnitude.value = DEFAULT_MAGNITUDE.toFixed(1);
+        ui.duration.value = String(DEFAULT_DURATION);
+        ui.magValue.textContent = DEFAULT_MAGNITUDE.toFixed(1);
+        ui.durValue.textContent = String(DEFAULT_DURATION);
+        state.depth = DEFAULT_DEPTH;
+      }
+
+      function createNoiseBuffer(ctx) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let last = 0;
+        for (let i = 0; i < data.length; i += 1) {
+          const white = Math.random() * 2 - 1;
+          last = (last + (0.02 * white)) / 1.02;
+          data[i] = last * 3.5;
+        }
+        return buffer;
+      }
+
+      function ensureAudio() {
+        if (!state.sound.enabled) {
+          return null;
+        }
+
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          return null;
+        }
+
+        if (!state.sound.ctx) {
+          const ctx = new AudioCtx();
+          const master = ctx.createGain();
+          master.gain.value = 0.18;
+          master.connect(ctx.destination);
+
+          state.sound.ctx = ctx;
+          state.sound.master = master;
+          state.sound.noiseBuffer = createNoiseBuffer(ctx);
+        }
+
+        if (state.sound.ctx.state === "suspended") {
+          state.sound.ctx.resume();
+        }
+
+        return state.sound.ctx;
+      }
+
+      function playTone({
+        freq = 440,
+        endFreq = null,
+        type = "sine",
+        dur = 0.1,
+        vol = 0.08,
+        when = 0
+      } = {}) {
+        const ctx = ensureAudio();
+        if (!ctx || !state.sound.master) {
+          return;
+        }
+
+        const t0 = ctx.currentTime + when;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t0);
+        if (endFreq !== null) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), t0 + dur);
+        }
+
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+        osc.connect(gain);
+        gain.connect(state.sound.master);
+        osc.start(t0);
+        osc.stop(t0 + dur + 0.03);
+      }
+
+      function playNoise({
+        dur = 0.08,
+        vol = 0.05,
+        lowpass = 1200,
+        highpass = 180,
+        when = 0
+      } = {}) {
+        const ctx = ensureAudio();
+        if (!ctx || !state.sound.master || !state.sound.noiseBuffer) {
+          return;
+        }
+
+        const t0 = ctx.currentTime + when;
+        const src = ctx.createBufferSource();
+        src.buffer = state.sound.noiseBuffer;
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.setValueAtTime(highpass, t0);
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.setValueAtTime(lowpass, t0);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+        src.connect(hp);
+        hp.connect(lp);
+        lp.connect(gain);
+        gain.connect(state.sound.master);
+        src.start(t0);
+        src.stop(t0 + dur + 0.02);
+      }
+
+      function startRumble(level = 0.2) {
+        const ctx = ensureAudio();
+        if (!ctx || !state.sound.master || state.sound.rumble) {
+          return;
+        }
+
+        const noise = ctx.createBufferSource();
+        noise.buffer = state.sound.noiseBuffer;
+        noise.loop = true;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 90;
+        lp.Q.value = 0.5;
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.value = 0.0001;
+
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.value = 42;
+
+        const oscGain = ctx.createGain();
+        oscGain.gain.value = 0.0001;
+
+        const sub = ctx.createOscillator();
+        sub.type = "sine";
+        sub.frequency.value = 23;
+
+        const subGain = ctx.createGain();
+        subGain.gain.value = 0.0001;
+
+        noise.connect(lp);
+        lp.connect(noiseGain);
+        noiseGain.connect(state.sound.master);
+
+        osc.connect(oscGain);
+        oscGain.connect(state.sound.master);
+        sub.connect(subGain);
+        subGain.connect(state.sound.master);
+
+        noise.start();
+        osc.start();
+        sub.start();
+
+        state.sound.rumble = {
+          noise,
+          osc,
+          sub,
+          lp,
+          noiseGain,
+          oscGain,
+          subGain
+        };
+        setRumbleLevel(level);
+      }
+
+      function setRumbleLevel(level) {
+        if (!state.sound.enabled) {
+          return;
+        }
+        if (!state.sound.rumble && level > 0.01) {
+          startRumble(level);
+        }
+        if (!state.sound.rumble) {
+          return;
+        }
+
+        const ctx = state.sound.ctx;
+        const t = ctx.currentTime;
+        const amount = clamp(level, 0, 1);
+        const noiseTarget = 0.01 + amount * 0.08;
+        const toneTarget = 0.005 + amount * 0.03;
+        const subTarget = 0.003 + amount * 0.02;
+        const lpTarget = 72 + amount * 95;
+        const oscFreq = 34 + amount * 20;
+        const subFreq = 18 + amount * 10;
+        state.sound.rumble.noiseGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.oscGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.subGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.lp.frequency.cancelScheduledValues(t);
+        state.sound.rumble.osc.frequency.cancelScheduledValues(t);
+        state.sound.rumble.sub.frequency.cancelScheduledValues(t);
+        state.sound.rumble.noiseGain.gain.linearRampToValueAtTime(noiseTarget, t + 0.05);
+        state.sound.rumble.oscGain.gain.linearRampToValueAtTime(toneTarget, t + 0.05);
+        state.sound.rumble.subGain.gain.linearRampToValueAtTime(subTarget, t + 0.05);
+        state.sound.rumble.lp.frequency.linearRampToValueAtTime(lpTarget, t + 0.06);
+        state.sound.rumble.osc.frequency.linearRampToValueAtTime(oscFreq, t + 0.05);
+        state.sound.rumble.sub.frequency.linearRampToValueAtTime(subFreq, t + 0.05);
+      }
+
+      function stopRumble() {
+        if (!state.sound.rumble || !state.sound.ctx) {
+          return;
+        }
+        const ctx = state.sound.ctx;
+        const t = ctx.currentTime;
+
+        state.sound.rumble.noiseGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.oscGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.subGain.gain.cancelScheduledValues(t);
+        state.sound.rumble.noiseGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
+        state.sound.rumble.oscGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
+        state.sound.rumble.subGain.gain.linearRampToValueAtTime(0.0001, t + 0.08);
+
+        const rumble = state.sound.rumble;
+        setTimeout(() => {
+          try { rumble.noise.stop(); } catch (_e) {}
+          try { rumble.osc.stop(); } catch (_e) {}
+          try { rumble.sub.stop(); } catch (_e) {}
+        }, 100);
+
+        state.sound.rumble = null;
+      }
+
+      function playSfx(name, value = 0) {
+        if (!state.sound.enabled) {
+          return;
+        }
+
+        switch (name) {
+          case "uiTap":
+            playTone({ freq: 680, endFreq: 560, dur: 0.06, vol: 0.04, type: "triangle" });
+            break;
+          case "toolSelect":
+            playTone({ freq: 520, endFreq: 700, dur: 0.07, vol: 0.05, type: "triangle" });
+            break;
+          case "beamStart":
+            playTone({ freq: 430, endFreq: 580, dur: 0.08, vol: 0.06, type: "triangle" });
+            break;
+          case "beamPlace":
+            playTone({ freq: 380, endFreq: 560, dur: 0.08, vol: 0.06, type: "square" });
+            playTone({ freq: 690, endFreq: 920, dur: 0.07, vol: 0.05, type: "triangle", when: 0.05 });
+            break;
+          case "remove":
+            playTone({ freq: 300, endFreq: 180, dur: 0.09, vol: 0.05, type: "triangle" });
+            break;
+          case "error":
+            playTone({ freq: 240, endFreq: 160, dur: 0.13, vol: 0.07, type: "sawtooth" });
+            playNoise({ dur: 0.06, vol: 0.025, lowpass: 500, highpass: 90, when: 0.02 });
+            break;
+          case "quakeStart":
+            playNoise({ dur: 0.22, vol: 0.06, lowpass: 320, highpass: 40 });
+            playTone({ freq: 120, endFreq: 64, dur: 0.24, vol: 0.06, type: "triangle" });
+            break;
+          case "quakeHit":
+            playNoise({ dur: 0.08, vol: 0.035, lowpass: 260, highpass: 50 });
+            playTone({ freq: 95, endFreq: 62, dur: 0.09, vol: 0.045, type: "triangle" });
+            break;
+          case "collapseSmall":
+            playNoise({ dur: 0.16, vol: 0.055, lowpass: 700, highpass: 70 });
+            playTone({ freq: 210, endFreq: 120, dur: 0.16, vol: 0.06, type: "sawtooth" });
+            playTone({ freq: 360, endFreq: 180, dur: 0.09, vol: 0.045, type: "triangle", when: 0.04 });
+            break;
+          case "collapseBig":
+            playNoise({ dur: 0.26, vol: 0.08, lowpass: 520, highpass: 45 });
+            playTone({ freq: 160, endFreq: 68, dur: 0.25, vol: 0.08, type: "sawtooth" });
+            playTone({ freq: 280, endFreq: 90, dur: 0.2, vol: 0.06, type: "triangle", when: 0.03 });
+            break;
+          case "quakeEnd":
+            if (value >= 65) {
+              playTone({ freq: 520, endFreq: 740, dur: 0.12, vol: 0.06, type: "triangle" });
+              playTone({ freq: 760, endFreq: 980, dur: 0.14, vol: 0.05, type: "triangle", when: 0.08 });
+            } else {
+              playTone({ freq: 220, endFreq: 160, dur: 0.18, vol: 0.06, type: "triangle" });
+            }
+            break;
+          case "reset":
+            playTone({ freq: 520, endFreq: 310, dur: 0.11, vol: 0.05, type: "triangle" });
+            break;
+          case "load":
+            playTone({ freq: 360, endFreq: 540, dur: 0.09, vol: 0.055, type: "triangle" });
+            playTone({ freq: 560, endFreq: 820, dur: 0.1, vol: 0.05, type: "triangle", when: 0.06 });
+            break;
+          default:
+            break;
+        }
+      }
+
+      function setSoundEnabled(enabled) {
+        state.sound.enabled = enabled;
+        if (!enabled) {
+          stopRumble();
+        } else {
+          ensureAudio();
+          playSfx("uiTap");
+        }
+        updateSoundToggleLabel();
+      }
+
+      function getModeTools() {
+        return BUILD_TOOLS;
+      }
+
+      function toolLabel(tool) {
+        if (MATERIALS[tool]) {
+          return MATERIALS[tool].label;
+        }
+        return OBJECT_DEFS[tool].label;
+      }
+
+      function toolInfo(tool) {
+        if (MATERIALS[tool]) {
+          const m = MATERIALS[tool];
+          return `${fmtMoney(m.costUnit)} / segment`;
+        }
+        const o = OBJECT_DEFS[tool];
+        return `${fmtMoney(o.cost)} each`;
+      }
+
+      function toolColor(tool) {
+        return MATERIALS[tool] ? MATERIALS[tool].color : OBJECT_DEFS[tool].color;
+      }
+
+      function renderTools() {
+        const tools = getModeTools();
+        if (!tools.includes(state.selectedTool)) {
+          state.selectedTool = tools[0];
+        }
+
+        ui.toolGrid.innerHTML = "";
+        tools.forEach((tool) => {
+          const b = document.createElement("button");
+          b.className = "btn tool-btn" + (tool === state.selectedTool ? " active" : "");
+          b.type = "button";
+          b.innerHTML = `<div><p class="tool-title">${toolLabel(tool)}</p><p class="tool-meta">${toolInfo(tool)}</p></div><span class="swatch" style="background:${toolColor(tool)}"></span>`;
+          b.addEventListener("click", () => {
+            ensureAudio();
+            state.selectedTool = tool;
+            playSfx("toolSelect");
+            renderTools();
+          });
+          ui.toolGrid.appendChild(b);
+        });
+      }
+
+      function getCanvasPoint(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width / rect.width;
+        const sy = canvas.height / rect.height;
+        return {
+          x: (clientX - rect.left) * sx,
+          y: (clientY - rect.top) * sy
+        };
+      }
+
+      function snapToNode(clientX, clientY) {
+        const p = getCanvasPoint(clientX, clientY);
+        const x = p.x;
+        const y = p.y;
+
+        const col = clamp(Math.round((x - WORLD.x) / WORLD.cell), 0, WORLD.cols);
+        const row = clamp(Math.round((y - WORLD.y) / WORLD.cell), 0, WORLD.floorRow);
+
+        return {
+          col,
+          row,
+          x: WORLD.x + col * WORLD.cell,
+          y: WORLD.y + row * WORLD.cell
+        };
+      }
+
+      function pointToCell(clientX, clientY) {
+        const p = getCanvasPoint(clientX, clientY);
+        const x = p.x;
+        const y = p.y;
+
+        const col = Math.floor((x - WORLD.x) / WORLD.cell);
+        const row = Math.floor((y - WORLD.y) / WORLD.cell);
+
+        if (col < 0 || col >= WORLD.cols || row < 0 || row >= WORLD.floorRow) {
+          return null;
+        }
+        return {
+          col,
+          row,
+          x,
+          y
+        };
+      }
+
+      function findNearestNode(clientX, clientY, thresholdPx = 14) {
+        const p = getCanvasPoint(clientX, clientY);
+        let best = null;
+        let bestDist = thresholdPx;
+
+        for (const node of state.nodes) {
+          const d = dist(p.x, p.y, node.x, node.y);
+          if (d <= bestDist) {
+            bestDist = d;
+            best = node;
+          }
+        }
+
+        return best;
+      }
+
+      function getPointerNodeTarget(clientX, clientY, thresholdPx = WORLD.cell * 0.45) {
+        const nearest = findNearestNode(clientX, clientY, thresholdPx);
+        if (nearest) {
+          return { node: nearest };
+        }
+
+        const snap = snapToNode(clientX, clientY);
+        const node = getOrCreateNode(snap.col, snap.row);
+        return { node };
+      }
+
+      function getPointerSnap(clientX, clientY, thresholdPx = WORLD.cell * 0.45) {
+        const nearest = findNearestNode(clientX, clientY, thresholdPx);
+        if (nearest) {
+          return {
+            x: nearest.x,
+            y: nearest.y,
+            col: nearest.col,
+            row: nearest.row
+          };
+        }
+
+        return snapToNode(clientX, clientY);
+      }
+
+      function nodeKey(col, row) {
+        return `${col},${row}`;
+      }
+
+      function getNodeById(id) {
+        return state.nodes.find((n) => n.id === id) || null;
+      }
+
+      function getOrCreateNode(col, row) {
+        const r = clamp(row, 0, WORLD.floorRow);
+        const key = nodeKey(col, r);
+        const existing = state.nodeMap.get(key);
+        if (existing) {
+          return existing;
+        }
+
+        const node = {
+          id: state.nextId++,
+          key,
+          col,
+          row: r,
+          baseX: WORLD.x + col * WORLD.cell,
+          baseY: WORLD.y + r * WORLD.cell,
+          x: WORLD.x + col * WORLD.cell,
+          y: WORLD.y + r * WORLD.cell,
+          vx: 0,
+          vy: 0,
+          fx: 0,
+          fy: 0,
+          fixedGround: r === WORLD.floorRow,
+          massBase: r === WORLD.floorRow ? 99999 : 1.2,
+          roofMass: 0,
+          maxDrift: 0
+        };
+
+        state.nodes.push(node);
+        state.nodeMap.set(key, node);
+        return node;
+      }
+
+      function beamExists(aId, bId) {
+        return state.beams.some((b) =>
+          !b.removed &&
+          !b.broken &&
+          ((b.a === aId && b.b === bId) || (b.a === bId && b.b === aId))
+        );
+      }
+
+      function pointOnSegmentInterior(px, py, x1, y1, x2, y2, tolerance = 1.1) {
+        const vx = x2 - x1;
+        const vy = y2 - y1;
+        const lenSq = vx * vx + vy * vy;
+        if (lenSq < 0.0001) {
+          return false;
+        }
+
+        const t = ((px - x1) * vx + (py - y1) * vy) / lenSq;
+        if (t <= 0.03 || t >= 0.97) {
+          return false;
+        }
+
+        const cx = x1 + vx * t;
+        const cy = y1 + vy * t;
+        return dist(px, py, cx, cy) <= tolerance;
+      }
+
+      function interiorNodesOnSegment(aNode, bNode, tolerance = 1.1) {
+        const hits = [];
+        const vx = bNode.baseX - aNode.baseX;
+        const vy = bNode.baseY - aNode.baseY;
+        const lenSq = vx * vx + vy * vy;
+        if (lenSq < 0.0001) {
+          return hits;
+        }
+
+        for (const node of state.nodes) {
+          if (node.id === aNode.id || node.id === bNode.id) {
+            continue;
+          }
+          if (!pointOnSegmentInterior(node.baseX, node.baseY, aNode.baseX, aNode.baseY, bNode.baseX, bNode.baseY, tolerance)) {
+            continue;
+          }
+
+          const t = ((node.baseX - aNode.baseX) * vx + (node.baseY - aNode.baseY) * vy) / lenSq;
+          hits.push({ node, t });
+        }
+
+        hits.sort((a, b) => a.t - b.t);
+        return hits.map((h) => h.node);
+      }
+
+      function addBeamSegment(aNode, bNode, material, options = {}) {
+        if (!aNode || !bNode || aNode.id === bNode.id || !MATERIALS[material]) {
+          return false;
+        }
+
+        if (beamExists(aNode.id, bNode.id)) {
+          return false;
+        }
+
+        const length = dist(aNode.baseX, aNode.baseY, bNode.baseX, bNode.baseY);
+        if (length < WORLD.cell * 0.7) {
+          return false;
+        }
+        const sourceRest = options.sourceRest && options.sourceRest > 0 ? options.sourceRest : length;
+
+        state.beams.push({
+          id: state.nextId++,
+          a: aNode.id,
+          b: bNode.id,
+          material,
+          rest: length,
+          sourceRest,
+          broken: false,
+          damage: 0,
+          maxStretch: 0,
+          removed: false
+        });
+
+        return true;
+      }
+
+      function addBeam(aNode, bNode, material, options = {}) {
+        const skipStats = Boolean(options.skipStats);
+        if (!aNode || !bNode || aNode.id === bNode.id || !MATERIALS[material]) {
+          return false;
+        }
+
+        let added = false;
+        const splitNodes = interiorNodesOnSegment(aNode, bNode);
+        const sourceRest = options.sourceRest && options.sourceRest > 0
+          ? options.sourceRest
+          : dist(aNode.baseX, aNode.baseY, bNode.baseX, bNode.baseY);
+
+        if (splitNodes.length === 0) {
+          added = addBeamSegment(aNode, bNode, material, { sourceRest });
+        } else {
+          let prev = aNode;
+          for (const splitNode of splitNodes) {
+            added = addBeamSegment(prev, splitNode, material, { sourceRest }) || added;
+            prev = splitNode;
+          }
+          added = addBeamSegment(prev, bNode, material, { sourceRest }) || added;
+        }
+
+        if (added && !skipStats) {
+          updateComputedStats();
+        }
+        return added;
+      }
+
+      function attachNodeToPassingBeams(node, options = {}) {
+        const skipStats = Boolean(options.skipStats);
+        if (!node) {
+          return 0;
+        }
+
+        const activeBeams = state.beams.filter((b) => !b.removed && !b.broken);
+        let splitCount = 0;
+
+        for (const beam of activeBeams) {
+          if (beam.removed || beam.broken) {
+            continue;
+          }
+
+          const a = getNodeById(beam.a);
+          const b = getNodeById(beam.b);
+          if (!a || !b || node.id === a.id || node.id === b.id) {
+            continue;
+          }
+          if (!pointOnSegmentInterior(node.baseX, node.baseY, a.baseX, a.baseY, b.baseX, b.baseY, 1.1)) {
+            continue;
+          }
+          const minLen = WORLD.cell * 0.7;
+          const lenA = dist(a.baseX, a.baseY, node.baseX, node.baseY);
+          const lenB = dist(b.baseX, b.baseY, node.baseX, node.baseY);
+          if (lenA < minLen || lenB < minLen) {
+            continue;
+          }
+
+          const beamCountBefore = state.beams.length;
+          beam.removed = true;
+          const sourceRest = beam.sourceRest && beam.sourceRest > 0 ? beam.sourceRest : beam.rest;
+          const leftAdded = addBeam(a, node, beam.material, { skipStats: true, sourceRest });
+          const rightAdded = addBeam(node, b, beam.material, { skipStats: true, sourceRest });
+
+          const leftOk = leftAdded || beamExists(a.id, node.id);
+          const rightOk = rightAdded || beamExists(node.id, b.id);
+
+          if (leftOk && rightOk) {
+            splitCount += 1;
+          } else {
+            beam.removed = false;
+            for (let i = beamCountBefore; i < state.beams.length; i += 1) {
+              state.beams[i].removed = true;
+            }
+          }
+        }
+
+        if (splitCount > 0) {
+          cleanupOrphanNodes();
+          if (!skipStats) {
+            updateComputedStats();
+          }
+        }
+
+        return splitCount;
+      }
+
+      function addBeamByGrid(c1, r1, c2, r2, material) {
+        const a = getOrCreateNode(c1, r1);
+        const b = getOrCreateNode(c2, r2);
+        return addBeam(a, b, material);
+      }
+
+      function addRoofAt(col, row) {
+        const node = getOrCreateNode(col, row);
+        const has = state.roofs.some((r) => r.nodeId === node.id && !r.removed);
+        if (has) {
+          return false;
+        }
+
+        node.roofMass += 2.8;
+        state.roofs.push({
+          id: state.nextId++,
+          nodeId: node.id,
+          removed: false,
+          fallen: false,
+          x: node.baseX,
+          y: node.baseY - 12,
+          vx: 0,
+          vy: 0
+        });
+
+        updateComputedStats();
+        return true;
+      }
+
+      function isOccupiedByObject(col, row, w, h, ignoreId = null) {
+        for (const obj of state.objects) {
+          if (ignoreId && obj.id === ignoreId) {
+            continue;
+          }
+          if (obj.removed) {
+            continue;
+          }
+          const overlap =
+            col < obj.col + obj.w &&
+            col + w > obj.col &&
+            row < obj.row + obj.h &&
+            row + h > obj.row;
+          if (overlap) {
+            return true;
+          }
+        }
+
+        for (const p of state.people) {
+          if (p.removed) {
+            continue;
+          }
+          const overlap = col <= p.col && col + w > p.col && row <= p.row && row + h > p.row;
+          if (overlap) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      function addObject(tool, col, row, anchored = true) {
+        const def = OBJECT_DEFS[tool];
+        if (!def || tool === "person") {
+          return false;
+        }
+
+        const w = def.w;
+        const h = def.h;
+        if (col < 0 || row < 0 || col + w > WORLD.cols || row + h > WORLD.floorRow) {
+          return false;
+        }
+
+        if (def.hanging && row > 2) {
+          return false;
+        }
+
+        if (isOccupiedByObject(col, row, w, h)) {
+          return false;
+        }
+
+        state.objects.push({
+          id: state.nextId++,
+          tool,
+          col,
+          row,
+          w,
+          h,
+          anchored,
+          removed: false,
+          x: WORLD.x + col * WORLD.cell,
+          y: WORLD.y + row * WORLD.cell,
+          baseX: WORLD.x + col * WORLD.cell,
+          baseY: WORLD.y + row * WORLD.cell,
+          vx: 0,
+          vy: 0,
+          angle: 0,
+          aVel: 0,
+          fallen: false,
+          unsafe: false,
+          displacement: 0
+        });
+
+        updateComputedStats();
+        return true;
+      }
+
+      function addPerson(col, row) {
+        if (col < 0 || row < 0 || col >= WORLD.cols || row >= WORLD.floorRow) {
+          return false;
+        }
+        if (isOccupiedByObject(col, row, 1, 1)) {
+          return false;
+        }
+
+        state.people.push({
+          id: state.nextId++,
+          col,
+          row,
+          removed: false,
+          risk: 0,
+          covered: false
+        });
+
+        updateComputedStats();
+        return true;
+      }
+
+      function cleanupOrphanNodes() {
+        const activeNodeIds = new Set();
+        state.beams.forEach((b) => {
+          if (!b.removed) {
+            activeNodeIds.add(b.a);
+            activeNodeIds.add(b.b);
+          }
+        });
+        state.roofs.forEach((r) => {
+          if (!r.removed) {
+            activeNodeIds.add(r.nodeId);
+          }
+        });
+
+        state.nodes = state.nodes.filter((n) => activeNodeIds.has(n.id));
+        state.nodeMap.clear();
+        state.nodes.forEach((n) => {
+          n.key = nodeKey(n.col, n.row);
+          state.nodeMap.set(n.key, n);
+        });
+      }
+
+      function removeNear(clientX, clientY) {
+        if (state.running) {
+          return;
+        }
+
+        const cell = pointToCell(clientX, clientY);
+        if (!cell) {
+          return;
+        }
+
+        const px = cell.x;
+        const py = cell.y;
+
+        let targetBeam = null;
+        let bestDist = 16;
+
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          const a = getNodeById(beam.a);
+          const b = getNodeById(beam.b);
+          if (!a || !b) {
+            continue;
+          }
+          const d = pointToSegmentDistance(px, py, a.baseX, a.baseY, b.baseX, b.baseY);
+          if (d < bestDist) {
+            bestDist = d;
+            targetBeam = beam;
+          }
+        }
+
+        if (targetBeam) {
+          targetBeam.removed = true;
+          cleanupOrphanNodes();
+          updateComputedStats();
+          playSfx("remove");
+          return;
+        }
+
+        let targetRoof = null;
+        for (const roof of state.roofs) {
+          if (roof.removed) {
+            continue;
+          }
+          const node = getNodeById(roof.nodeId);
+          if (!node) {
+            continue;
+          }
+          const d = dist(px, py, node.baseX, node.baseY - 10);
+          if (d < 18) {
+            targetRoof = roof;
+            break;
+          }
+        }
+
+        if (targetRoof) {
+          const node = getNodeById(targetRoof.nodeId);
+          if (node) {
+            node.roofMass = Math.max(0, node.roofMass - 2.8);
+          }
+          targetRoof.removed = true;
+          cleanupOrphanNodes();
+          updateComputedStats();
+          playSfx("remove");
+          return;
+        }
+      }
+
+      function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+        const vx = x2 - x1;
+        const vy = y2 - y1;
+        const lenSq = vx * vx + vy * vy;
+        if (lenSq === 0) {
+          return dist(px, py, x1, y1);
+        }
+        const t = clamp(((px - x1) * vx + (py - y1) * vy) / lenSq, 0, 1);
+        const cx = x1 + vx * t;
+        const cy = y1 + vy * t;
+        return dist(px, py, cx, cy);
+      }
+
+      function connectedBeamCount(nodeId, includeBroken = true) {
+        let n = 0;
+        for (const b of state.beams) {
+          if (b.removed) {
+            continue;
+          }
+          if (!includeBroken && b.broken) {
+            continue;
+          }
+          if (b.a === nodeId || b.b === nodeId) {
+            n += 1;
+          }
+        }
+        return n;
+      }
+
+      function returnToBuildPhase() {
+        if (state.running) {
+          return;
+        }
+        state.lastQuakeMetrics = null;
+        if (ui.runStatus.textContent !== "Build Phase") {
+          ui.runStatus.textContent = "Build Phase";
+        }
+      }
+
+      function clearWorld(silent = false, preserveControls = false) {
+        state.running = false;
+        stopRumble();
+        state.pendingNodeId = null;
+        state.lastQuakeMetrics = null;
+        state.nodes = [];
+        state.nodeMap = new Map();
+        state.beams = [];
+        state.roofs = [];
+        state.objects = [];
+        state.people = [];
+        state.run = null;
+        state.nextId = 1;
+        state.results = ["Build a frame, then press Start Earthquake."];
+        ui.runStatus.textContent = "Build Phase";
+        ui.startBtn.disabled = false;
+        if (!preserveControls) {
+          applyControlDefaults();
+        }
+        updateComputedStats();
+        renderResults();
+        if (!silent) {
+          playSfx("reset");
+        }
+      }
+
+      function resetModelState() {
+        state.running = false;
+        stopRumble();
+        state.pendingNodeId = null;
+        state.run = null;
+        state.lastQuakeMetrics = null;
+        ui.startBtn.disabled = false;
+        ui.runStatus.textContent = "Build Phase";
+
+        for (const node of state.nodes) {
+          node.x = node.baseX;
+          node.y = node.baseY;
+          node.vx = 0;
+          node.vy = 0;
+          node.fx = 0;
+          node.fy = 0;
+          node.maxDrift = 0;
+        }
+
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          beam.broken = false;
+          beam.damage = 0;
+          beam.maxStretch = 0;
+        }
+
+        for (const roof of state.roofs) {
+          if (roof.removed) {
+            continue;
+          }
+          const n = getNodeById(roof.nodeId);
+          roof.fallen = false;
+          roof.x = n ? n.baseX : roof.x;
+          roof.y = n ? n.baseY - 12 : roof.y;
+          roof.vx = 0;
+          roof.vy = 0;
+        }
+
+        for (const obj of state.objects) {
+          if (obj.removed) {
+            continue;
+          }
+          obj.x = obj.baseX;
+          obj.y = obj.baseY;
+          obj.vx = 0;
+          obj.vy = 0;
+          obj.angle = 0;
+          obj.aVel = 0;
+          obj.fallen = false;
+          obj.unsafe = false;
+          obj.displacement = 0;
+        }
+
+        for (const p of state.people) {
+          if (p.removed) {
+            continue;
+          }
+          p.risk = 0;
+          p.covered = false;
+        }
+
+        state.results = [
+          "Model reset.",
+          "Your frame is still here."
+        ];
+        updateComputedStats();
+        renderResults();
+        playSfx("reset");
+      }
+
+      function loadRandomBuild() {
+        const patterns = [
+          {
+            id: "widePyramid",
+            label: "Wide Pyramid",
+            principle: "Wide bases improve stability",
+            tip: "Strong base helps this design resist shaking.",
+            type: "strong"
+          },
+          {
+            id: "stepPyramid",
+            label: "Step Pyramid",
+            principle: "Setbacks reduce top sway",
+            tip: "Stepped levels can lower wobble.",
+            type: "strong"
+          },
+          {
+            id: "xBracedFrame",
+            label: "X-Braced Frame",
+            principle: "Diagonal braces stop side sway",
+            tip: "Cross bracing keeps squares from twisting.",
+            type: "strong"
+          },
+          {
+            id: "buttressedCore",
+            label: "Buttressed Core",
+            principle: "Outer supports help the center core",
+            tip: "Buttresses can share the quake load.",
+            type: "strong"
+          },
+          {
+            id: "diagridTube",
+            label: "Diagrid Tube",
+            principle: "Triangle skins spread loads well",
+            tip: "Diagonal outer frames reduce side sway.",
+            type: "strong"
+          },
+          {
+            id: "twinPyramid",
+            label: "Twin Pyramids",
+            principle: "Split masses can improve balance",
+            tip: "Two smaller towers linked together can share motion.",
+            type: "strong"
+          },
+          {
+            id: "archTruss",
+            label: "Arch Truss",
+            principle: "Arches redirect force to supports",
+            tip: "Curved forms can transfer shaking into the base.",
+            type: "mixed"
+          },
+          {
+            id: "flyingButtress",
+            label: "Flying Buttress",
+            principle: "Side supports can protect a tall core",
+            tip: "Long braces carry load from the center outward.",
+            type: "strong"
+          },
+          {
+            id: "offsetSetback",
+            label: "Offset Setback",
+            principle: "Setbacks change how towers sway",
+            tip: "Stepping back can lower top wobble when braced well.",
+            type: "mixed"
+          },
+          {
+            id: "softStory",
+            label: "Soft Story Test",
+            principle: "Weak first floors are risky",
+            tip: "A weak bottom level can buckle first.",
+            type: "risky"
+          },
+          {
+            id: "topHeavy",
+            label: "Top-Heavy Tower",
+            principle: "Top-heavy shapes are less stable",
+            tip: "High mass up top increases tipping risk.",
+            type: "risky"
+          },
+          {
+            id: "asymmetric",
+            label: "Asymmetric Frame",
+            principle: "Balanced layouts perform better",
+            tip: "Uneven frames can twist during shaking.",
+            type: "mixed"
+          }
+        ];
+
+        let attempts = 0;
+        let accepted = false;
+        let picked = patterns[0];
+
+        while (attempts < 16 && !accepted) {
+          attempts += 1;
+          clearWorld(true, true);
+          returnToBuildPhase();
+          applyControlDefaults();
+
+          picked = randomPick(patterns);
+
+          const mainMat = randomPick(["steel", "steel", "wood", "concrete"]);
+          const braceMat = randomPick(["steel", "steel", "wood"]);
+          const tieMat = randomPick(["wood", "steel"]);
+          const floor = WORLD.floorRow;
+
+          if (picked.id === "widePyramid") {
+            const width = randInt(9, 11);
+            const levels = randInt(5, 7);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+            const center = Math.round((left + right) / 2);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            addBeamByGrid(left, floor, center, floor, tieMat);
+            addBeamByGrid(center, floor, right, floor, tieMat);
+
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              const l1 = left + Math.floor(i / 2);
+              const r1 = right - Math.floor(i / 2);
+              const l2 = left + Math.floor((i + 1) / 2);
+              const r2 = right - Math.floor((i + 1) / 2);
+              if (r2 - l2 < 2) {
+                break;
+              }
+              const c1 = Math.round((l1 + r1) / 2);
+              const c2 = Math.round((l2 + r2) / 2);
+              addBeamByGrid(l1, row, l2, next, mainMat);
+              addBeamByGrid(r1, row, r2, next, mainMat);
+              addBeamByGrid(c1, row, c2, next, tieMat);
+              addBeamByGrid(l2, next, r2, next, tieMat);
+              addBeamByGrid(l1, row, c2, next, braceMat);
+              addBeamByGrid(r1, row, c2, next, braceMat);
+            }
+          } else if (picked.id === "stepPyramid") {
+            const width = randInt(10, 12);
+            const levels = randInt(4, 6);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              const inset = i;
+              const l = left + inset;
+              const r = right - inset;
+              const l2 = l + 1;
+              const r2 = r - 1;
+              if (r2 - l2 < 2) {
+                break;
+              }
+              const c = Math.round((l + r) / 2);
+              const c2 = Math.round((l2 + r2) / 2);
+              addBeamByGrid(l, row, l, next, mainMat);
+              addBeamByGrid(r, row, r, next, mainMat);
+              addBeamByGrid(c, row, c2, next, tieMat);
+              addBeamByGrid(l2, next, r2, next, tieMat);
+              addBeamByGrid(l, row, c2, next, braceMat);
+              addBeamByGrid(r, row, c2, next, braceMat);
+            }
+          } else if (picked.id === "xBracedFrame") {
+            const width = randInt(6, 8);
+            const levels = randInt(5, 7);
+            const left = randInt(2, WORLD.cols - width - 2);
+            const right = left + width;
+            const mid = Math.round((left + right) / 2);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(left, row, left, next, mainMat);
+              addBeamByGrid(mid, row, mid, next, mainMat);
+              addBeamByGrid(right, row, right, next, mainMat);
+              addBeamByGrid(left, next, right, next, tieMat);
+              addBeamByGrid(left, row, right, next, braceMat);
+              addBeamByGrid(right, row, left, next, braceMat);
+              if (i % 2 === 0) {
+                addBeamByGrid(mid, row, left, next, braceMat);
+              } else {
+                addBeamByGrid(mid, row, right, next, braceMat);
+              }
+            }
+          } else if (picked.id === "buttressedCore") {
+            const center = randInt(8, WORLD.cols - 8);
+            const coreL = center - 1;
+            const coreR = center + 1;
+            const buttL = center - randInt(4, 5);
+            const buttR = center + randInt(4, 5);
+            const levels = randInt(5, 6);
+
+            addBeamByGrid(buttL, floor, buttR, floor, mainMat);
+            addBeamByGrid(coreL, floor, coreR, floor, tieMat);
+            addBeamByGrid(buttL, floor, coreL, floor, tieMat);
+            addBeamByGrid(coreR, floor, buttR, floor, tieMat);
+
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(coreL, row, coreL, next, mainMat);
+              addBeamByGrid(coreR, row, coreR, next, mainMat);
+              addBeamByGrid(coreL, next, coreR, next, tieMat);
+              addBeamByGrid(coreL, row, coreR, next, braceMat);
+              addBeamByGrid(coreR, row, coreL, next, braceMat);
+
+              if (i < 4) {
+                addBeamByGrid(buttL, floor, coreL, next, braceMat);
+                addBeamByGrid(buttR, floor, coreR, next, braceMat);
+              }
+            }
+          } else if (picked.id === "diagridTube") {
+            const width = randInt(8, 10);
+            const levels = randInt(6, 8);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+            const q1 = left + Math.floor(width / 3);
+            const q2 = right - Math.floor(width / 3);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            addBeamByGrid(q1, floor, q2, floor, tieMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(left, row, left, next, mainMat);
+              addBeamByGrid(q1, row, q1, next, mainMat);
+              addBeamByGrid(q2, row, q2, next, mainMat);
+              addBeamByGrid(right, row, right, next, mainMat);
+              addBeamByGrid(left, next, right, next, tieMat);
+              addBeamByGrid(left, row, q1, next, braceMat);
+              addBeamByGrid(q1, row, q2, next, braceMat);
+              addBeamByGrid(q2, row, right, next, braceMat);
+              addBeamByGrid(right, row, q2, next, braceMat);
+              addBeamByGrid(q2, row, q1, next, braceMat);
+              addBeamByGrid(q1, row, left, next, braceMat);
+              if (i % 2 === 0) {
+                addBeamByGrid(q1, next, q2, next, tieMat);
+              }
+            }
+          } else if (picked.id === "twinPyramid") {
+            const wingWidth = randInt(5, 6);
+            const levels = randInt(4, 5);
+            const gap = randInt(2, 3);
+            const totalWidth = wingWidth * 2 + gap;
+            const leftA = randInt(1, WORLD.cols - totalWidth - 1);
+            const rightA = leftA + wingWidth;
+            const leftB = rightA + gap;
+            const rightB = leftB + wingWidth;
+
+            addBeamByGrid(leftA, floor, rightA, floor, mainMat);
+            addBeamByGrid(leftB, floor, rightB, floor, mainMat);
+            addBeamByGrid(rightA, floor, leftB, floor, tieMat);
+
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+
+              const insetA = Math.floor(i / 2);
+              const insetANext = Math.floor((i + 1) / 2);
+              const aL1 = leftA + insetA;
+              const aR1 = rightA - insetA;
+              const aL2 = leftA + insetANext;
+              const aR2 = rightA - insetANext;
+
+              const insetB = Math.floor(i / 2);
+              const insetBNext = Math.floor((i + 1) / 2);
+              const bL1 = leftB + insetB;
+              const bR1 = rightB - insetB;
+              const bL2 = leftB + insetBNext;
+              const bR2 = rightB - insetBNext;
+
+              if (aR2 - aL2 >= 2) {
+                const aC2 = Math.round((aL2 + aR2) / 2);
+                addBeamByGrid(aL1, row, aL2, next, mainMat);
+                addBeamByGrid(aR1, row, aR2, next, mainMat);
+                addBeamByGrid(aL2, next, aR2, next, tieMat);
+                addBeamByGrid(aL1, row, aC2, next, braceMat);
+                addBeamByGrid(aR1, row, aC2, next, braceMat);
+              }
+
+              if (bR2 - bL2 >= 2) {
+                const bC2 = Math.round((bL2 + bR2) / 2);
+                addBeamByGrid(bL1, row, bL2, next, mainMat);
+                addBeamByGrid(bR1, row, bR2, next, mainMat);
+                addBeamByGrid(bL2, next, bR2, next, tieMat);
+                addBeamByGrid(bL1, row, bC2, next, braceMat);
+                addBeamByGrid(bR1, row, bC2, next, braceMat);
+              }
+
+              const cA = Math.round((aL2 + aR2) / 2);
+              const cB = Math.round((bL2 + bR2) / 2);
+              addBeamByGrid(cA, next, cB, next, tieMat);
+              if (i % 2 === 0) {
+                addBeamByGrid(cA, row, cB, next, braceMat);
+              }
+            }
+          } else if (picked.id === "archTruss") {
+            const span = randInt(10, 12);
+            const left = randInt(1, WORLD.cols - span - 1);
+            const right = left + span;
+            const archHeight = randInt(3, 5);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            let prevCol = left;
+            let prevRow = floor;
+
+            for (let c = left + 1; c <= right; c += 1) {
+              const t = (c - left) / span;
+              const rise = Math.round(archHeight * (1 - Math.pow(2 * t - 1, 2)));
+              const row = floor - rise;
+              addBeamByGrid(prevCol, prevRow, c, row, mainMat);
+              if (rise > 0) {
+                addBeamByGrid(c, floor, c, row, tieMat);
+                if (c < right) {
+                  addBeamByGrid(c, row, c + 1, floor, braceMat);
+                }
+              }
+              prevCol = c;
+              prevRow = row;
+            }
+
+            for (let c = left; c <= right - 2; c += 2) {
+              const t1 = (c - left) / span;
+              const t2 = (c + 2 - left) / span;
+              const row1 = floor - Math.round(archHeight * (1 - Math.pow(2 * t1 - 1, 2)));
+              const row2 = floor - Math.round(archHeight * (1 - Math.pow(2 * t2 - 1, 2)));
+              addBeamByGrid(c, row1, c + 2, row2, braceMat);
+            }
+          } else if (picked.id === "flyingButtress") {
+            const center = randInt(8, WORLD.cols - 8);
+            const coreL = center - 1;
+            const coreR = center + 1;
+            const buttL = center - randInt(5, 6);
+            const buttR = center + randInt(5, 6);
+            const levels = randInt(6, 7);
+
+            addBeamByGrid(buttL, floor, buttR, floor, mainMat);
+            addBeamByGrid(coreL, floor, coreR, floor, tieMat);
+
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(coreL, row, coreL, next, mainMat);
+              addBeamByGrid(coreR, row, coreR, next, mainMat);
+              addBeamByGrid(coreL, next, coreR, next, tieMat);
+              addBeamByGrid(coreL, row, coreR, next, braceMat);
+              addBeamByGrid(coreR, row, coreL, next, braceMat);
+
+              if (i < levels - 1) {
+                addBeamByGrid(buttL, row, buttL, next, tieMat);
+                addBeamByGrid(buttR, row, buttR, next, tieMat);
+                addBeamByGrid(buttL, next, coreL, next, tieMat);
+                addBeamByGrid(coreR, next, buttR, next, tieMat);
+              }
+              if (i <= 4) {
+                addBeamByGrid(buttL, floor, coreL, next, braceMat);
+                addBeamByGrid(buttR, floor, coreR, next, braceMat);
+              }
+            }
+          } else if (picked.id === "offsetSetback") {
+            const width = randInt(10, 12);
+            const levels = randInt(6, 7);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            let prevL = left;
+            let prevR = right;
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              const shiftL = i >= 2 ? 1 : 0;
+              const shiftR = i >= 4 ? 1 : 0;
+              const currL = prevL + shiftL;
+              const currR = prevR - shiftR;
+              if (currR - currL < 3) {
+                break;
+              }
+              addBeamByGrid(prevL, row, currL, next, mainMat);
+              addBeamByGrid(prevR, row, currR, next, mainMat);
+              addBeamByGrid(currL, next, currR, next, tieMat);
+              addBeamByGrid(prevL, row, currR, next, braceMat);
+              addBeamByGrid(prevR, row, currL, next, braceMat);
+              if (i % 2 === 0) {
+                const mid = Math.round((currL + currR) / 2);
+                addBeamByGrid(mid, row, mid, next, mainMat);
+              }
+              prevL = currL;
+              prevR = currR;
+            }
+          } else if (picked.id === "softStory") {
+            const width = randInt(8, 10);
+            const levels = randInt(5, 6);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+            const mid = Math.round((left + right) / 2);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(left, row, left, next, mainMat);
+              addBeamByGrid(mid, row, mid, next, mainMat);
+              addBeamByGrid(right, row, right, next, mainMat);
+              addBeamByGrid(left, next, right, next, tieMat);
+              if (i >= 2) {
+                addBeamByGrid(left, row, mid, next, braceMat);
+                addBeamByGrid(right, row, mid, next, braceMat);
+              }
+            }
+          } else if (picked.id === "topHeavy") {
+            const width = randInt(5, 6);
+            const levels = randInt(5, 6);
+            const left = randInt(3, WORLD.cols - width - 3);
+            const right = left + width;
+            const mid = Math.round((left + right) / 2);
+
+            addBeamByGrid(left, floor, right, floor, tieMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 3) {
+                break;
+              }
+              addBeamByGrid(left, row, left, next, mainMat);
+              addBeamByGrid(right, row, right, next, mainMat);
+              addBeamByGrid(left, next, right, next, tieMat);
+              if (i >= 2) {
+                addBeamByGrid(left, row, right, next, braceMat);
+              }
+            }
+
+            const top = floor - levels;
+            const roofL = left - 2;
+            const roofR = right + 2;
+            if (top > 2 && roofL >= 0 && roofR <= WORLD.cols) {
+              addBeamByGrid(roofL, top, roofR, top, mainMat);
+              addBeamByGrid(left, top, roofL, top, tieMat);
+              addBeamByGrid(right, top, roofR, top, tieMat);
+              addBeamByGrid(roofL, top, mid, top - 1, braceMat);
+              addBeamByGrid(roofR, top, mid, top - 1, braceMat);
+            }
+          } else if (picked.id === "asymmetric") {
+            const width = randInt(9, 10);
+            const levelsLeft = randInt(5, 6);
+            const levelsRight = randInt(3, 4);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+            const split = left + Math.floor(width * 0.45);
+
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            for (let i = 0; i < levelsLeft; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(left, row, left, next, mainMat);
+              addBeamByGrid(split, row, split, next, mainMat);
+              addBeamByGrid(left, next, split, next, tieMat);
+              addBeamByGrid(left, row, split, next, braceMat);
+            }
+            for (let i = 0; i < levelsRight; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              addBeamByGrid(split, row, split, next, mainMat);
+              addBeamByGrid(right, row, right, next, mainMat);
+              addBeamByGrid(split, next, right, next, tieMat);
+              addBeamByGrid(right, row, split, next, braceMat);
+            }
+          } else {
+            const width = randInt(9, 11);
+            const levels = randInt(5, 7);
+            const left = randInt(1, WORLD.cols - width - 1);
+            const right = left + width;
+            const center = Math.round((left + right) / 2);
+            addBeamByGrid(left, floor, right, floor, mainMat);
+            for (let i = 0; i < levels; i += 1) {
+              const row = floor - i;
+              const next = row - 1;
+              if (next < 2) {
+                break;
+              }
+              const inset = Math.floor(i / 2);
+              const l1 = left + inset;
+              const r1 = right - inset;
+              const l2 = left + Math.floor((i + 1) / 2);
+              const r2 = right - Math.floor((i + 1) / 2);
+              if (r2 - l2 < 2) {
+                break;
+              }
+              addBeamByGrid(l1, row, l2, next, mainMat);
+              addBeamByGrid(r1, row, r2, next, mainMat);
+              addBeamByGrid(l2, next, r2, next, tieMat);
+              addBeamByGrid(l1, row, center, next, braceMat);
+              addBeamByGrid(r1, row, center, next, braceMat);
+            }
+          }
+
+          const live = computeLiveMetrics();
+          const analysis = live.analysis || designAnalysis();
+          const beamCount = state.beams.filter((b) => !b.removed).length;
+          const minStability = picked.type === "strong" ? 66 : (picked.type === "mixed" ? 56 : 44);
+          accepted =
+            beamCount >= 18 &&
+            analysis.baseWidth >= 4 &&
+            live.stability >= minStability;
+        }
+
+        state.results = [
+          `Random build: ${picked.label}.`,
+          `Principle: ${picked.principle}.`,
+          picked.tip
+        ];
+        updateComputedStats();
+        renderResults();
+        playSfx("load");
+      }
+
+      function designAnalysis() {
+        const activeBeams = state.beams.filter((b) => !b.removed);
+        const activeNodes = state.nodes;
+
+        if (activeNodes.length === 0 || activeBeams.length === 0) {
+          return {
+            baseWidth: 0,
+            height: 0,
+            diagonalCount: 0,
+            narrowPenalty: 0,
+            tallFlexPenalty: 0,
+            wideBaseBonus: 0,
+            materialBonus: 0,
+            shapeBonus: 0
+          };
+        }
+
+        const grounded = activeNodes.filter((n) => n.row === WORLD.floorRow && connectedBeamCount(n.id) > 0);
+        const baseCols = grounded.map((n) => n.col);
+        const minCol = Math.min(...activeNodes.map((n) => n.col));
+        const maxCol = Math.max(...activeNodes.map((n) => n.col));
+        const minRow = Math.min(...activeNodes.map((n) => n.row));
+
+        const baseWidth = baseCols.length > 1 ? Math.max(...baseCols) - Math.min(...baseCols) : 0;
+        const height = WORLD.floorRow - minRow;
+
+        const diagonalCount = activeBeams.filter((b) => {
+          const a = getNodeById(b.a);
+          const c = getNodeById(b.b);
+          if (!a || !c) {
+            return false;
+          }
+          return a.col !== c.col && a.row !== c.row;
+        }).length;
+        const woodCount = activeBeams.filter((b) => b.material === "wood").length;
+        const steelCount = activeBeams.filter((b) => b.material === "steel").length;
+        const concreteCount = activeBeams.filter((b) => b.material === "concrete").length;
+
+        const narrowPenalty = baseWidth < 4 ? 18 : (baseWidth < 6 ? 10 : 0);
+        const tallFlexPenalty = height > 7 && diagonalCount < 2 ? 18 : (height > 6 && diagonalCount < 1 ? 10 : 0);
+        const wideBaseBonus = clamp(baseWidth * 2.2, 0, 22);
+        const shapeBonus = clamp(diagonalCount * 3.2, 0, 14);
+
+        let materialBonus = 0;
+        if (woodCount > 0 && steelCount > 0) {
+          materialBonus += 8;
+        }
+        if (concreteCount > woodCount + steelCount) {
+          materialBonus -= 5;
+        }
+
+        return {
+          baseWidth,
+          height,
+          diagonalCount,
+          narrowPenalty,
+          tallFlexPenalty,
+          wideBaseBonus,
+          shapeBonus,
+          materialBonus,
+          footprint: maxCol - minCol
+        };
+      }
+
+      function computeCost() {
+        const breakdown = {
+          wood: 0,
+          steel: 0,
+          concrete: 0
+        };
+
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          const mat = MATERIALS[beam.material];
+          if (!mat) {
+            continue;
+          }
+          const units = beam.rest / WORLD.cell;
+          const cost = units * mat.costUnit;
+          breakdown[beam.material] += cost;
+        }
+
+        const total = Object.values(breakdown).reduce((sum, n) => sum + n, 0);
+        return { total, breakdown };
+      }
+
+      function computeLiveMetrics() {
+        const analysis = designAnalysis();
+        const beamCount = state.beams.filter((b) => !b.removed).length;
+        const peopleCount = state.people.filter((p) => !p.removed).length;
+
+        if (!state.running) {
+          const structureBonus = beamCount === 0 ? 0 : 35;
+          const stability = clamp(
+            20 + structureBonus + analysis.wideBaseBonus + analysis.shapeBonus + analysis.materialBonus -
+              analysis.narrowPenalty - analysis.tallFlexPenalty,
+            0,
+            99
+          );
+
+          const hazards = state.objects.filter((o) => !o.removed && !o.anchored && OBJECT_DEFS[o.tool].hazard > 1.5).length;
+          const safety = clamp(72 - hazards * 8 + (peopleCount > 0 ? 6 : 0), 0, 99);
+
+          return {
+            stability: Math.round(stability),
+            damage: 0,
+            hazards,
+            safety: Math.round(safety),
+            analysis,
+            brokenRatio: 0,
+            avgSway: 0,
+            fallenObjects: 0,
+            unsafeNearPeople: 0
+          };
+        }
+
+        return computeFinalMetrics();
+      }
+
+      function updateComputedStats() {
+        const costInfo = computeCost();
+        const showQuakeMetrics = state.running || (state.lastQuakeMetrics && ui.runStatus.textContent === "Results Ready");
+        const live = showQuakeMetrics
+          ? (state.lastQuakeMetrics || computeFinalMetrics())
+          : computeLiveMetrics();
+
+        ui.stabilityLabel.textContent = showQuakeMetrics ? "Quake Score" : "Design Score";
+
+        state.metrics = {
+          stability: live.stability,
+          damage: live.damage,
+          hazards: live.hazards,
+          safety: live.safety,
+          cost: Math.round(costInfo.total)
+        };
+
+        ui.stabilityStat.textContent = String(state.metrics.stability);
+        ui.damageStat.textContent = String(state.metrics.damage);
+        ui.costStat.textContent = fmtMoney(state.metrics.cost);
+
+        colorizeStat(ui.stabilityStat, state.metrics.stability, true);
+        colorizeStat(ui.damageStat, 100 - state.metrics.damage, true);
+
+        const b = costInfo.breakdown;
+        ui.costBreakdown.textContent = `Beams: W ${fmtMoney(b.wood)}, S ${fmtMoney(b.steel)}, C ${fmtMoney(b.concrete)}`;
+      }
+
+      function colorizeStat(el, value, normalizedTo100) {
+        const v = normalizedTo100 ? value : clamp(value, 0, 100);
+        if (v >= 72) {
+          el.style.color = "var(--green)";
+        } else if (v >= 45) {
+          el.style.color = "var(--warn)";
+        } else {
+          el.style.color = "var(--bad)";
+        }
+      }
+
+      function renderResults() {
+        ui.resultsList.innerHTML = "";
+        for (const line of state.results) {
+          const li = document.createElement("li");
+          li.textContent = line;
+          ui.resultsList.appendChild(li);
+        }
+      }
+
+      function startEarthquake() {
+        if (state.running) {
+          return;
+        }
+
+        const activeBeams = state.beams.filter((b) => !b.removed);
+        if (activeBeams.length === 0) {
+          state.results = [
+            "Add at least one beam first.",
+            "Pick a beam. Click one joint, then another joint."
+          ];
+          playSfx("error");
+          renderResults();
+          return;
+        }
+
+        const magnitude = Number(ui.magnitude.value);
+        const duration = Number(ui.duration.value);
+
+        state.pendingNodeId = null;
+        state.lastQuakeMetrics = null;
+        state.running = true;
+        ui.startBtn.disabled = true;
+        ui.runStatus.textContent = "Earthquake Running";
+        state.sound.lastCollapseAt = -999;
+        state.sound.lastQuakeHitAt = -999;
+
+        for (const node of state.nodes) {
+          node.x = node.baseX;
+          node.y = node.baseY;
+          node.vx = 0;
+          node.vy = 0;
+          node.fx = 0;
+          node.fy = 0;
+          node.maxDrift = 0;
+        }
+
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          beam.broken = false;
+          beam.damage = 0;
+          beam.maxStretch = 0;
+        }
+
+        for (const roof of state.roofs) {
+          if (roof.removed) {
+            continue;
+          }
+          const n = getNodeById(roof.nodeId);
+          roof.fallen = false;
+          roof.x = n ? n.baseX : roof.x;
+          roof.y = n ? n.baseY - 12 : roof.y;
+          roof.vx = 0;
+          roof.vy = 0;
+        }
+
+        for (const obj of state.objects) {
+          if (obj.removed) {
+            continue;
+          }
+          obj.x = obj.baseX;
+          obj.y = obj.baseY;
+          obj.vx = 0;
+          obj.vy = 0;
+          obj.angle = 0;
+          obj.aVel = 0;
+          obj.fallen = false;
+          obj.unsafe = false;
+          obj.displacement = 0;
+        }
+
+        for (const p of state.people) {
+          p.risk = 0;
+          p.covered = false;
+        }
+
+        state.run = {
+          start: performance.now(),
+          duration,
+          settleDuration: POST_QUAKE_SETTLE_SECONDS,
+          totalDuration: duration + POST_QUAKE_SETTLE_SECONDS,
+          maxTotalDuration: duration + POST_QUAKE_SETTLE_SECONDS + SETTLE_EXTENSION_LIMIT_SECONDS,
+          settleStarted: false,
+          magnitude,
+          depth: state.depth,
+          offset: 0,
+          prevOffset: 0,
+          prevVel: 0,
+          accel: 0,
+          maxAccel: 0,
+          maxSway: 0,
+          brokenBeams: 0,
+          fallenRoofs: 0,
+          fallenObjects: 0,
+          lastBreakAt: -999,
+          lastMotionAt: -999,
+          motionLevel: 0
+        };
+
+        state.results = [
+          "The ground is shaking now.",
+          "Watch how your frame moves."
+        ];
+        playSfx("quakeStart");
+        startRumble(0.25);
+        renderResults();
+      }
+
+      function finishEarthquake() {
+        state.running = false;
+        stopRumble();
+        ui.startBtn.disabled = false;
+        ui.runStatus.textContent = "Results Ready";
+
+        const finalMetrics = computeFinalMetrics();
+        state.lastQuakeMetrics = finalMetrics;
+        state.metrics.stability = finalMetrics.stability;
+        state.metrics.damage = finalMetrics.damage;
+        state.metrics.hazards = finalMetrics.hazards;
+        state.metrics.safety = finalMetrics.safety;
+
+        updateComputedStats();
+
+        const analysis = finalMetrics.analysis;
+        const feedback = [];
+
+        if (analysis.diagonalCount > 0) {
+          feedback.push("Diagonal beams helped.");
+        }
+        if (analysis.narrowPenalty > 0) {
+          feedback.push("Your base is too narrow.");
+        }
+        if (analysis.tallFlexPenalty > 0) {
+          feedback.push("Your frame is tall and wobbly.");
+        }
+        if (finalMetrics.unsecuredShelfHazards > 0) {
+          feedback.push("Loose shelves can be dangerous.");
+        }
+        if (finalMetrics.anchoredFurniture > 0) {
+          feedback.push("Anchored furniture was safer.");
+        }
+        if (finalMetrics.coveredPeople > 0) {
+          feedback.push("People near desks were safer.");
+        }
+        if (finalMetrics.stability > 80 && finalMetrics.damage < 30) {
+          feedback.push("Wide base and good connections helped.");
+        }
+
+        feedback.push("Best safety move: Drop, Cover, and Hold On.");
+
+        state.results = feedback.slice(0, 6);
+        playSfx("quakeEnd", finalMetrics.stability);
+        renderResults();
+      }
+
+      function computeFinalMetrics() {
+        const analysis = designAnalysis();
+        const activeBeams = state.beams.filter((b) => !b.removed);
+        const intactBeams = activeBeams.filter((b) => !b.broken);
+        const brokenBeams = activeBeams.filter((b) => b.broken).length;
+
+        const brokenRatio = activeBeams.length > 0 ? brokenBeams / activeBeams.length : 0;
+
+        let avgSway = 0;
+        const nonGroundNodes = state.nodes.filter((n) => !n.fixedGround);
+        if (nonGroundNodes.length > 0) {
+          avgSway = nonGroundNodes.reduce((sum, n) => sum + n.maxDrift, 0) / nonGroundNodes.length;
+        }
+
+        let fallenObjects = 0;
+        let anchoredFurniture = 0;
+        let unsecuredShelfHazards = 0;
+        let hazardCount = brokenBeams;
+
+        for (const obj of state.objects) {
+          if (obj.removed) {
+            continue;
+          }
+          const def = OBJECT_DEFS[obj.tool];
+          if (obj.anchored) {
+            anchoredFurniture += 1;
+          }
+
+          const unsafe = obj.fallen || obj.displacement > (obj.anchored ? 0.75 : 0.38);
+          obj.unsafe = unsafe;
+
+          if (unsafe) {
+            fallenObjects += 1;
+            hazardCount += def.hazard >= 2 ? 2 : 1;
+          }
+          if (obj.tool === "bookshelf" && unsafe && !obj.anchored) {
+            unsecuredShelfHazards += 1;
+          }
+        }
+
+        let peopleRiskSum = 0;
+        let coveredPeople = 0;
+        for (const person of state.people) {
+          if (person.removed) {
+            continue;
+          }
+
+          const px = WORLD.x + (person.col + 0.5) * WORLD.cell;
+          const py = WORLD.y + (person.row + 0.5) * WORLD.cell;
+
+          let risk = 24 + Number(ui.magnitude.value) * 5;
+
+          let nearDesk = false;
+          for (const obj of state.objects) {
+            if (obj.removed || obj.tool !== "desk") {
+              continue;
+            }
+            const cx = obj.x + (obj.w * WORLD.cell) / 2;
+            const cy = obj.y + (obj.h * WORLD.cell) / 2;
+            const d = dist(px, py, cx, cy) / WORLD.cell;
+            if (d < 1.6) {
+              nearDesk = true;
+              break;
+            }
+          }
+
+          if (nearDesk) {
+            risk -= 20;
+            coveredPeople += 1;
+            person.covered = true;
+          } else {
+            person.covered = false;
+          }
+
+          for (const obj of state.objects) {
+            if (obj.removed || !obj.unsafe) {
+              continue;
+            }
+            const cx = obj.x + (obj.w * WORLD.cell) / 2;
+            const cy = obj.y + (obj.h * WORLD.cell) / 2;
+            const d = dist(px, py, cx, cy) / WORLD.cell;
+            if (d < 2.0) {
+              risk += 24;
+            } else if (d < 3.2) {
+              risk += 10;
+            }
+          }
+
+          for (const beam of activeBeams) {
+            if (!beam.broken) {
+              continue;
+            }
+            const a = getNodeById(beam.a);
+            const b = getNodeById(beam.b);
+            if (!a || !b) {
+              continue;
+            }
+            const d = pointToSegmentDistance(px, py, a.x, a.y, b.x, b.y) / WORLD.cell;
+            const above = Math.min(a.y, b.y) < py + WORLD.cell;
+            if (d < 1.4 && above) {
+              risk += 18;
+            }
+          }
+
+          person.risk = clamp(risk, 0, 100);
+          peopleRiskSum += person.risk;
+        }
+
+        const peopleCount = state.people.filter((p) => !p.removed).length;
+        const avgPeopleRisk = peopleCount > 0 ? peopleRiskSum / peopleCount : 35 + hazardCount * 4;
+
+        const damage = clamp(
+          brokenRatio * 72 +
+            clamp(avgSway * 18, 0, 28) +
+            (activeBeams.length > 0
+              ? activeBeams.reduce((s, b) => s + clamp(b.damage / MATERIALS[b.material].strength, 0, 1), 0) / activeBeams.length * 20
+              : 0) +
+            (fallenObjects > 0 ? fallenObjects * 4 : 0),
+          0,
+          100
+        );
+
+        const stability = clamp(
+          92 -
+            analysis.narrowPenalty -
+            analysis.tallFlexPenalty -
+            brokenRatio * 50 -
+            avgSway * 13 +
+            analysis.wideBaseBonus +
+            analysis.shapeBonus * 0.7 +
+            analysis.materialBonus,
+          0,
+          100
+        );
+
+        const safety = clamp(
+          100 - avgPeopleRisk - damage * 0.25 - hazardCount * 1.8 + anchoredFurniture * 2.2,
+          0,
+          100
+        );
+
+        return {
+          stability: Math.round(stability),
+          damage: Math.round(damage),
+          hazards: Math.round(hazardCount),
+          safety: Math.round(safety),
+          analysis,
+          brokenRatio,
+          avgSway,
+          fallenObjects,
+          unsecuredShelfHazards,
+          anchoredFurniture,
+          coveredPeople,
+          intactBeams: intactBeams.length,
+          brokenBeams
+        };
+      }
+
+      function updatePhysics(dt, elapsed) {
+        const run = state.run;
+        if (!run) {
+          return;
+        }
+
+        const dtSafe = Math.max(dt, 1 / 120);
+        const shaking = elapsed <= run.duration;
+        const phaseElapsed = Math.min(elapsed, run.duration);
+        const intensity = clamp((run.magnitude - 3) / 5, 0, 1);
+        const depthFactor = run.depth === "shallow" ? 1.15 : 0.82;
+        const envelope = shaking ? Math.sin(clamp(phaseElapsed / run.duration, 0, 1) * Math.PI) : 0;
+        const frequency = 1.9 + intensity * 2.2;
+        const amplitude = (8 + intensity * 22) * depthFactor;
+        setRumbleLevel(shaking ? envelope * intensity : 0);
+
+        let offset = 0;
+        let vel = 0;
+        let accel = 0;
+        if (shaking) {
+          offset = Math.sin(phaseElapsed * frequency * Math.PI * 2) * amplitude * envelope;
+          const rawVel = (offset - run.prevOffset) / dtSafe;
+          vel = clamp(rawVel, -520, 520);
+          const rawAccel = (vel - run.prevVel) / dtSafe;
+          accel = clamp(rawAccel, -9200, 9200);
+        } else {
+          run.prevOffset = 0;
+          run.prevVel = 0;
+        }
+
+        run.offset = offset;
+        run.prevOffset = offset;
+        run.prevVel = vel;
+        run.accel = accel;
+        run.maxAccel = Math.max(run.maxAccel, Math.abs(accel));
+        const audioNow = state.sound.ctx ? state.sound.ctx.currentTime : -999;
+
+        if (state.sound.enabled && audioNow > -1 && shaking) {
+          const accelHitThreshold = 1800 + (1 - intensity) * 900;
+          if (Math.abs(accel) > accelHitThreshold && audioNow - state.sound.lastQuakeHitAt > 0.24) {
+            playSfx("quakeHit");
+            state.sound.lastQuakeHitAt = audioNow;
+          }
+        }
+
+        for (const node of state.nodes) {
+          node.fx = 0;
+          node.fy = 0;
+        }
+
+        for (const node of state.nodes) {
+          if (node.fixedGround) {
+            node.x = node.baseX + offset;
+            node.y = node.baseY;
+            node.vx = vel;
+            node.vy = 0;
+            continue;
+          }
+
+          const mass = node.massBase + node.roofMass;
+          const heightRatio = clamp((WORLD.floorRow - node.row) / Math.max(1, WORLD.floorRow), 0, 1);
+          const topWeight = clamp(node.roofMass / 3.2, 0, 1);
+          const inertiaScale = 0.22 + heightRatio * 0.16 + topWeight * 0.09;
+          node.fy += 880 * mass;
+          node.fx += accel * mass * inertiaScale;
+        }
+
+        let brokenThisStep = 0;
+        const fallenObjectsAtStepStart = run.fallenObjects;
+        for (const beam of state.beams) {
+          if (beam.removed || beam.broken) {
+            continue;
+          }
+
+          const a = getNodeById(beam.a);
+          const b = getNodeById(beam.b);
+          if (!a || !b) {
+            continue;
+          }
+
+          const mat = MATERIALS[beam.material];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const len = Math.max(0.001, Math.hypot(dx, dy));
+          const nx = dx / len;
+          const ny = dy / len;
+          const hardStretchLimit = 1.58 + mat.flex * 0.18;
+          if (len > beam.rest * hardStretchLimit) {
+            beam.broken = true;
+            run.brokenBeams += 1;
+            brokenThisStep += 1;
+            continue;
+          }
+
+          const stretch = len - beam.rest;
+          beam.maxStretch = Math.max(beam.maxStretch, Math.abs(stretch) / beam.rest);
+
+          const relVx = b.vx - a.vx;
+          const relVy = b.vy - a.vy;
+          const relAlong = relVx * nx + relVy * ny;
+
+          // Keep effective stiffness/damping consistent when beams are auto-split at joints.
+          const stiffnessScale = clamp(
+            (beam.sourceRest || beam.rest) / Math.max(beam.rest, WORLD.cell * 0.5),
+            0.7,
+            4.2
+          );
+          const springF = mat.k * stiffnessScale * stretch;
+          const dampF = mat.damp * stiffnessScale * relAlong;
+          const force = clamp(springF + dampF, -16000, 16000);
+
+          const fx = force * nx;
+          const fy = force * ny;
+
+          if (!a.fixedGround) {
+            a.fx += fx;
+            a.fy += fy;
+          }
+          if (!b.fixedGround) {
+            b.fx -= fx;
+            b.fy -= fy;
+          }
+
+          const span = beam.sourceRest || beam.rest;
+          const spanScale = Math.max(1, span / Math.max(beam.rest, WORLD.cell * 0.5));
+          const strain =
+            (Math.abs(stretch) / Math.max(1, span * 0.11) +
+              Math.abs(relAlong) / (90 + mat.flex * 25 * spanScale) +
+              Math.abs(accel) / (5200 * mat.flex * spanScale)) * mat.brittle;
+
+          beam.damage += strain * dtSafe * 7.5;
+          if (beam.damage > mat.strength) {
+            beam.broken = true;
+            run.brokenBeams += 1;
+            brokenThisStep += 1;
+          }
+        }
+
+        if (state.sound.enabled && audioNow > -1 && brokenThisStep > 0 && audioNow - state.sound.lastCollapseAt > 0.12) {
+          playSfx(brokenThisStep > 1 ? "collapseBig" : "collapseSmall");
+          state.sound.lastCollapseAt = audioNow;
+        }
+        if (brokenThisStep > 0) {
+          run.lastBreakAt = elapsed;
+        }
+
+        // Summarize support and connectivity so detached chunks don't "hover" in place.
+        const nodeSupport = new Map();
+        const beamGraph = new Map();
+        const linkNodes = (aId, bId) => {
+          const aList = beamGraph.get(aId) || [];
+          if (!aList.includes(bId)) {
+            aList.push(bId);
+            beamGraph.set(aId, aList);
+          }
+          const bList = beamGraph.get(bId) || [];
+          if (!bList.includes(aId)) {
+            bList.push(aId);
+            beamGraph.set(bId, bList);
+          }
+        };
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          const mat = MATERIALS[beam.material];
+          const nearFail = !beam.broken && mat && beam.damage > mat.strength * 0.92;
+          if (!beam.broken) {
+            linkNodes(beam.a, beam.b);
+          }
+
+          for (const id of [beam.a, beam.b]) {
+            const entry = nodeSupport.get(id) || { connected: 0, broken: 0, nearFail: 0 };
+            entry.connected += 1;
+            if (beam.broken) {
+              entry.broken += 1;
+            }
+            if (nearFail) {
+              entry.nearFail += 1;
+            }
+            nodeSupport.set(id, entry);
+          }
+        }
+
+        const anchoredNodeIds = new Set();
+        const queue = [];
+        for (const node of state.nodes) {
+          if (!node.fixedGround) {
+            continue;
+          }
+          anchoredNodeIds.add(node.id);
+          queue.push(node.id);
+        }
+        while (queue.length > 0) {
+          const currentId = queue.shift();
+          const neighbors = beamGraph.get(currentId) || [];
+          for (const nextId of neighbors) {
+            if (anchoredNodeIds.has(nextId)) {
+              continue;
+            }
+            anchoredNodeIds.add(nextId);
+            queue.push(nextId);
+          }
+        }
+
+        let maxNodeSpeed = 0;
+        for (const node of state.nodes) {
+          if (node.fixedGround) {
+            continue;
+          }
+
+          const mass = node.massBase + node.roofMass;
+          node.vx += (node.fx / mass) * dtSafe;
+          node.vy += (node.fy / mass) * dtSafe;
+
+          node.vx *= 0.989;
+          node.vy *= 0.992;
+          const speed = Math.hypot(node.vx, node.vy);
+          maxNodeSpeed = Math.max(maxNodeSpeed, speed / WORLD.cell);
+          if (speed > 620) {
+            const scale = 620 / speed;
+            node.vx *= scale;
+            node.vy *= scale;
+          }
+
+          node.x += node.vx * dtSafe;
+          node.y += node.vy * dtSafe;
+
+          const support = nodeSupport.get(node.id);
+          let failureSeverity = 1;
+          if (support && support.connected > 0) {
+            const brokenFrac = support.broken / support.connected;
+            const nearFailFrac = support.nearFail / support.connected;
+            failureSeverity = clamp(brokenFrac + nearFailFrac * 0.55, 0, 1);
+          }
+          const anchoredToGround = anchoredNodeIds.has(node.id);
+          if (!anchoredToGround) {
+            // Detached components should transition into collapse behavior quickly.
+            failureSeverity = Math.max(failureSeverity, 0.78);
+            node.fy += 420 * mass;
+          }
+          const mostlyIntact = anchoredToGround && failureSeverity < 0.08;
+          const heightRatio = clamp((WORLD.floorRow - node.row) / Math.max(1, WORLD.floorRow), 0, 1);
+          const topWeight = clamp(node.roofMass / 3.2, 0, 1);
+          const targetX = node.baseX + offset;
+          const intactDriftCap =
+            WORLD.cell * (0.55 + heightRatio * 1.2 + topWeight * 0.62) * INTACT_DRIFT_CAP_MULTIPLIER;
+          const driftCap = mostlyIntact
+            ? intactDriftCap
+            : WORLD.cell * (1.2 + failureSeverity * 4.1 + heightRatio * 0.75);
+
+          const driftX = node.x - targetX;
+          if (Math.abs(driftX) > driftCap) {
+            node.x = targetX + Math.sign(driftX) * driftCap;
+            node.vx *= 0.78;
+          }
+
+          const minYLocal = node.baseY - (mostlyIntact
+            ? WORLD.cell * (0.24 + heightRatio * 0.45 + topWeight * 0.2) * INTACT_VERTICAL_CAP_MULTIPLIER
+            : WORLD.cell * (0.7 + failureSeverity * 1.3));
+          const maxYLocal = anchoredToGround
+            ? node.baseY + (mostlyIntact
+            ? WORLD.cell * (0.68 + heightRatio * 0.8 + topWeight * 0.4) * INTACT_VERTICAL_CAP_MULTIPLIER
+            : WORLD.cell * (1.3 + failureSeverity * 3.2))
+            : WORLD.groundY + WORLD.cell * 4;
+          if (node.y < minYLocal) {
+            node.y = minYLocal;
+            if (node.vy < 0) {
+              node.vy *= -0.15;
+            }
+          }
+          if (node.y > maxYLocal) {
+            node.y = maxYLocal;
+            if (node.vy > 0) {
+              node.vy *= -0.12;
+            }
+          }
+
+          const topBound = WORLD.y - WORLD.cell * 1.8;
+          if (node.y < topBound) {
+            node.y = topBound;
+            if (node.vy < 0) {
+              node.vy *= -0.15;
+            }
+            node.vx *= 0.9;
+          }
+
+          if (node.y > WORLD.groundY) {
+            node.y = WORLD.groundY;
+            if (node.vy > 0) {
+              node.vy *= -0.18;
+            }
+            node.vx *= 0.82;
+          }
+
+          const leftBound = WORLD.x - 36;
+          const rightBound = WORLD.x + WORLD.width + 36;
+          if (node.x < leftBound) {
+            node.x = leftBound;
+            node.vx *= -0.2;
+          }
+          if (node.x > rightBound) {
+            node.x = rightBound;
+            node.vx *= -0.2;
+          }
+
+          const drift = Math.abs(node.x - (node.baseX + offset));
+          node.maxDrift = Math.max(node.maxDrift, drift / WORLD.cell);
+          run.maxSway = Math.max(run.maxSway, node.maxDrift);
+        }
+        run.motionLevel = maxNodeSpeed;
+        if (maxNodeSpeed > ACTIVE_COLLAPSE_MOTION_THRESHOLD) {
+          run.lastMotionAt = elapsed;
+        }
+
+        for (const obj of state.objects) {
+          if (obj.removed) {
+            continue;
+          }
+          const def = OBJECT_DEFS[obj.tool];
+
+          if (def.hanging) {
+            const targetForce = accel * (obj.anchored ? 0.000045 : 0.000085);
+            obj.aVel += (targetForce - obj.angle * 1.8 - obj.aVel * 1.1) * dt * 60;
+            obj.angle += obj.aVel * dt;
+
+            if (!obj.anchored && Math.abs(obj.angle) > 0.9 && !obj.fallen) {
+              obj.fallen = true;
+              run.fallenObjects += 1;
+            }
+
+            if (obj.fallen) {
+              obj.vy += 900 * dt;
+              obj.y += obj.vy * dt;
+              if (obj.y > WORLD.groundY - WORLD.cell) {
+                obj.y = WORLD.groundY - WORLD.cell;
+                obj.vy = 0;
+              }
+            }
+
+            obj.displacement = Math.max(obj.displacement, Math.abs(obj.angle) * 0.8 + Math.abs(obj.y - obj.baseY) / WORLD.cell);
+            continue;
+          }
+
+          const slidePush = accel * (obj.anchored ? 0.00008 : 0.00022) / Math.max(0.7, def.mass || 1);
+          obj.vx += slidePush * dt * 60;
+          obj.vx *= obj.anchored ? 0.88 : 0.95;
+          obj.x += obj.vx * dt * 60;
+
+          const minX = WORLD.x;
+          const maxX = WORLD.x + WORLD.width - obj.w * WORLD.cell;
+          obj.x = clamp(obj.x, minX, maxX);
+
+          obj.displacement = Math.max(obj.displacement, Math.abs(obj.x - obj.baseX) / WORLD.cell);
+
+          if (!obj.fallen && !obj.anchored) {
+            if (def.tall && obj.displacement > 0.52) {
+              obj.fallen = true;
+              obj.angle = 1.25;
+              run.fallenObjects += 1;
+            }
+            if (def.wheeled && obj.displacement > 0.85) {
+              obj.fallen = true;
+              obj.angle = 0.38;
+              run.fallenObjects += 1;
+            }
+          }
+        }
+        if (run.fallenObjects > fallenObjectsAtStepStart) {
+          run.lastBreakAt = elapsed;
+        }
+
+        const live = computeFinalMetrics();
+        state.metrics.stability = live.stability;
+        state.metrics.damage = live.damage;
+        state.metrics.hazards = live.hazards;
+        state.metrics.safety = live.safety;
+        updateComputedStats();
+      }
+
+      function drawBackground() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, "#d8f0ff");
+        grad.addColorStop(1, "#fff7eb");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#f5fbff";
+        ctx.fillRect(WORLD.x, WORLD.y, WORLD.width, WORLD.height);
+
+        ctx.strokeStyle = "rgba(43, 103, 149, 0.16)";
+        ctx.lineWidth = 1;
+
+        for (let c = 0; c <= WORLD.cols; c += 1) {
+          const x = WORLD.x + c * WORLD.cell + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(x, WORLD.y);
+          ctx.lineTo(x, WORLD.groundY);
+          ctx.stroke();
+        }
+
+        for (let r = 0; r <= WORLD.floorRow; r += 1) {
+          const y = WORLD.y + r * WORLD.cell + 0.5;
+          ctx.beginPath();
+          ctx.moveTo(WORLD.x, y);
+          ctx.lineTo(WORLD.x + WORLD.width, y);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "#6d92b3";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(WORLD.x + 0.5, WORLD.y + 0.5, WORLD.width, WORLD.height);
+      }
+
+      function drawGround() {
+        const offset = state.running && state.run ? state.run.offset : 0;
+        ctx.save();
+        ctx.translate(offset * 0.65, 0);
+
+        const g = ctx.createLinearGradient(0, WORLD.groundY, 0, canvas.height);
+        g.addColorStop(0, "#cb9154");
+        g.addColorStop(1, "#98653a");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, WORLD.groundY, canvas.width, canvas.height - WORLD.groundY + 10);
+
+        ctx.strokeStyle = "rgba(98, 57, 32, 0.28)";
+        ctx.lineWidth = 1.8;
+        for (let i = 0; i < 30; i += 1) {
+          const x = i * 42 + (i % 2) * 8;
+          ctx.beginPath();
+          ctx.moveTo(x, WORLD.groundY + 4);
+          ctx.lineTo(x + 16, WORLD.groundY + 14);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function drawBeams() {
+        for (const beam of state.beams) {
+          if (beam.removed) {
+            continue;
+          }
+          const a = getNodeById(beam.a);
+          const b = getNodeById(beam.b);
+          if (!a || !b) {
+            continue;
+          }
+
+          const mat = MATERIALS[beam.material];
+          const alpha = beam.broken ? 0.28 : 1;
+          ctx.strokeStyle = mat.color;
+          ctx.lineWidth = 5.5;
+          ctx.globalAlpha = alpha;
+          ctx.setLineDash([]);
+
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+
+          if (beam.broken) {
+            ctx.setLineDash([]);
+            ctx.strokeStyle = "rgba(142, 35, 44, 0.75)";
+            ctx.lineWidth = 2;
+            const mx = (a.x + b.x) / 2;
+            const my = (a.y + b.y) / 2;
+            ctx.beginPath();
+            ctx.moveTo(mx - 8, my - 8);
+            ctx.lineTo(mx + 8, my + 8);
+            ctx.moveTo(mx + 8, my - 8);
+            ctx.lineTo(mx - 8, my + 8);
+            ctx.stroke();
+          }
+        }
+
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+
+      function drawNodes() {
+        for (const node of state.nodes) {
+          const size = node.fixedGround ? 5.6 : 4.4;
+          ctx.fillStyle = node.fixedGround ? "#205f95" : "#2f7bb8";
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (state.pendingNodeId === node.id && !state.running) {
+            ctx.strokeStyle = "#ff8d3b";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 10, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawRoofs() {
+        // Retained as a no-op to keep draw pipeline structure simple.
+      }
+
+      function drawObjects() {
+        for (const obj of state.objects) {
+          if (obj.removed) {
+            continue;
+          }
+          const def = OBJECT_DEFS[obj.tool];
+          const w = obj.w * WORLD.cell;
+          const h = obj.h * WORLD.cell;
+          const cx = obj.x + w / 2;
+          const cy = obj.y + h / 2;
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(obj.angle || 0);
+
+          if (def.hanging) {
+            ctx.strokeStyle = "#6f7f90";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(0, -4);
+            ctx.stroke();
+
+            ctx.fillStyle = def.color;
+            ctx.beginPath();
+            ctx.ellipse(0, 5, 12, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (obj.tool === "bookshelf") {
+            ctx.fillStyle = def.color;
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            ctx.fillStyle = "rgba(255,239,209,0.45)";
+            ctx.fillRect(-w / 2 + 4, -h / 2 + 8, w - 8, 6);
+            ctx.fillRect(-w / 2 + 4, -h / 2 + 21, w - 8, 6);
+            ctx.fillRect(-w / 2 + 4, h / 2 - 14, w - 8, 6);
+          } else if (obj.tool === "computerCart") {
+            ctx.fillStyle = def.color;
+            ctx.fillRect(-w / 2, -h / 2 + 6, w, h - 6);
+            ctx.fillStyle = "#dbeaf7";
+            ctx.fillRect(-w / 2 + 6, -h / 2 + 9, w - 12, 10);
+            ctx.fillStyle = "#3c4956";
+            ctx.beginPath();
+            ctx.arc(-w / 2 + 7, h / 2 - 2, 3, 0, Math.PI * 2);
+            ctx.arc(w / 2 - 7, h / 2 - 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (obj.tool === "desk") {
+            ctx.fillStyle = def.color;
+            ctx.fillRect(-w / 2, -h / 2 + 9, w, h - 9);
+            ctx.fillStyle = "#9f6d45";
+            ctx.fillRect(-w / 2, -h / 2 + 2, w, 8);
+            ctx.fillStyle = "#825433";
+            ctx.fillRect(-w / 2 + 4, h / 2 - 7, 4, 7);
+            ctx.fillRect(w / 2 - 8, h / 2 - 7, 4, 7);
+          }
+
+          if (obj.anchored && !def.hanging) {
+            ctx.fillStyle = "#1a8f67";
+            ctx.fillRect(-w / 2 + 3, h / 2 - 4, 8, 4);
+          }
+
+          if (obj.unsafe) {
+            ctx.strokeStyle = "rgba(211,84,95,0.82)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-w / 2 + 1, -h / 2 + 1, w - 2, h - 2);
+          }
+
+          ctx.restore();
+        }
+      }
+
+      function drawPeople() {
+        for (const p of state.people) {
+          if (p.removed) {
+            continue;
+          }
+
+          const x = WORLD.x + p.col * WORLD.cell + WORLD.cell * 0.5;
+          const y = WORLD.y + p.row * WORLD.cell + WORLD.cell * 0.55;
+
+          ctx.save();
+          ctx.strokeStyle = "#38235f";
+          ctx.lineWidth = 2;
+          ctx.fillStyle = p.covered ? "#2ca46f" : "#5f3d98";
+
+          ctx.beginPath();
+          ctx.arc(x, y - 9, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(x, y - 4);
+          ctx.lineTo(x, y + 8);
+          ctx.moveTo(x, y + 8);
+          ctx.lineTo(x - 6, y + 15);
+          ctx.moveTo(x, y + 8);
+          ctx.lineTo(x + 6, y + 15);
+          ctx.moveTo(x - 7, y + 2);
+          ctx.lineTo(x + 7, y + 2);
+          ctx.stroke();
+
+          if (p.covered) {
+            ctx.fillStyle = "rgba(44,164,111,0.2)";
+            ctx.fillRect(x - 14, y - 18, 28, 34);
+          }
+
+          ctx.restore();
+        }
+      }
+
+      function drawHUD() {
+        ctx.save();
+
+        ctx.fillStyle = "rgba(20, 44, 68, 0.65)";
+        ctx.fillRect(14, 14, 272, 36);
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 13px Trebuchet MS";
+        ctx.fillText(`Build: ${toolLabel(state.selectedTool)}`, 22, 36);
+
+        if (MATERIALS[state.selectedTool] && state.pendingNodeId) {
+          ctx.fillStyle = "rgba(255, 187, 92, 0.92)";
+          ctx.font = "bold 12px Trebuchet MS";
+          ctx.fillText("Start joint locked", 296, 36);
+        }
+
+        if (state.running && state.run) {
+          const elapsed = (performance.now() - state.run.start) / 1000;
+          const shaking = elapsed < state.run.duration;
+          if (shaking) {
+            const left = Math.max(0, state.run.duration - elapsed);
+            ctx.fillStyle = "rgba(122, 26, 49, 0.78)";
+            ctx.fillRect(canvas.width - 205, 14, 190, 36);
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 13px Trebuchet MS";
+            ctx.fillText(`Quake ${left.toFixed(1)}s`, canvas.width - 192, 36);
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawPendingGhost(mouse) {
+        if (!mouse || !state.pendingNodeId || !MATERIALS[state.selectedTool]) {
+          return;
+        }
+
+        const start = getNodeById(state.pendingNodeId);
+        if (!start) {
+          return;
+        }
+
+        const snap = mouse.snap;
+        if (!snap) {
+          return;
+        }
+
+        ctx.save();
+        ctx.strokeStyle = MATERIALS[state.selectedTool].color;
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = 5.5;
+        ctx.beginPath();
+        ctx.moveTo(start.baseX, start.baseY);
+        ctx.lineTo(snap.x, snap.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      const mouseState = {
+        x: 0,
+        y: 0,
+        inside: false,
+        snap: null
+      };
+
+      function drawScene() {
+        drawBackground();
+        drawGround();
+        drawBeams();
+        drawRoofs();
+        drawObjects();
+        drawPeople();
+        drawNodes();
+        drawPendingGhost(mouseState.inside ? mouseState : null);
+        drawHUD();
+      }
+
+      function runLoop(now) {
+        if (!state._lastFrame) {
+          state._lastFrame = now;
+        }
+        const dt = Math.min(0.033, (now - state._lastFrame) / 1000);
+        state._lastFrame = now;
+
+        if (state.running && state.run) {
+          const elapsed = (now - state.run.start) / 1000;
+          updatePhysics(dt || 0.016, elapsed);
+          if (elapsed >= state.run.duration && !state.run.settleStarted) {
+            state.run.settleStarted = true;
+            ui.runStatus.textContent = "Settling";
+            state.results = [
+              "Shaking has stopped.",
+              "Now watch your building settle."
+            ];
+            renderResults();
+            stopRumble();
+          }
+          if (elapsed >= state.run.totalDuration) {
+            const breakIsRecent = elapsed - state.run.lastBreakAt < ACTIVE_COLLAPSE_BREAK_WINDOW;
+            const motionIsRecent = elapsed - state.run.lastMotionAt < ACTIVE_COLLAPSE_MOTION_WINDOW;
+            const collapseStillActive = breakIsRecent || motionIsRecent;
+
+            if (collapseStillActive && state.run.totalDuration < state.run.maxTotalDuration) {
+              state.run.totalDuration = Math.min(
+                state.run.maxTotalDuration,
+                state.run.totalDuration + SETTLE_EXTENSION_STEP_SECONDS
+              );
+            } else {
+              finishEarthquake();
+            }
+          }
+        }
+
+        drawScene();
+        requestAnimationFrame(runLoop);
+      }
+
+      function handleBuildClick(clientX, clientY) {
+        const tool = state.selectedTool;
+
+        if (!MATERIALS[tool]) {
+          return;
+        }
+
+        const target = getPointerNodeTarget(clientX, clientY);
+        const node = target.node;
+        attachNodeToPassingBeams(node);
+
+        if (!state.pendingNodeId) {
+          state.pendingNodeId = node.id;
+          playSfx("beamStart");
+          return;
+        }
+
+        if (state.pendingNodeId === node.id) {
+          state.pendingNodeId = null;
+          playSfx("uiTap");
+          return;
+        }
+
+        const start = getNodeById(state.pendingNodeId);
+        if (!start) {
+          state.pendingNodeId = node.id;
+          return;
+        }
+
+        const ok = addBeam(start, node, tool);
+        if (!ok) {
+          state.results = [
+            "Beam not added.",
+            "Use two different joints that are not already connected."
+          ];
+          playSfx("error");
+          renderResults();
+        } else {
+          playSfx("beamPlace");
+        }
+
+        // Keep chaining from latest endpoint for faster frame building.
+        state.pendingNodeId = node.id;
+      }
+
+      function handlePrimaryCanvasAction(clientX, clientY) {
+        if (state.running) {
+          return;
+        }
+
+        returnToBuildPhase();
+        handleBuildClick(clientX, clientY);
+        updateComputedStats();
+      }
+
+      function bindEvents() {
+        const unlockAudio = () => {
+          ensureAudio();
+        };
+        window.addEventListener("pointerdown", unlockAudio, { once: true });
+
+        ui.soundToggle.addEventListener("click", () => {
+          if (state.sound.enabled) {
+            setSoundEnabled(false);
+          } else {
+            ensureAudio();
+            setSoundEnabled(true);
+          }
+        });
+
+        ui.magnitude.addEventListener("input", () => {
+          ui.magValue.textContent = Number(ui.magnitude.value).toFixed(1);
+        });
+
+        ui.duration.addEventListener("input", () => {
+          ui.durValue.textContent = ui.duration.value;
+        });
+
+        ui.startBtn.addEventListener("click", startEarthquake);
+        ui.resetModelBtn.addEventListener("click", resetModelState);
+        ui.resetBtn.addEventListener("click", () => clearWorld());
+        ui.randomBuildBtn.addEventListener("click", loadRandomBuild);
+
+        canvas.addEventListener("mousemove", (event) => {
+          mouseState.inside = true;
+          mouseState.x = event.clientX;
+          mouseState.y = event.clientY;
+          mouseState.snap = getPointerSnap(event.clientX, event.clientY);
+        });
+
+        canvas.addEventListener("mouseleave", () => {
+          mouseState.inside = false;
+          mouseState.snap = null;
+        });
+
+        canvas.addEventListener("click", (event) => {
+          ensureAudio();
+          if (state.ignoreNextClick) {
+            state.ignoreNextClick = false;
+            return;
+          }
+          handlePrimaryCanvasAction(event.clientX, event.clientY);
+        });
+
+        canvas.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+          ensureAudio();
+          returnToBuildPhase();
+          removeNear(event.clientX, event.clientY);
+        });
+
+        // Touch long-press for delete.
+        canvas.addEventListener("pointerdown", (event) => {
+          if (event.pointerType !== "touch") {
+            return;
+          }
+          state.touchRemoved = false;
+          state.touchCell = { x: event.clientX, y: event.clientY };
+          state.touchHoldTimer = setTimeout(() => {
+            if (!state.running && state.touchCell) {
+              returnToBuildPhase();
+              removeNear(state.touchCell.x, state.touchCell.y);
+              state.touchRemoved = true;
+            }
+          }, 420);
+        });
+
+        canvas.addEventListener("pointerup", (event) => {
+          if (state.touchHoldTimer) {
+            clearTimeout(state.touchHoldTimer);
+            state.touchHoldTimer = null;
+          }
+
+          if (event.pointerType === "touch") {
+            ensureAudio();
+            if (!state.touchRemoved) {
+              handlePrimaryCanvasAction(event.clientX, event.clientY);
+            }
+            state.ignoreNextClick = true;
+          }
+
+          state.touchRemoved = false;
+          state.touchCell = null;
+        });
+
+        canvas.addEventListener("pointercancel", () => {
+          if (state.touchHoldTimer) {
+            clearTimeout(state.touchHoldTimer);
+            state.touchHoldTimer = null;
+          }
+          state.touchRemoved = false;
+          state.touchCell = null;
+        });
+
+        window.addEventListener("keydown", (event) => {
+          if (event.key.toLowerCase() === "r") {
+            state.pendingNodeId = null;
+          }
+        });
+      }
+
+      function init() {
+        renderTools();
+        bindEvents();
+        applyControlDefaults();
+        updateSoundToggleLabel();
+
+        updateComputedStats();
+        renderResults();
+        requestAnimationFrame(runLoop);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
