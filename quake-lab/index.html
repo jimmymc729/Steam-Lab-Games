@@ -509,6 +509,10 @@
       const ACTIVE_COLLAPSE_BREAK_WINDOW = 1.4;
       const INTACT_DRIFT_CAP_MULTIPLIER = 0.72;
       const INTACT_VERTICAL_CAP_MULTIPLIER = 0.78;
+      const OVERTURN_FORCE_SCALE = 520;
+      const OVERTURN_LEAN_START_CELLS = 0.32;
+      const OVERTURN_SLENDERNESS_START = 1.2;
+      const OVERTURN_FAILURE_BOOST = 0.46;
 
       const MATERIALS = {
         wood: {
@@ -518,6 +522,9 @@
           damp: 24,
           strength: 140,
           flex: 1.08,
+          elasticLimit: 0.08,
+          hardStretchLimit: 1.3,
+          hardening: 2.2,
           brittle: 0.9,
           costUnit: 14,
           info: "Light, flexible, medium strength"
@@ -529,6 +536,9 @@
           damp: 31,
           strength: 220,
           flex: 1.1,
+          elasticLimit: 0.055,
+          hardStretchLimit: 1.24,
+          hardening: 2.8,
           brittle: 0.8,
           costUnit: 28,
           info: "Strong, flexible, expensive"
@@ -536,10 +546,13 @@
         concrete: {
           label: "Concrete Beam",
           color: "#a1acb7",
-          k: 350,
-          damp: 18,
+          k: 430,
+          damp: 26,
           strength: 180,
-          flex: 0.62,
+          flex: 0.24,
+          elasticLimit: 0.018,
+          hardStretchLimit: 1.11,
+          hardening: 5.2,
           brittle: 1.25,
           costUnit: 20,
           info: "Strong but heavy and more brittle"
@@ -2802,7 +2815,7 @@
           const len = Math.max(0.001, Math.hypot(dx, dy));
           const nx = dx / len;
           const ny = dy / len;
-          const hardStretchLimit = 1.58 + mat.flex * 0.18;
+          const hardStretchLimit = mat.hardStretchLimit || (1.5 + mat.flex * 0.15);
           if (len > beam.rest * hardStretchLimit) {
             beam.broken = true;
             run.brokenBeams += 1;
@@ -2823,7 +2836,12 @@
             0.7,
             4.2
           );
-          const springF = mat.k * stiffnessScale * stretch;
+          const elasticLimit = beam.rest * (mat.elasticLimit || 0.08);
+          const elasticStretch = clamp(stretch, -elasticLimit, elasticLimit);
+          const inelasticStretch = stretch - elasticStretch;
+          const hardening = mat.hardening || 2.6;
+          const springF =
+            mat.k * stiffnessScale * (elasticStretch + inelasticStretch * hardening);
           const dampF = mat.damp * stiffnessScale * relAlong;
           const force = clamp(springF + dampF, -16000, 16000);
 
@@ -2844,9 +2862,9 @@
           const strain =
             (Math.abs(stretch) / Math.max(1, span * 0.11) +
               Math.abs(relAlong) / (90 + mat.flex * 25 * spanScale) +
-              Math.abs(accel) / (5200 * mat.flex * spanScale)) * mat.brittle;
+              Math.abs(accel) / (5000 * mat.flex * spanScale)) * mat.brittle;
 
-          beam.damage += strain * dtSafe * 7.5;
+          beam.damage += strain * dtSafe * 7.9;
           if (beam.damage > mat.strength) {
             beam.broken = true;
             run.brokenBeams += 1;
@@ -2921,6 +2939,81 @@
           }
         }
 
+        const componentInfoByNode = new Map();
+        const visitedComponentNodes = new Set();
+        for (const rootId of beamGraph.keys()) {
+          if (visitedComponentNodes.has(rootId)) {
+            continue;
+          }
+
+          const compQueue = [rootId];
+          const compNodes = [];
+          const compGroundXs = [];
+          let compMinRow = WORLD.floorRow;
+          let compSumX = 0;
+
+          while (compQueue.length > 0) {
+            const id = compQueue.shift();
+            if (visitedComponentNodes.has(id)) {
+              continue;
+            }
+            visitedComponentNodes.add(id);
+
+            const node = getNodeById(id);
+            if (!node) {
+              continue;
+            }
+
+            compNodes.push(id);
+            compSumX += node.x;
+            compMinRow = Math.min(compMinRow, node.row);
+            if (node.fixedGround) {
+              compGroundXs.push(node.x);
+            }
+
+            const nextIds = beamGraph.get(id) || [];
+            for (const nextId of nextIds) {
+              if (!visitedComponentNodes.has(nextId)) {
+                compQueue.push(nextId);
+              }
+            }
+          }
+
+          if (compNodes.length === 0 || compGroundXs.length === 0) {
+            continue;
+          }
+
+          const minGroundX = Math.min(...compGroundXs);
+          const maxGroundX = Math.max(...compGroundXs);
+          const supportWidthCells = (maxGroundX - minGroundX) / WORLD.cell;
+          const supportCenterX = compGroundXs.reduce((sum, x) => sum + x, 0) / compGroundXs.length;
+          const centerX = compSumX / compNodes.length;
+          const leanCells = (centerX - supportCenterX) / WORLD.cell;
+          const heightCells = Math.max(1, WORLD.floorRow - compMinRow);
+          const supportSpanForSlenderness = Math.max(0.7, supportWidthCells + (compGroundXs.length > 1 ? 0.8 : 0.2));
+          const slenderness = heightCells / supportSpanForSlenderness;
+
+          let overturnRisk = 0;
+          overturnRisk += clamp((Math.abs(leanCells) - OVERTURN_LEAN_START_CELLS) * 0.95, 0, 1.65);
+          overturnRisk += clamp((slenderness - OVERTURN_SLENDERNESS_START) * 0.38, 0, 1.2);
+          if (compGroundXs.length === 1) {
+            overturnRisk += 0.45;
+          }
+
+          const compInfo = {
+            supportCenterX,
+            supportWidthCells,
+            leanCells,
+            slenderness,
+            overturnRisk,
+            heightCells,
+            groundCount: compGroundXs.length
+          };
+          for (const id of compNodes) {
+            componentInfoByNode.set(id, compInfo);
+          }
+        }
+
         let maxNodeSpeed = 0;
         for (const node of state.nodes) {
           if (node.fixedGround) {
@@ -2951,14 +3044,30 @@
             const nearFailFrac = support.nearFail / support.connected;
             failureSeverity = clamp(brokenFrac + nearFailFrac * 0.55, 0, 1);
           }
+          const heightRatio = clamp((WORLD.floorRow - node.row) / Math.max(1, WORLD.floorRow), 0, 1);
           const anchoredToGround = anchoredNodeIds.has(node.id);
+          const componentInfo = componentInfoByNode.get(node.id);
+          if (anchoredToGround && componentInfo && componentInfo.overturnRisk > 0.05) {
+            const leanSign = componentInfo.leanCells !== 0
+              ? Math.sign(componentInfo.leanCells)
+              : Math.sign(node.x - componentInfo.supportCenterX || 1);
+            const torqueLeverage = 0.28 + heightRatio * 1.08;
+            const overturnPush = OVERTURN_FORCE_SCALE * componentInfo.overturnRisk * torqueLeverage;
+            node.fx += leanSign * mass * overturnPush;
+            failureSeverity = Math.max(
+              failureSeverity,
+              clamp(0.1 + componentInfo.overturnRisk * OVERTURN_FAILURE_BOOST, 0, 0.95)
+            );
+          }
           if (!anchoredToGround) {
             // Detached components should transition into collapse behavior quickly.
             failureSeverity = Math.max(failureSeverity, 0.78);
             node.fy += 420 * mass;
           }
-          const mostlyIntact = anchoredToGround && failureSeverity < 0.08;
-          const heightRatio = clamp((WORLD.floorRow - node.row) / Math.max(1, WORLD.floorRow), 0, 1);
+          const mostlyIntact =
+            anchoredToGround &&
+            failureSeverity < 0.08 &&
+            (!componentInfo || !(componentInfo.groundCount <= 1 && componentInfo.heightCells > 3.2));
           const topWeight = clamp(node.roofMass / 3.2, 0, 1);
           const targetX = node.baseX + offset;
           const intactDriftCap =
