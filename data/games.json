@@ -35,6 +35,13 @@
     "tags": ["science", "engineering", "physics", "simulation", "single-player"]
   },
   {
+    "slug": "sky-math-academy",
+    "title": "Sky Math Academy",
+    "path": "/math-flight-simulator.html",
+    "status": "live",
+    "tags": ["math", "arcade", "flight", "education", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",

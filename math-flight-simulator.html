@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Math Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-top: #7ad7ff;
+      --bg-mid: #8ef7d6;
+      --bg-bottom: #fff1a8;
+      --hud: rgba(11, 22, 45, 0.78);
+      --panel: rgba(255, 255, 255, 0.9);
+      --ink: #102142;
+      --pink: #ff5d9e;
+      --blue: #39a9ff;
+      --gold: #ffce45;
+      --mint: #3de0b7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 8% 10%, #fff8db 0 12%, transparent 13%),
+        radial-gradient(circle at 92% 88%, #ffd0eb 0 14%, transparent 15%),
+        linear-gradient(140deg, var(--bg-top), var(--bg-mid) 52%, var(--bg-bottom));
+      color: var(--ink);
+      font-family: "Nunito", "Segoe UI", Tahoma, sans-serif;
+      overflow: hidden;
+    }
+
+    .frame {
+      width: min(96vw, 1200px);
+      aspect-ratio: 16 / 9;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      border: 4px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 30px 80px rgba(16, 27, 54, 0.28);
+      overflow: hidden;
+      position: relative;
+      background: #0d1530;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: auto;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: auto 18px 14px auto;
+      background: rgba(16, 33, 66, 0.72);
+      color: #eefbff;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <canvas id="game" width="1280" height="720" aria-label="Math flight simulator canvas"></canvas>
+    <div class="overlay">Press <strong>Enter</strong> to launch, <strong>F</strong> fullscreen, <strong>M</strong> sound</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const planeSprite = new Image();
+    let planeSpriteReady = false;
+    planeSprite.src = "assets/plane-sprite.png";
+    planeSprite.onload = () => { planeSpriteReady = true; };
+    planeSprite.onerror = () => { planeSpriteReady = false; };
+
+    const WORLD_WIDTH = canvas.width;
+    const WORLD_HEIGHT = canvas.height;
+    const TARGET_CORRECT = 12;
+    const CHOICES_ENTRY_OFFSET = 60;
+    const CHOICES_ENTRY_SPEED_MULTIPLIER = 2.125;
+    const PROMPT_POST_PASS_DRIFT_MULTIPLIER = 0.35;
+    const PROMPT_SLOWDOWN_EASE_RATE = 4.5;
+    const BRAIN_BREAK_SECONDS = 2.6;
+    const FONT_TITLE = '"Baloo 2", "Nunito", sans-serif';
+    const FONT_MATH = '"Atkinson Hyperlegible", "Nunito", sans-serif';
+    const FONT_UI = '"Nunito", "Segoe UI", sans-serif';
+
+    const state = {
+      mode: "menu",
+      elapsed: 0,
+      cameraSpeed: 240,
+      score: 0,
+      streak: 0,
+      solved: 0,
+      timeLeft: 120,
+      feedback: "Fly through the answer card that solves each equation!",
+      feedbackTimer: 0,
+      keys: new Set(),
+      player: {
+        x: 210,
+        y: WORLD_HEIGHT / 2,
+        vx: 0,
+        vy: 0,
+        radius: 24,
+        fuel: 100,
+        shields: 3,
+        boostCooldown: 0,
+      },
+      challenge: null,
+      stars: [],
+      particles: [],
+      collectibles: [],
+      skyBands: [],
+      islands: [],
+      twinkles: [],
+      brainBreakTimer: 0,
+      brainBreakNextWave: 0,
+      brainBreakWavesRemaining: 0,
+      math: {
+        mode: "mixed",
+        level: "easy",
+        allowNegative: false,
+      },
+      menuUi: {
+        modeButtons: [],
+        levelButtons: [],
+        negativeButton: null,
+        startButton: null,
+      },
+      rewardPopups: [],
+      praiseCursor: 0,
+    };
+    const audio = {
+      enabled: true,
+      ctx: null,
+      master: null,
+      unlocked: false,
+      jet: null,
+    };
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function modeLabel(mode) {
+      if (mode === "addition") return "Addition";
+      if (mode === "subtraction") return "Subtraction";
+      return "Mixed";
+    }
+
+    function levelLabel(level) {
+      if (level === "easy") return "Easy";
+      if (level === "medium") return "Medium";
+      return "Challenge";
+    }
+
+    function optionDifficultyForLevel(level) {
+      if (level === "easy") return 1;
+      if (level === "medium") return 2;
+      return 3;
+    }
+
+    function nextPraise(streak) {
+      const messages = [
+        "Sweet solve!",
+        "Brilliant thinking!",
+        "Awesome math!",
+        "Great strategy!",
+        "You got it!",
+        "Math pilot power!",
+      ];
+      const comboMessages = [
+        "Combo sparkle!",
+        "Streak magic!",
+        "Sky streak!",
+      ];
+      if (streak >= 5) {
+        const msg = comboMessages[state.praiseCursor % comboMessages.length];
+        state.praiseCursor += 1;
+        return msg;
+      }
+      const msg = messages[state.praiseCursor % messages.length];
+      state.praiseCursor += 1;
+      return msg;
+    }
+
+    function addRewardPopup(text, x, y, color = "#fff3a5") {
+      state.rewardPopups.push({
+        text,
+        x,
+        y,
+        vy: -68,
+        t: 0,
+        life: 1.15,
+        scale: 1.0,
+        color,
+      });
+    }
+
+    function pointInRect(x, y, rect) {
+      return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h;
+    }
+
+    function canvasPointFromEvent(event) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY,
+      };
+    }
+
+    function drawMenuButton(rect, label, selected = false) {
+      ctx.save();
+      ctx.fillStyle = selected ? "rgba(61, 224, 183, 0.96)" : "rgba(255, 255, 255, 0.92)";
+      ctx.beginPath();
+      roundedRect(rect.x, rect.y, rect.w, rect.h, 14);
+      ctx.fill();
+      ctx.strokeStyle = selected ? "rgba(16, 51, 90, 0.55)" : "rgba(13, 35, 61, 0.26)";
+      ctx.lineWidth = selected ? 3 : 2;
+      ctx.stroke();
+      ctx.fillStyle = selected ? "#0e355e" : "#14385f";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `800 23px ${FONT_UI}`;
+      ctx.fillText(label, rect.x + rect.w / 2, rect.y + rect.h / 2 + 1);
+      ctx.restore();
+    }
+
+    function handleMenuPointer(x, y) {
+      if (state.mode !== "menu") {
+        return false;
+      }
+      for (const btn of state.menuUi.modeButtons) {
+        if (pointInRect(x, y, btn)) {
+          state.math.mode = btn.value;
+          playCandyFx("ui_toggle");
+          render();
+          return true;
+        }
+      }
+      for (const btn of state.menuUi.levelButtons) {
+        if (pointInRect(x, y, btn)) {
+          state.math.level = btn.value;
+          playCandyFx("ui_toggle");
+          render();
+          return true;
+        }
+      }
+      if (state.menuUi.negativeButton && pointInRect(x, y, state.menuUi.negativeButton)) {
+        state.math.allowNegative = !state.math.allowNegative;
+        playCandyFx("ui_toggle");
+        render();
+        return true;
+      }
+      if (state.menuUi.startButton && pointInRect(x, y, state.menuUi.startButton)) {
+        resetPlayState();
+        return true;
+      }
+      return false;
+    }
+
+    function isMenuPointerTarget(x, y) {
+      if (state.mode !== "menu") return false;
+      return (
+        state.menuUi.modeButtons.some((btn) => pointInRect(x, y, btn))
+        || state.menuUi.levelButtons.some((btn) => pointInRect(x, y, btn))
+        || (state.menuUi.negativeButton && pointInRect(x, y, state.menuUi.negativeButton))
+        || (state.menuUi.startButton && pointInRect(x, y, state.menuUi.startButton))
+      );
+    }
+
+    function roundedRect(x, y, w, h, r) {
+      if (ctx.roundRect) {
+        ctx.roundRect(x, y, w, h, r);
+        return;
+      }
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function ensureAudio() {
+      if (!audio.enabled && !audio.ctx) {
+        return null;
+      }
+      if (!audio.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          return null;
+        }
+        audio.ctx = new AudioCtx();
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = audio.enabled ? 0.18 : 0.0001;
+        audio.master.connect(audio.ctx.destination);
+        initJetAudio(audio.ctx);
+      }
+      return audio.ctx;
+    }
+
+    function buildNoiseBuffer(ctx, seconds = 1.6) {
+      const length = Math.floor(ctx.sampleRate * seconds);
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i += 1) {
+        data[i] = (Math.random() * 2 - 1) * 0.72;
+      }
+      return buffer;
+    }
+
+    function initJetAudio(ctx) {
+      if (!audio.master || audio.jet) {
+        return;
+      }
+
+      const rumbleOsc = ctx.createOscillator();
+      rumbleOsc.type = "sine";
+      const subOsc = ctx.createOscillator();
+      subOsc.type = "sine";
+      const turbineOsc = ctx.createOscillator();
+      turbineOsc.type = "sine";
+
+      const subGain = ctx.createGain();
+      const rumbleGain = ctx.createGain();
+      const turbineGain = ctx.createGain();
+      subGain.gain.value = 0.0001;
+      rumbleGain.gain.value = 0.0001;
+      turbineGain.gain.value = 0.0001;
+
+      const rumbleLfo = ctx.createOscillator();
+      rumbleLfo.type = "sine";
+      rumbleLfo.frequency.value = 2.8;
+      const rumbleLfoGain = ctx.createGain();
+      rumbleLfoGain.gain.value = 0.0015;
+
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = buildNoiseBuffer(ctx);
+      noiseSource.loop = true;
+      const bodyBand = ctx.createBiquadFilter();
+      bodyBand.type = "bandpass";
+      bodyBand.frequency.value = 185;
+      bodyBand.Q.value = 0.45;
+      const bodyLowpass = ctx.createBiquadFilter();
+      bodyLowpass.type = "lowpass";
+      bodyLowpass.frequency.value = 700;
+      const bodyGain = ctx.createGain();
+      bodyGain.gain.value = 0.0001;
+
+      const hissHighpass = ctx.createBiquadFilter();
+      hissHighpass.type = "highpass";
+      hissHighpass.frequency.value = 2200;
+      const hissGain = ctx.createGain();
+      hissGain.gain.value = 0.0001;
+
+      subOsc.connect(subGain);
+      rumbleOsc.connect(rumbleGain);
+      turbineOsc.connect(turbineGain);
+      subGain.connect(audio.master);
+      rumbleGain.connect(audio.master);
+      turbineGain.connect(audio.master);
+
+      rumbleLfo.connect(rumbleLfoGain);
+      rumbleLfoGain.connect(rumbleGain.gain);
+
+      noiseSource.connect(bodyBand);
+      bodyBand.connect(bodyLowpass);
+      bodyLowpass.connect(bodyGain);
+      bodyGain.connect(audio.master);
+
+      noiseSource.connect(hissHighpass);
+      hissHighpass.connect(hissGain);
+      hissGain.connect(audio.master);
+
+      subOsc.start();
+      rumbleOsc.start();
+      turbineOsc.start();
+      rumbleLfo.start();
+      noiseSource.start();
+
+      audio.jet = {
+        subOsc,
+        subGain,
+        rumbleOsc,
+        turbineOsc,
+        rumbleGain,
+        turbineGain,
+        rumbleLfo,
+        rumbleLfoGain,
+        noiseSource,
+        bodyBand,
+        bodyLowpass,
+        bodyGain,
+        hissHighpass,
+        hissGain,
+        smoothedThrottle: 0,
+      };
+      setJetThrottle(0, false);
+    }
+
+    function setJetThrottle(throttle, afterburner = false) {
+      if (!audio.jet) {
+        return;
+      }
+      const ctx = ensureAudio();
+      if (!ctx) {
+        return;
+      }
+      const t = ctx.currentTime;
+      const clamped = Math.max(0, Math.min(1, throttle));
+      const glide = afterburner ? 0.035 : 0.11;
+
+      const subFreq = 30 + clamped * 16 + (afterburner ? 4 : 0);
+      const rumbleFreq = 44 + clamped * 28 + (afterburner ? 8 : 0);
+      const turbineFreq = 92 + clamped * 110 + (afterburner ? 40 : 0);
+      const bodyBandFreq = 100 + clamped * 180 + (afterburner ? 40 : 0);
+      const bodyTopFreq = 330 + clamped * 420 + (afterburner ? 150 : 0);
+      const hissCutoff = 1700 + clamped * 900 + (afterburner ? 300 : 0);
+
+      const subVol = clamped * (0.05 + (afterburner ? 0.01 : 0));
+      const rumbleVol = clamped * (0.078 + (afterburner ? 0.018 : 0));
+      const turbineVol = clamped * (0.0012 + (afterburner ? 0.0025 : 0));
+      const bodyVol = clamped * (0.058 + (afterburner ? 0.018 : 0));
+      const hissVol = clamped * (0.0005 + (afterburner ? 0.0035 : 0));
+      const rumbleWobble = clamped * (0.0015 + (afterburner ? 0.002 : 0));
+      const wobbleRate = 1.45 + clamped * 0.8 + (afterburner ? 0.45 : 0);
+
+      audio.jet.subOsc.frequency.setTargetAtTime(subFreq, t, glide);
+      audio.jet.rumbleOsc.frequency.setTargetAtTime(rumbleFreq, t, glide);
+      audio.jet.turbineOsc.frequency.setTargetAtTime(turbineFreq, t, glide);
+      audio.jet.bodyBand.frequency.setTargetAtTime(bodyBandFreq, t, glide);
+      audio.jet.bodyLowpass.frequency.setTargetAtTime(bodyTopFreq, t, glide);
+      audio.jet.hissHighpass.frequency.setTargetAtTime(hissCutoff, t, glide);
+      audio.jet.subGain.gain.setTargetAtTime(subVol, t, glide);
+      audio.jet.rumbleGain.gain.setTargetAtTime(rumbleVol, t, glide);
+      audio.jet.turbineGain.gain.setTargetAtTime(turbineVol, t, glide);
+      audio.jet.bodyGain.gain.setTargetAtTime(bodyVol, t, glide);
+      audio.jet.hissGain.gain.setTargetAtTime(hissVol, t, glide);
+      audio.jet.rumbleLfo.frequency.setTargetAtTime(wobbleRate, t, glide);
+      audio.jet.rumbleLfoGain.gain.setTargetAtTime(rumbleWobble, t, glide);
+    }
+
+    function updateJetEngineSound(dt) {
+      if (!audio.unlocked) {
+        return;
+      }
+      if (!ensureAudio() || !audio.jet) {
+        return;
+      }
+
+      let targetThrottle = 0;
+      let afterburner = false;
+      const directionalPressed = (
+        state.keys.has("arrowup")
+        || state.keys.has("arrowdown")
+        || state.keys.has("arrowleft")
+        || state.keys.has("arrowright")
+        || state.keys.has("w")
+        || state.keys.has("a")
+        || state.keys.has("s")
+        || state.keys.has("d")
+      );
+
+      if (state.mode === "playing" && directionalPressed) {
+        const speedNorm = Math.min(1, Math.hypot(state.player.vx, state.player.vy) / 560);
+        const forwardNorm = Math.max(0, state.player.vx) / 560;
+        afterburner = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
+        targetThrottle = 0.32 + speedNorm * 0.42 + forwardNorm * 0.14 + (afterburner ? 0.18 : 0);
+        if (state.brainBreakTimer > 0) {
+          targetThrottle += 0.02;
+        }
+      }
+
+      const clamped = Math.max(0, Math.min(1, targetThrottle));
+      const ease = Math.min(1, dt * 6.2);
+      audio.jet.smoothedThrottle += (clamped - audio.jet.smoothedThrottle) * ease;
+      setJetThrottle(audio.jet.smoothedThrottle, afterburner);
+    }
+
+    function setSoundEnabled(enabled) {
+      audio.enabled = enabled;
+      const ctx = ensureAudio();
+      if (!ctx || !audio.master) {
+        return;
+      }
+      const target = enabled ? 0.18 : 0.0001;
+      audio.master.gain.cancelScheduledValues(ctx.currentTime);
+      audio.master.gain.setTargetAtTime(target, ctx.currentTime, 0.03);
+    }
+
+    function unlockAudio() {
+      const ctx = ensureAudio();
+      if (!ctx) {
+        return;
+      }
+      audio.unlocked = true;
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+    }
+
+    function candyTone({
+      freq = 440,
+      start = 0,
+      duration = 0.12,
+      type = "triangle",
+      volume = 0.08,
+      slideTo = null,
+      detune = 0,
+    }) {
+      if (!audio.enabled) {
+        return;
+      }
+      const ctx = ensureAudio();
+      if (!ctx || !audio.master) {
+        return;
+      }
+      const t0 = ctx.currentTime + start;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.detune.value = detune;
+      osc.frequency.setValueAtTime(Math.max(40, freq), t0);
+      if (slideTo && slideTo > 0) {
+        osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + duration);
+      }
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(gain);
+      gain.connect(audio.master);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.03);
+    }
+
+    function playCandyFx(name, meta = {}) {
+      if (!audio.enabled) {
+        return;
+      }
+      if (!ensureAudio()) {
+        return;
+      }
+
+      if (name === "launch") {
+        candyTone({ freq: 460, start: 0.00, duration: 0.16, type: "triangle", volume: 0.08 });
+        candyTone({ freq: 580, start: 0.08, duration: 0.16, type: "triangle", volume: 0.085 });
+        candyTone({ freq: 720, start: 0.16, duration: 0.20, type: "triangle", volume: 0.09 });
+      } else if (name === "choices_enter") {
+        candyTone({ freq: 540, start: 0.00, duration: 0.10, type: "triangle", volume: 0.06 });
+        candyTone({ freq: 860, start: 0.05, duration: 0.10, type: "sine", volume: 0.04 });
+      } else if (name === "collect_star") {
+        const sparkle = rand(860, 1100);
+        candyTone({ freq: sparkle, start: 0.00, duration: 0.09, type: "triangle", volume: 0.07, slideTo: sparkle * 1.18 });
+        candyTone({ freq: sparkle * 1.45, start: 0.02, duration: 0.07, type: "sine", volume: 0.04 });
+      } else if (name === "collect_fuel") {
+        candyTone({ freq: 340, start: 0.00, duration: 0.10, type: "square", volume: 0.05 });
+        candyTone({ freq: 510, start: 0.05, duration: 0.13, type: "triangle", volume: 0.07 });
+      } else if (name === "firework") {
+        const streak = Math.max(1, meta.streak || 1);
+        const power = Math.min(1.35, 0.65 + streak * 0.08);
+        const root = 280 + Math.min(8, streak) * 20;
+        candyTone({ freq: root * 1.5, start: 0.00, duration: 0.11, type: "sine", volume: 0.035 + power * 0.018, slideTo: root * 2.9 });
+        candyTone({ freq: root, start: 0.09, duration: 0.24, type: "sawtooth", volume: 0.042 + power * 0.022, slideTo: root * 0.62 });
+        candyTone({ freq: root * 0.56, start: 0.16, duration: 0.22, type: "triangle", volume: 0.036 + power * 0.016, slideTo: root * 0.38 });
+      } else if (name === "correct") {
+        const streak = Math.max(1, meta.streak || 1);
+        const base = 610 + Math.min(6, streak) * 24;
+        candyTone({ freq: base, start: 0.00, duration: 0.13, type: "triangle", volume: 0.08 });
+        candyTone({ freq: base * 1.25, start: 0.05, duration: 0.16, type: "triangle", volume: 0.075 });
+        candyTone({ freq: base * 1.5, start: 0.11, duration: 0.20, type: "sine", volume: 0.06 });
+        if (streak >= 3) {
+          candyTone({ freq: base * 2, start: 0.18, duration: 0.17, type: "sine", volume: 0.055 });
+        }
+      } else if (name === "wrong") {
+        candyTone({ freq: 310, start: 0.00, duration: 0.13, type: "square", volume: 0.05, slideTo: 220 });
+        candyTone({ freq: 230, start: 0.10, duration: 0.16, type: "triangle", volume: 0.045, slideTo: 170 });
+      } else if (name === "pause") {
+        candyTone({ freq: 500, start: 0.00, duration: 0.08, type: "triangle", volume: 0.045 });
+      } else if (name === "resume") {
+        candyTone({ freq: 640, start: 0.00, duration: 0.08, type: "triangle", volume: 0.045 });
+      } else if (name === "ui_toggle") {
+        candyTone({ freq: 740, start: 0.00, duration: 0.07, type: "sine", volume: 0.04 });
+      } else if (name === "victory") {
+        const notes = [523, 659, 784, 988, 1175];
+        notes.forEach((note, idx) => {
+          candyTone({ freq: note, start: idx * 0.08, duration: 0.2, type: "triangle", volume: 0.08 });
+        });
+        candyTone({ freq: 1319, start: 0.44, duration: 0.28, type: "sine", volume: 0.06 });
+      } else if (name === "gameover") {
+        candyTone({ freq: 440, start: 0.00, duration: 0.14, type: "triangle", volume: 0.05, slideTo: 360 });
+        candyTone({ freq: 320, start: 0.10, duration: 0.18, type: "triangle", volume: 0.045, slideTo: 240 });
+      }
+    }
+
+    function resetPlayState() {
+      state.mode = "playing";
+      state.elapsed = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.solved = 0;
+      state.timeLeft = 120;
+      state.feedback = "Mission started! Solve equations in the sky lanes.";
+      state.feedbackTimer = 2.2;
+      state.cameraSpeed = 240;
+      state.player.x = 210;
+      state.player.y = WORLD_HEIGHT / 2;
+      state.player.vx = 0;
+      state.player.vy = 0;
+      state.player.fuel = 100;
+      state.player.shields = 3;
+      state.player.boostCooldown = 0;
+      state.challenge = spawnChallenge(WORLD_WIDTH + 180);
+      state.stars = [];
+      state.collectibles = [];
+      state.particles = [];
+      state.skyBands = [];
+      state.islands = [];
+      state.twinkles = [];
+      state.brainBreakTimer = 0;
+      state.brainBreakNextWave = 0;
+      state.brainBreakWavesRemaining = 0;
+      state.rewardPopups = [];
+      state.praiseCursor = 0;
+
+      for (let i = 0; i < 90; i += 1) {
+        state.stars.push({
+          x: rand(0, WORLD_WIDTH),
+          y: rand(0, WORLD_HEIGHT),
+          r: rand(1.5, 4),
+          speed: rand(40, 130),
+          hue: rand(0, 360),
+        });
+      }
+
+      for (let i = 0; i < 6; i += 1) {
+        state.skyBands.push({
+          x: i * (WORLD_WIDTH / 3),
+          y: rand(50, WORLD_HEIGHT - 130),
+          w: rand(260, 400),
+          h: rand(80, 120),
+          speed: rand(30, 60),
+          color: `hsla(${rand(180, 260)}, 100%, ${rand(84, 94)}%, 0.45)`,
+        });
+      }
+
+      for (let i = 0; i < 9; i += 1) {
+        state.islands.push(createSkyDecor(rand(0, WORLD_WIDTH + 260)));
+      }
+
+      for (let i = 0; i < 45; i += 1) {
+        state.twinkles.push({
+          x: rand(0, WORLD_WIDTH),
+          y: rand(0, WORLD_HEIGHT * 0.75),
+          phase: rand(0, Math.PI * 2),
+          size: rand(2, 5),
+        });
+      }
+
+      playCandyFx("launch");
+    }
+
+    function createSkyDecor(x = WORLD_WIDTH + rand(80, 320)) {
+      const roll = Math.random();
+      if (roll < 0.42) {
+        return {
+          type: "cloud",
+          x,
+          y: rand(90, WORLD_HEIGHT - 140),
+          h: rand(36, 58),
+          speed: rand(30, 56),
+          color: `hsla(${rand(186, 212)}, 95%, ${rand(76, 90)}%, 0.58)`,
+        };
+      }
+      if (roll < 0.74) {
+        return {
+          type: "star",
+          x,
+          y: rand(80, WORLD_HEIGHT - 150),
+          size: rand(10, 19),
+          speed: rand(42, 74),
+          hue: rand(45, 60),
+          spin: rand(-1.2, 1.2),
+        };
+      }
+      const palette = ["#ff8fb7", "#ffd66d", "#7ce4ff", "#a5ef9d", "#ffc485"];
+      return {
+        type: "balloon",
+        x,
+        y: rand(110, WORLD_HEIGHT - 130),
+        size: rand(16, 26),
+        speed: rand(34, 62),
+        color: palette[Math.floor(rand(0, palette.length))],
+        sway: rand(0, Math.PI * 2),
+      };
+    }
+
+    function spawnCollectible(type = "star", opts = {}) {
+      state.collectibles.push({
+        type,
+        x: opts.x ?? (WORLD_WIDTH + rand(100, 380)),
+        y: opts.y ?? rand(90, WORLD_HEIGHT - 90),
+        radius: opts.radius ?? (type === "fuel" ? 20 : 14),
+        speed: opts.speed ?? (state.cameraSpeed + rand(-20, 20)),
+      });
+    }
+
+    function startBrainBreakWindow() {
+      state.brainBreakTimer = BRAIN_BREAK_SECONDS;
+      state.brainBreakWavesRemaining = 3;
+      state.brainBreakNextWave = 0.06;
+    }
+
+    function spawnBrainBreakFuelWave() {
+      const centerY = state.player.y;
+      const offsets = [-110, -40, 35, 110];
+      for (let i = 0; i < offsets.length; i += 1) {
+        const y = Math.max(84, Math.min(WORLD_HEIGHT - 84, centerY + offsets[i] + rand(-16, 16)));
+        spawnCollectible("fuel", {
+          x: WORLD_WIDTH + 100 + i * 86 + rand(-12, 12),
+          y,
+          radius: 21,
+          speed: state.cameraSpeed * rand(0.72, 0.9),
+        });
+      }
+      spawnCollectible("star", {
+        x: WORLD_WIDTH + 86,
+        y: Math.max(86, Math.min(WORLD_HEIGHT - 86, centerY + rand(-28, 28))),
+        speed: state.cameraSpeed * 0.88,
+      });
+    }
+
+    function spawnChallenge(x = WORLD_WIDTH + 150) {
+      const centerY = WORLD_HEIGHT * 0.5;
+      const laneYs = [centerY - 120, centerY, centerY + 120];
+      const optionDifficulty = optionDifficultyForLevel(state.math.level);
+      const challenge = makeEquation(state.math.level, state.math.mode, state.math.allowNegative);
+      const options = buildOptions(challenge.answer, optionDifficulty);
+      const correctIndex = Math.floor(Math.random() * 3);
+      const candyThemes = [
+        { fillA: "#ff8fc3", fillB: "#ff4f8e", edge: "#7f2f7e", accent: "#ffe98f" },
+        { fillA: "#6ee7ff", fillB: "#37b6ff", edge: "#1f5fbf", accent: "#fff1a8" },
+        { fillA: "#9af48f", fillB: "#53da73", edge: "#2b9f53", accent: "#fff0a3" },
+      ];
+      const shuffledThemes = candyThemes.sort(() => Math.random() - 0.5);
+
+      const clouds = laneYs.map((y, i) => ({
+        y,
+        value: i === correctIndex ? challenge.answer : options.pop(),
+        correct: i === correctIndex,
+        chosen: false,
+        theme: shuffledThemes[i],
+        phaseOffset: rand(0, Math.PI * 2),
+      }));
+
+      return {
+        phase: "prompt",
+        promptX: x,
+        promptSpeedMultiplier: 1,
+        choicesX: WORLD_WIDTH + CHOICES_ENTRY_OFFSET,
+        choicesEntering: false,
+        expression: challenge.expression,
+        answer: challenge.answer,
+        resolved: false,
+        resolutionTimer: 0,
+        clouds,
+      };
+    }
+
+    function buildOptions(answer, difficulty) {
+      const vals = new Set();
+      const minValue = state.math.allowNegative ? answer - 80 : Math.max(0, answer - 80);
+      const maxValue = answer + 80;
+      while (vals.size < 4) {
+        const offset = Math.round(rand(1, 5 + difficulty * 3));
+        const polarity = Math.random() < 0.5 ? -1 : 1;
+        const candidate = answer + offset * polarity;
+        if (candidate !== answer && candidate >= minValue && candidate <= maxValue) {
+          vals.add(candidate);
+        }
+      }
+      return Array.from(vals);
+    }
+
+    function makeEquation(level, mode, allowNegative) {
+      const op = mode === "mixed"
+        ? (Math.random() < 0.5 ? "addition" : "subtraction")
+        : mode;
+
+      if (op === "addition") {
+        if (level === "easy") {
+          const a = Math.floor(rand(0, 11));
+          const b = Math.floor(rand(0, 11));
+          return { expression: `${a} + ${b}`, answer: a + b };
+        }
+        if (level === "medium") {
+          const a = Math.floor(rand(4, 31));
+          const b = Math.floor(rand(3, 26));
+          return { expression: `${a} + ${b}`, answer: a + b };
+        }
+        const a = Math.floor(rand(12, 70));
+        const b = Math.floor(rand(10, 65));
+        return { expression: `${a} + ${b}`, answer: a + b };
+      }
+
+      if (level === "easy") {
+        const a = Math.floor(rand(2, 21));
+        const b = allowNegative ? Math.floor(rand(0, 21)) : Math.floor(rand(0, a + 1));
+        return { expression: `${a} - ${b}`, answer: a - b };
+      }
+      if (level === "medium") {
+        const a = Math.floor(rand(8, 51));
+        const b = allowNegative ? Math.floor(rand(0, 51)) : Math.floor(rand(0, a + 1));
+        return { expression: `${a} - ${b}`, answer: a - b };
+      }
+      const a = Math.floor(rand(14, 95));
+      const b = allowNegative ? Math.floor(rand(0, 95)) : Math.floor(rand(0, a + 1));
+      return { expression: `${a} - ${b}`, answer: a - b };
+    }
+
+    function setFeedback(text, seconds = 1.8) {
+      state.feedback = text;
+      state.feedbackTimer = seconds;
+    }
+
+    function promptExpressionText(challenge) {
+      return `${challenge.expression} =`;
+    }
+
+    function handleChallengeResolution(hitCloud) {
+      if (!state.challenge || state.challenge.resolved) {
+        return;
+      }
+      const challenge = state.challenge;
+      challenge.resolved = true;
+      challenge.resolutionTimer = 0.7;
+
+      if (hitCloud && hitCloud.correct) {
+        hitCloud.chosen = true;
+        state.streak += 1;
+        state.solved += 1;
+        const comboBonus = Math.min(20, state.streak * 2);
+        state.score += 18 + comboBonus;
+        state.player.fuel = Math.min(100, state.player.fuel + 3.5);
+        const praise = nextPraise(state.streak);
+        setFeedback(`${praise} ${challenge.expression} = ${challenge.answer}. Combo x${state.streak}!`, 1.9);
+        createBurst(state.player.x + 30, state.player.y, "good", "sparkle");
+        createCandyCelebration(state.player.x + 22, state.player.y, state.streak);
+        createFireworksShow(state.player.x + 24, state.player.y - 30, state.streak);
+        addRewardPopup(praise, state.player.x + 14, state.player.y - 26, "#fff7b5");
+        playCandyFx("firework", { streak: state.streak });
+        playCandyFx("correct", { streak: state.streak });
+      } else {
+        state.streak = 0;
+        state.player.shields -= 1;
+        state.score = Math.max(0, state.score - 8);
+        if (hitCloud) {
+          hitCloud.chosen = true;
+        }
+        const reason = hitCloud ? `Oops. ${challenge.expression} = ${challenge.answer}` : `Missed! ${challenge.expression} = ${challenge.answer}`;
+        setFeedback(reason, 2.2);
+        createBurst(state.player.x + 24, state.player.y, "bad", "soft");
+        addRewardPopup("Keep trying!", state.player.x + 10, state.player.y - 24, "#ffd7ea");
+        playCandyFx("wrong");
+      }
+      startBrainBreakWindow();
+    }
+
+    function createCandyCelebration(x, y, streak) {
+      const confettiCount = 16 + Math.min(12, streak * 2);
+      for (let i = 0; i < confettiCount; i += 1) {
+        const hue = rand(20, 340);
+        state.particles.push({
+          kind: "confetti",
+          x,
+          y,
+          vx: rand(-190, 210),
+          vy: rand(-210, 70),
+          life: rand(0.8, 1.45),
+          t: 0,
+          color: `hsl(${hue}, 95%, 62%)`,
+          opacity: 0.95,
+          size: rand(4, 8),
+          rot: rand(0, Math.PI * 2),
+          spin: rand(-8, 8),
+        });
+      }
+    }
+
+    function createFireworksShow(x, y, streak) {
+      const burstCount = 2 + Math.min(3, Math.floor(streak / 2));
+      const sparkCount = 24 + Math.min(20, streak * 2);
+      for (let burst = 0; burst < burstCount; burst += 1) {
+        const fx = Math.max(220, Math.min(WORLD_WIDTH - 120, x + 220 + rand(-100, 260)));
+        const fy = Math.max(90, Math.min(WORLD_HEIGHT - 140, y + rand(-220, 120)));
+        const baseHue = rand(0, 360);
+
+        state.particles.push({
+          kind: "ring",
+          x: fx,
+          y: fy,
+          vx: 0,
+          vy: 0,
+          life: 0.52,
+          t: 0,
+          color: `hsla(${baseHue}, 100%, 76%, 0.95)`,
+          opacity: 0.95,
+          size: 10,
+          expand: 185,
+          lineWidth: 3,
+        });
+
+        for (let i = 0; i < sparkCount; i += 1) {
+          const angle = rand(0, Math.PI * 2);
+          const speed = rand(140, 380 + streak * 10);
+          const hue = (baseHue + rand(-40, 40) + 360) % 360;
+          state.particles.push({
+            kind: "firework",
+            x: fx,
+            y: fy,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - rand(25, 120),
+            life: rand(0.65, 1.32),
+            t: 0,
+            color: `hsla(${hue}, 100%, ${rand(58, 75)}%, 0.98)`,
+            opacity: 0.98,
+            size: rand(2.6, 6.8),
+            rot: rand(0, Math.PI * 2),
+            spin: rand(-10, 10),
+          });
+        }
+      }
+    }
+
+    function createBurst(x, y, type, style = "default") {
+      const count = type === "good" ? 18 : 14;
+      for (let i = 0; i < count; i += 1) {
+        state.particles.push({
+          kind: style === "sparkle" ? "sparkle" : "dot",
+          x,
+          y,
+          vx: rand(-140, 190),
+          vy: rand(-160, 160),
+          life: style === "soft" ? rand(0.45, 0.9) : rand(0.5, 1.1),
+          t: 0,
+          color: type === "good"
+            ? `hsla(${rand(40, 170)}, 95%, 62%, 0.95)`
+            : `hsla(${rand(0, 20)}, 90%, 62%, 0.95)`,
+          opacity: 0.95,
+          size: rand(3, 7),
+          rot: rand(0, Math.PI * 2),
+          spin: rand(-6, 6),
+        });
+      }
+    }
+
+    function updateBackground(dt) {
+      for (const star of state.stars) {
+        star.x -= star.speed * dt;
+        if (star.x < -15) {
+          star.x = WORLD_WIDTH + rand(10, 180);
+          star.y = rand(10, WORLD_HEIGHT - 10);
+          star.r = rand(1.2, 4.1);
+          star.speed = rand(40, 130);
+          star.hue = rand(0, 360);
+        }
+      }
+
+      for (const band of state.skyBands) {
+        band.x -= band.speed * dt;
+        if (band.x < -band.w - 20) {
+          band.x = WORLD_WIDTH + rand(100, 300);
+          band.y = rand(50, WORLD_HEIGHT - 130);
+        }
+      }
+
+      for (const island of state.islands) {
+        island.x -= island.speed * dt;
+        if (island.type === "balloon") {
+          island.y += Math.sin(state.elapsed * 0.9 + island.sway) * dt * 8;
+          island.y = Math.max(90, Math.min(WORLD_HEIGHT - 95, island.y));
+        }
+        const offscreenSize = island.type === "cloud"
+          ? island.h * 1.2
+          : island.type === "star"
+            ? island.size * 2.2
+            : island.size * 2.4;
+        if (island.x < -offscreenSize - 50) {
+          Object.assign(island, createSkyDecor(WORLD_WIDTH + rand(80, 320)));
+        }
+      }
+    }
+
+    function updatePlayer(dt) {
+      const baseSpeed = 360;
+      const boostSpeed = 540;
+      const response = 15;
+      const verticalResponse = 16;
+      const reverseSnap = 760;
+      const boostCost = 24;
+
+      const up = state.keys.has("arrowup") || state.keys.has("w");
+      const down = state.keys.has("arrowdown") || state.keys.has("s");
+      const left = state.keys.has("arrowleft") || state.keys.has("a");
+      const right = state.keys.has("arrowright") || state.keys.has("d");
+      const boosting = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
+      const inputX = (right ? 1 : 0) - (left ? 1 : 0);
+      const inputY = (down ? 1 : 0) - (up ? 1 : 0);
+
+      const moveSpeed = boosting ? boostSpeed : baseSpeed;
+      const targetVx = inputX * moveSpeed + (boosting ? 95 : 0);
+      const targetVy = inputY * moveSpeed * 0.92;
+      const xEase = 1 - Math.exp(-response * dt);
+      const yEase = 1 - Math.exp(-verticalResponse * dt);
+
+      state.player.vx += (targetVx - state.player.vx) * xEase;
+      state.player.vy += (targetVy - state.player.vy) * yEase;
+
+      // Extra impulse when reversing direction keeps steering crisp.
+      if (inputX !== 0 && Math.sign(inputX) !== Math.sign(state.player.vx)) {
+        state.player.vx += inputX * reverseSnap * dt;
+      }
+      if (inputY !== 0 && Math.sign(inputY) !== Math.sign(state.player.vy)) {
+        state.player.vy += inputY * reverseSnap * 0.82 * dt;
+      }
+
+      if (inputX === 0) {
+        const settle = 1 - Math.exp(-9 * dt);
+        state.player.vx += (0 - state.player.vx) * settle;
+      }
+      if (inputY === 0) {
+        const settle = 1 - Math.exp(-11 * dt);
+        state.player.vy += (0 - state.player.vy) * settle;
+      }
+
+      if (boosting) {
+        state.player.fuel = Math.max(0, state.player.fuel - boostCost * dt);
+      }
+
+      const maxVx = boostSpeed + 30;
+      const maxVy = boostSpeed * 0.95;
+      state.player.vx = Math.max(-maxVx, Math.min(maxVx, state.player.vx));
+      state.player.vy = Math.max(-maxVy, Math.min(maxVy, state.player.vy));
+
+      state.player.x += state.player.vx * dt;
+      state.player.y += state.player.vy * dt;
+
+      state.player.x = Math.max(90, Math.min(WORLD_WIDTH - 80, state.player.x));
+      state.player.y = Math.max(70, Math.min(WORLD_HEIGHT - 70, state.player.y));
+
+      state.player.fuel = Math.max(0, state.player.fuel - 4.4 * dt);
+      state.player.boostCooldown = Math.max(0, state.player.boostCooldown - dt);
+    }
+
+    function updateChallenge(dt) {
+      if (!state.challenge) {
+        state.challenge = spawnChallenge();
+        return;
+      }
+
+      const challenge = state.challenge;
+      if (challenge.phase === "prompt") {
+        challenge.promptX -= state.cameraSpeed * dt;
+      } else {
+        const ease = Math.min(1, PROMPT_SLOWDOWN_EASE_RATE * dt);
+        challenge.promptSpeedMultiplier += (PROMPT_POST_PASS_DRIFT_MULTIPLIER - challenge.promptSpeedMultiplier) * ease;
+        challenge.promptX -= state.cameraSpeed * challenge.promptSpeedMultiplier * dt;
+      }
+
+      if (challenge.phase === "prompt" && challenge.promptX <= state.player.x + 12) {
+        challenge.phase = "choices";
+        challenge.choicesX = WORLD_WIDTH + CHOICES_ENTRY_OFFSET;
+        challenge.choicesEntering = true;
+        setFeedback(`Now choose: ${promptExpressionText(challenge)}`, 1.4);
+        playCandyFx("choices_enter");
+      }
+
+      if (challenge.phase === "choices") {
+        const speed = challenge.choicesEntering
+          ? state.cameraSpeed * CHOICES_ENTRY_SPEED_MULTIPLIER
+          : state.cameraSpeed;
+        challenge.choicesX -= speed * dt;
+        if (challenge.choicesEntering && challenge.choicesX <= WORLD_WIDTH - 120) {
+          challenge.choicesEntering = false;
+        }
+      }
+
+      const checkBand = Math.abs(challenge.choicesX - state.player.x) < 24;
+      if (!challenge.resolved && challenge.phase === "choices" && checkBand) {
+        const hit = challenge.clouds.find((cloud) => Math.abs(cloud.y - state.player.y) < 46) || null;
+        handleChallengeResolution(hit);
+      }
+
+      if (challenge.resolved) {
+        challenge.resolutionTimer -= dt;
+      }
+
+      if (
+        challenge.phase === "choices"
+        && (challenge.choicesX < -190 || (challenge.resolved && challenge.resolutionTimer <= 0 && challenge.choicesX < state.player.x - 260))
+        && state.brainBreakTimer <= 0
+      ) {
+        state.challenge = spawnChallenge(WORLD_WIDTH + rand(200, 420));
+      } else if (challenge.phase === "prompt" && challenge.promptX < -240) {
+        state.challenge = spawnChallenge(WORLD_WIDTH + rand(200, 420));
+      }
+    }
+
+    function updateBrainBreak(dt) {
+      if (state.brainBreakTimer <= 0) {
+        return;
+      }
+      state.brainBreakTimer = Math.max(0, state.brainBreakTimer - dt);
+      state.brainBreakNextWave -= dt;
+      if (state.brainBreakWavesRemaining > 0 && state.brainBreakNextWave <= 0) {
+        spawnBrainBreakFuelWave();
+        state.brainBreakWavesRemaining -= 1;
+        state.brainBreakNextWave = 0.72;
+      }
+      if (state.brainBreakTimer <= 0) {
+        state.brainBreakWavesRemaining = 0;
+      }
+    }
+
+    function updateCollectibles(dt) {
+      const inBrainBreak = state.brainBreakTimer > 0;
+      const spawnChance = (inBrainBreak ? 1.55 : 0.85) * dt;
+      if (Math.random() < spawnChance) {
+        const fuelChance = inBrainBreak ? 0.68 : 0.2;
+        spawnCollectible(Math.random() < fuelChance ? "fuel" : "star");
+      }
+
+      for (const item of state.collectibles) {
+        item.x -= item.speed * dt;
+      }
+
+      state.collectibles = state.collectibles.filter((item) => {
+        if (item.x < -60) {
+          return false;
+        }
+        const dx = item.x - state.player.x;
+        const dy = item.y - state.player.y;
+        const r = item.radius + state.player.radius;
+        if ((dx * dx) + (dy * dy) < r * r) {
+          if (item.type === "fuel") {
+            state.player.fuel = Math.min(100, state.player.fuel + 19);
+            state.score += 6;
+            setFeedback("Fuel canister collected!", 1.2);
+            playCandyFx("collect_fuel");
+          } else {
+            state.score += 5 + Math.floor(state.streak * 0.5);
+            playCandyFx("collect_star");
+          }
+          createBurst(item.x, item.y, "good");
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function updateParticles(dt) {
+      for (const particle of state.particles) {
+        particle.x += (particle.vx || 0) * dt;
+        particle.y += (particle.vy || 0) * dt;
+        if (particle.kind === "ring") {
+          particle.size += (particle.expand || 140) * dt;
+        } else if (particle.kind === "confetti") {
+          particle.vy += 180 * dt;
+        } else if (particle.kind === "firework") {
+          particle.vx *= 1 - Math.min(0.75, 1.6 * dt);
+          particle.vy *= 1 - Math.min(0.55, 0.95 * dt);
+          particle.vy += 245 * dt;
+        } else {
+          particle.vy += 120 * dt;
+        }
+        particle.t += dt;
+      }
+      state.particles = state.particles.filter((p) => p.t < p.life);
+    }
+
+    function updateRewardPopups(dt) {
+      for (const popup of state.rewardPopups) {
+        popup.y += popup.vy * dt;
+        popup.vy -= 12 * dt;
+        popup.t += dt;
+        popup.scale = 1 + Math.sin(popup.t * 8) * 0.03;
+      }
+      state.rewardPopups = state.rewardPopups.filter((p) => p.t < p.life);
+    }
+
+    function update(dt) {
+      updateJetEngineSound(dt);
+      if (state.mode !== "playing") {
+        return;
+      }
+
+      state.elapsed += dt;
+      state.timeLeft = Math.max(0, state.timeLeft - dt);
+      state.cameraSpeed = 235 + Math.min(120, state.solved * 5.5);
+
+      updateBackground(dt);
+      updatePlayer(dt);
+      updateChallenge(dt);
+      updateBrainBreak(dt);
+      updateCollectibles(dt);
+      updateParticles(dt);
+      updateRewardPopups(dt);
+
+      if (state.feedbackTimer > 0) {
+        state.feedbackTimer -= dt;
+        if (state.feedbackTimer <= 0) {
+          state.feedback = "";
+        }
+      }
+
+      if (state.solved >= TARGET_CORRECT) {
+        state.mode = "victory";
+        setFeedback("Sky mission complete! You are a math ace pilot.", 999);
+        playCandyFx("victory");
+      } else if (state.player.shields <= 0 || state.player.fuel <= 0 || state.timeLeft <= 0) {
+        state.mode = "gameover";
+        if (state.timeLeft <= 0) {
+          state.feedback = "Time up! Try again and boost your equation streak.";
+        } else if (state.player.fuel <= 0) {
+          state.feedback = "Out of fuel! Scoop fuel canisters and glide carefully.";
+        } else {
+          state.feedback = "Shield failure! Hit the right answer cards to stay safe.";
+        }
+        playCandyFx("gameover");
+      }
+    }
+
+    function drawCloud(x, y, radius, color, glow = false) {
+      ctx.save();
+      if (glow) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 16;
+      }
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(x - radius * 0.55, y + radius * 0.08, radius * 0.9, radius * 0.62, 0, 0, Math.PI * 2);
+      ctx.ellipse(x, y - radius * 0.1, radius * 0.95, radius * 0.72, 0, 0, Math.PI * 2);
+      ctx.ellipse(x + radius * 0.7, y + radius * 0.12, radius * 0.84, radius * 0.58, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawBackground() {
+      const grd = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
+      grd.addColorStop(0, "#1b63cf");
+      grd.addColorStop(0.5, "#40d4f7");
+      grd.addColorStop(1, "#f9f6ae");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+      for (const tw of state.twinkles) {
+        const pulse = (Math.sin(state.elapsed * 2.5 + tw.phase) + 1) / 2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + pulse * 0.7})`;
+        ctx.beginPath();
+        ctx.arc(tw.x, tw.y, tw.size * (0.45 + pulse * 0.35), 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (const band of state.skyBands) {
+        drawCloud(band.x, band.y, band.h, band.color, false);
+      }
+
+      for (const island of state.islands) {
+        if (island.type === "cloud") {
+          drawCloud(island.x, island.y, island.h, island.color, false);
+          continue;
+        }
+
+        if (island.type === "star") {
+          ctx.save();
+          ctx.translate(island.x, island.y);
+          ctx.rotate(state.elapsed * island.spin * 0.35);
+          ctx.fillStyle = `hsla(${island.hue}, 95%, 70%, 0.9)`;
+          ctx.beginPath();
+          for (let i = 0; i < 10; i += 1) {
+            const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+            const radius = i % 2 === 0 ? island.size : island.size * 0.44;
+            const sx = Math.cos(angle) * radius;
+            const sy = Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.62)";
+          ctx.beginPath();
+          ctx.arc(-island.size * 0.24, -island.size * 0.28, island.size * 0.19, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          continue;
+        }
+
+        ctx.save();
+        ctx.translate(island.x, island.y);
+        ctx.fillStyle = island.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, island.size * 0.78, island.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.48)";
+        ctx.beginPath();
+        ctx.ellipse(-island.size * 0.2, -island.size * 0.25, island.size * 0.32, island.size * 0.26, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(0, island.size * 0.95);
+        ctx.lineTo(0, island.size * 2.3);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(132, 84, 43, 0.95)";
+        ctx.beginPath();
+        roundedRect(-island.size * 0.2, island.size * 2.25, island.size * 0.4, island.size * 0.24, 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      for (const star of state.stars) {
+        ctx.fillStyle = `hsla(${star.hue}, 100%, 70%, 0.92)`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawPlayer() {
+      const tilt = state.player.vy * 0.002;
+      const boosting = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
+      ctx.save();
+      ctx.translate(state.player.x, state.player.y);
+      ctx.rotate(tilt);
+
+      if (planeSpriteReady) {
+        if (boosting) {
+          ctx.fillStyle = "rgba(255, 214, 70, 0.35)";
+          ctx.beginPath();
+          ctx.ellipse(-78, 0, 26, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        const spriteW = 176;
+        const spriteH = 120;
+        ctx.drawImage(planeSprite, -spriteW * 0.56, -spriteH * 0.50, spriteW, spriteH);
+      } else {
+        ctx.fillStyle = "#fd5f9f";
+        ctx.beginPath();
+        ctx.moveTo(-40, 0);
+        ctx.lineTo(25, -22);
+        ctx.lineTo(36, 0);
+        ctx.lineTo(25, 22);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#ffc64d";
+        ctx.beginPath();
+        ctx.moveTo(-12, -12);
+        ctx.lineTo(17, -8);
+        ctx.lineTo(14, 8);
+        ctx.lineTo(-14, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#2fd4ff";
+        ctx.beginPath();
+        ctx.arc(6, 0, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        const thrustPower = 0.4 + Math.min(1, Math.abs(state.player.vx) / 250);
+        ctx.fillStyle = `rgba(255, 157, 0, ${0.5 + thrustPower * 0.3})`;
+        ctx.beginPath();
+        ctx.moveTo(-40, 0);
+        ctx.lineTo(-58 - thrustPower * 16, -6);
+        ctx.lineTo(-58 - thrustPower * 16, 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawCandyCapsule(x, y, cloud, challenge) {
+      const cardW = 238;
+      const cardH = 84;
+      const theme = cloud.theme || { fillA: "#8ad6ff", fillB: "#4eb4ff", edge: "#2c6eb8", accent: "#fff3a8" };
+      const bob = Math.sin(state.elapsed * 3 + cloud.phaseOffset) * 3.5;
+      const py = y + bob;
+      const isSelected = Boolean(cloud.chosen);
+      const resolved = challenge.resolved;
+
+      let fillA = theme.fillA;
+      let fillB = theme.fillB;
+      let edge = theme.edge;
+      if (resolved && isSelected && cloud.correct) {
+        fillA = "#9ff4be";
+        fillB = "#50d58f";
+        edge = "#22845e";
+      } else if (resolved && isSelected && !cloud.correct) {
+        fillA = "#ffb6d0";
+        fillB = "#ff6ea4";
+        edge = "#8c2a55";
+      } else if (resolved && !isSelected && cloud.correct) {
+        fillA = "#b6f6cf";
+        fillB = "#7de7af";
+        edge = "#2b8f66";
+      }
+
+      ctx.save();
+      ctx.fillStyle = "rgba(8, 32, 66, 0.24)";
+      ctx.beginPath();
+      ctx.ellipse(x, py + cardH * 0.44, cardW * 0.38, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const grad = ctx.createLinearGradient(x - cardW / 2, py - cardH / 2, x + cardW / 2, py + cardH / 2);
+      grad.addColorStop(0, fillA);
+      grad.addColorStop(1, fillB);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      roundedRect(x - cardW / 2, py - cardH / 2, cardW, cardH, 22);
+      ctx.fill();
+
+      ctx.strokeStyle = edge;
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      roundedRect(x - cardW * 0.45, py - cardH * 0.34, cardW * 0.7, cardH * 0.28, 16);
+      ctx.fill();
+
+      ctx.fillStyle = theme.accent;
+      ctx.beginPath();
+      ctx.arc(x - cardW * 0.34, py, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.beginPath();
+      ctx.arc(x - cardW * 0.34 - 3, py - 4, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#0f2f57";
+      ctx.font = `700 36px ${FONT_MATH}`;
+      ctx.fillText(String(cloud.value), x + 10, py + 2);
+      ctx.restore();
+    }
+
+    function drawChallenge() {
+      if (!state.challenge) {
+        return;
+      }
+
+      const challenge = state.challenge;
+      const promptY = WORLD_HEIGHT * 0.5;
+      const pulse = (Math.sin(state.elapsed * 4.2) + 1) / 2;
+
+      if (challenge.promptX > -340) {
+        const ribbonW = 330;
+        const ribbonH = 92;
+        const gx = challenge.promptX;
+        ctx.save();
+        const glow = ctx.createRadialGradient(gx, promptY, 12, gx, promptY, 180);
+        glow.addColorStop(0, "rgba(255, 230, 130, 0.45)");
+        glow.addColorStop(1, "rgba(255, 230, 130, 0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(gx, promptY, 180, 0, Math.PI * 2);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(gx - ribbonW / 2, promptY - ribbonH / 2, gx + ribbonW / 2, promptY + ribbonH / 2);
+        grad.addColorStop(0, "#ff66b1");
+        grad.addColorStop(0.5, "#47ccff");
+        grad.addColorStop(1, "#5ee6b8");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        roundedRect(gx - ribbonW / 2, promptY - ribbonH / 2, ribbonW, ribbonH, 26);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.28)";
+        ctx.beginPath();
+        roundedRect(gx - ribbonW * 0.44, promptY - ribbonH * 0.34, ribbonW * 0.72, ribbonH * 0.22, 14);
+        ctx.fill();
+
+        ctx.fillStyle = "#f8fdff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `700 38px ${FONT_MATH}`;
+        ctx.fillText(promptExpressionText(challenge), gx, promptY + 2);
+
+        const sparkleR = 6 + pulse * 2.5;
+        ctx.fillStyle = "#fff7a8";
+        ctx.beginPath();
+        ctx.arc(gx - ribbonW * 0.45, promptY - ribbonH * 0.22, sparkleR, 0, Math.PI * 2);
+        ctx.arc(gx + ribbonW * 0.42, promptY + ribbonH * 0.2, sparkleR * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (challenge.phase === "prompt") {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.font = `800 25px ${FONT_UI}`;
+        ctx.fillText("Pass the equation gate, then colorful answer capsules appear", WORLD_WIDTH / 2, promptY - 88);
+        ctx.restore();
+        return;
+      }
+
+      for (const cloud of challenge.clouds) {
+        drawCandyCapsule(challenge.choicesX, cloud.y, cloud, challenge);
+      }
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(state.player.x + 12, 0);
+      ctx.lineTo(state.player.x + 12, WORLD_HEIGHT);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawCollectibles() {
+      for (const item of state.collectibles) {
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        if (item.type === "fuel") {
+          ctx.fillStyle = "rgba(255, 230, 85, 0.95)";
+          ctx.beginPath();
+          roundedRect(-16, -20, 32, 40, 8);
+          ctx.fill();
+          ctx.fillStyle = "#0d2e61";
+          ctx.fillRect(-4, -11, 8, 22);
+          ctx.fillRect(-11, -4, 22, 8);
+        } else {
+          const spin = state.elapsed * 5;
+          ctx.rotate(spin);
+          ctx.fillStyle = "rgba(255, 248, 129, 0.98)";
+          ctx.beginPath();
+          for (let i = 0; i < 5; i += 1) {
+            const angle = (i / 5) * Math.PI * 2;
+            const radius = i % 2 === 0 ? 16 : 7;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawParticles() {
+      for (const p of state.particles) {
+        const alpha = 1 - (p.t / p.life);
+        const a = Math.max(0, alpha) * (p.opacity ?? 1);
+        if (a <= 0.01) continue;
+        ctx.save();
+        ctx.globalAlpha = a;
+        if (p.kind === "ring") {
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.lineWidth || 2.5;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (p.kind === "confetti") {
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot ?? 0) + (p.spin ?? 0) * p.t);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          roundedRect(-p.size * 0.52, -p.size * 0.22, p.size * 1.04, p.size * 0.44, 1.5);
+          ctx.fill();
+        } else if (p.kind === "firework") {
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot ?? 0) + (p.spin ?? 0) * p.t);
+          ctx.shadowColor = p.color;
+          ctx.shadowBlur = 10;
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.moveTo(-p.size * 1.6, 0);
+          ctx.lineTo(p.size * 1.9, 0);
+          ctx.stroke();
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * Math.max(0.45, alpha), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * 0.28, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.kind === "sparkle") {
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot ?? 0) + (p.spin ?? 0) * p.t);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          for (let i = 0; i < 4; i += 1) {
+            const angle = (Math.PI / 2) * i;
+            const r1 = p.size * alpha;
+            const r2 = p.size * alpha * 0.42;
+            ctx.lineTo(Math.cos(angle) * r1, Math.sin(angle) * r1);
+            ctx.lineTo(Math.cos(angle + Math.PI / 4) * r2, Math.sin(angle + Math.PI / 4) * r2);
+          }
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawRewardPopups() {
+      for (const popup of state.rewardPopups) {
+        const alpha = Math.max(0, 1 - (popup.t / popup.life));
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(popup.x, popup.y);
+        ctx.scale(popup.scale, popup.scale);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `800 30px ${FONT_TITLE}`;
+        ctx.strokeStyle = "rgba(14, 35, 65, 0.72)";
+        ctx.lineWidth = 8;
+        ctx.strokeText(popup.text, 0, 0);
+        ctx.fillStyle = popup.color;
+        ctx.fillText(popup.text, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    function drawHud() {
+      ctx.save();
+      ctx.fillStyle = "rgba(12, 27, 52, 0.78)";
+      ctx.beginPath();
+      roundedRect(20, 16, 520, 112, 16);
+      ctx.fill();
+
+      ctx.fillStyle = "#f4fcff";
+      ctx.font = `800 25px ${FONT_UI}`;
+      ctx.fillText(`Score: ${state.score}`, 36, 50);
+      ctx.fillText(`Streak: ${state.streak}`, 215, 50);
+      ctx.fillText(`Solved: ${state.solved}/${TARGET_CORRECT}`, 365, 50);
+      ctx.font = `700 14px ${FONT_UI}`;
+      ctx.fillStyle = "rgba(227, 246, 255, 0.95)";
+      ctx.fillText(
+        `Mode: ${modeLabel(state.math.mode)}  |  Level: ${levelLabel(state.math.level)}  |  Negatives: ${state.math.allowNegative ? "On" : "Off"}`,
+        36,
+        66
+      );
+
+      drawBar(36, 88, 170, 20, state.player.fuel / 100, "#ffc857", "Fuel");
+      drawBar(220, 88, 170, 20, state.player.shields / 3, "#ff6b85", "Shields");
+      drawBar(404, 88, 120, 20, state.timeLeft / 120, "#49e6c5", "Time");
+      ctx.fillStyle = "rgba(225, 245, 255, 0.88)";
+      ctx.font = `700 13px ${FONT_UI}`;
+      ctx.fillText(`Sound ${audio.enabled ? "On" : "Off"} (M)`, 430, 123);
+
+      if (state.feedback) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.beginPath();
+        roundedRect(560, 16, WORLD_WIDTH - 580, 52, 14);
+        ctx.fill();
+        ctx.fillStyle = "#11294c";
+        ctx.font = `800 23px ${FONT_UI}`;
+        ctx.fillText(state.feedback, 576, 51, WORLD_WIDTH - 604);
+      }
+      ctx.restore();
+    }
+
+    function drawBar(x, y, w, h, ratio, color, label) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.22)";
+      ctx.beginPath();
+      roundedRect(x, y, w, h, 9);
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      roundedRect(x + 2, y + 2, Math.max(0, (w - 4) * Math.max(0, Math.min(1, ratio))), h - 4, 8);
+      ctx.fill();
+      ctx.fillStyle = "#09233f";
+      ctx.font = `700 14px ${FONT_UI}`;
+      ctx.fillText(label, x + 8, y + 15);
+      ctx.restore();
+    }
+
+    function drawMenu() {
+      drawBackground();
+      ctx.save();
+      ctx.fillStyle = "rgba(9, 21, 45, 0.68)";
+      ctx.beginPath();
+      roundedRect(150, 90, WORLD_WIDTH - 300, WORLD_HEIGHT - 180, 24);
+      ctx.fill();
+
+      const modeButtons = [];
+      const levelButtons = [];
+      let negativeButton = null;
+      let startButton = null;
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#f5fbff";
+      ctx.font = `800 68px ${FONT_TITLE}`;
+      ctx.fillText("Sky Math Academy", WORLD_WIDTH / 2, 180);
+
+      ctx.font = `800 30px ${FONT_TITLE}`;
+      ctx.fillStyle = "#ffe57d";
+      ctx.fillText("Pilot through answer cards and solve equations mid-flight", WORLD_WIDTH / 2, 236);
+
+      ctx.font = `700 23px ${FONT_UI}`;
+      ctx.fillStyle = "#e7f7ff";
+      ctx.fillText("Controls: Arrow keys or WASD to steer, Shift/Space to boost", WORLD_WIDTH / 2, 300);
+      ctx.fillText("After each answer, enjoy a fuel-up brain break before the next problem", WORLD_WIDTH / 2, 332);
+
+      ctx.fillStyle = "#d6ecff";
+      ctx.font = `800 24px ${FONT_TITLE}`;
+      ctx.fillText("Select Math Mode", WORLD_WIDTH / 2, 374);
+      const modeY = 394;
+      const modeW = 190;
+      const modeH = 44;
+      const modeGap = 20;
+      const modeDefs = [
+        { value: "addition", label: "Addition" },
+        { value: "subtraction", label: "Subtraction" },
+        { value: "mixed", label: "Mixed" },
+      ];
+      const modesTotalW = modeDefs.length * modeW + (modeDefs.length - 1) * modeGap;
+      let mx = WORLD_WIDTH / 2 - modesTotalW / 2;
+      for (const def of modeDefs) {
+        const rect = { x: mx, y: modeY, w: modeW, h: modeH, value: def.value };
+        modeButtons.push(rect);
+        drawMenuButton(rect, def.label, state.math.mode === def.value);
+        mx += modeW + modeGap;
+      }
+
+      ctx.fillStyle = "#d6ecff";
+      ctx.font = `800 22px ${FONT_TITLE}`;
+      ctx.fillText("Difficulty Level", WORLD_WIDTH / 2, 468);
+      const levelY = 486;
+      const levelW = 178;
+      const levelH = 40;
+      const levelGap = 18;
+      const levelDefs = [
+        { value: "easy", label: "Easy" },
+        { value: "medium", label: "Medium" },
+        { value: "challenge", label: "Challenge" },
+      ];
+      const levelsTotalW = levelDefs.length * levelW + (levelDefs.length - 1) * levelGap;
+      let lx = WORLD_WIDTH / 2 - levelsTotalW / 2;
+      for (const def of levelDefs) {
+        const rect = { x: lx, y: levelY, w: levelW, h: levelH, value: def.value };
+        levelButtons.push(rect);
+        drawMenuButton(rect, def.label, state.math.level === def.value);
+        lx += levelW + levelGap;
+      }
+
+      negativeButton = { x: WORLD_WIDTH / 2 - 180, y: 536, w: 360, h: 38 };
+      drawMenuButton(
+        negativeButton,
+        `Negative Answers: ${state.math.allowNegative ? "On" : "Off"}`,
+        state.math.allowNegative
+      );
+
+      ctx.fillStyle = "#3de0b7";
+      ctx.beginPath();
+      roundedRect(WORLD_WIDTH / 2 - 210, 580, 420, 42, 18);
+      ctx.fill();
+      ctx.fillStyle = "#0e2d50";
+      ctx.font = `800 30px ${FONT_TITLE}`;
+      ctx.fillText("Press Enter To Launch", WORLD_WIDTH / 2, 607);
+      startButton = { x: WORLD_WIDTH / 2 - 210, y: 580, w: 420, h: 42 };
+
+      ctx.font = `700 18px ${FONT_UI}`;
+      ctx.fillStyle = "#d5ecff";
+      ctx.fillText("Click options above or use keys: 1/2/3, Q/W/E, N", WORLD_WIDTH / 2, 624);
+
+      state.menuUi.modeButtons = modeButtons;
+      state.menuUi.levelButtons = levelButtons;
+      state.menuUi.negativeButton = negativeButton;
+      state.menuUi.startButton = startButton;
+      ctx.restore();
+    }
+
+    function drawEndScreen(type) {
+      drawBackground();
+      drawChallenge();
+      drawPlayer();
+      drawCollectibles();
+      drawParticles();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(11, 24, 48, 0.73)";
+      ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      ctx.textAlign = "center";
+
+      ctx.font = `800 74px ${FONT_TITLE}`;
+      ctx.fillStyle = type === "victory" ? "#9df7c0" : "#ffb3c6";
+      ctx.fillText(type === "victory" ? "Mission Success!" : "Mission Complete", WORLD_WIDTH / 2, 220);
+
+      ctx.font = `800 34px ${FONT_TITLE}`;
+      ctx.fillStyle = "#f4fbff";
+      ctx.fillText(type === "victory" ? "You mastered the sky equations." : "Refuel and try a new run.", WORLD_WIDTH / 2, 280);
+
+      ctx.font = `700 30px ${FONT_UI}`;
+      ctx.fillText(`Final score: ${state.score}`, WORLD_WIDTH / 2, 340);
+      ctx.fillText(`Correct answers: ${state.solved}`, WORLD_WIDTH / 2, 386);
+      ctx.fillText(`Best streak: ${state.streak}`, WORLD_WIDTH / 2, 432);
+
+      ctx.fillStyle = "#3de0b7";
+      ctx.beginPath();
+      roundedRect(WORLD_WIDTH / 2 - 190, 490, 380, 74, 16);
+      ctx.fill();
+      ctx.fillStyle = "#0f2e51";
+      ctx.font = `800 34px ${FONT_TITLE}`;
+      ctx.fillText("Press Enter To Play Again", WORLD_WIDTH / 2, 537);
+      ctx.restore();
+    }
+
+    function drawPausedOverlay() {
+      ctx.save();
+      ctx.fillStyle = "rgba(8, 20, 41, 0.56)";
+      ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.94)";
+      ctx.beginPath();
+      roundedRect(WORLD_WIDTH / 2 - 220, WORLD_HEIGHT / 2 - 90, 440, 180, 20);
+      ctx.fill();
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#10305a";
+      ctx.font = `800 54px ${FONT_TITLE}`;
+      ctx.fillText("Paused", WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 18);
+      ctx.font = `700 24px ${FONT_UI}`;
+      ctx.fillText("Press P to continue your flight", WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 36);
+      ctx.restore();
+    }
+
+    function render() {
+      if (state.mode === "menu") {
+        drawMenu();
+        return;
+      }
+
+      if (state.mode === "victory") {
+        drawEndScreen("victory");
+        return;
+      }
+
+      if (state.mode === "gameover") {
+        drawEndScreen("gameover");
+        return;
+      }
+
+      drawBackground();
+      drawChallenge();
+      drawCollectibles();
+      drawParticles();
+      drawRewardPopups();
+      drawPlayer();
+      drawHud();
+      if (state.mode === "paused") {
+        drawPausedOverlay();
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        canvas.requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+
+    function keyName(event) {
+      if (event.key === " ") {
+        return " ";
+      }
+      return event.key.toLowerCase();
+    }
+
+    window.addEventListener("keydown", (event) => {
+      const key = keyName(event);
+      unlockAudio();
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
+        event.preventDefault();
+      }
+
+      if (key === "enter") {
+        if (state.mode === "menu" || state.mode === "gameover" || state.mode === "victory") {
+          resetPlayState();
+        }
+      }
+
+      if (state.mode === "menu") {
+        let handledMenuSetting = false;
+        if (key === "1") state.math.mode = "addition";
+        if (key === "2") state.math.mode = "subtraction";
+        if (key === "3") state.math.mode = "mixed";
+        if (key === "q") state.math.level = "easy";
+        if (key === "w") state.math.level = "medium";
+        if (key === "e") state.math.level = "challenge";
+        if (key === "n") {
+          state.math.allowNegative = !state.math.allowNegative;
+          playCandyFx("ui_toggle");
+        }
+        if (["1", "2", "3", "q", "w", "e", "n"].includes(key)) {
+          handledMenuSetting = true;
+        }
+        if (handledMenuSetting) {
+          render();
+          return;
+        }
+      }
+
+      if (key === "p") {
+        if (state.mode === "playing") {
+          state.mode = "paused";
+          playCandyFx("pause");
+        } else if (state.mode === "paused") {
+          state.mode = "playing";
+          playCandyFx("resume");
+        }
+      }
+
+      if (key === "m") {
+        setSoundEnabled(!audio.enabled);
+        if (audio.enabled) {
+          playCandyFx("ui_toggle");
+        }
+        return;
+      }
+
+      if (key === "f") {
+        toggleFullscreen();
+      }
+
+      state.keys.add(key);
+    });
+
+    window.addEventListener("keyup", (event) => {
+      state.keys.delete(keyName(event));
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      unlockAudio();
+      const pt = canvasPointFromEvent(event);
+      if (handleMenuPointer(pt.x, pt.y)) {
+        event.preventDefault();
+      }
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      const pt = canvasPointFromEvent(event);
+      canvas.style.cursor = isMenuPointerTarget(pt.x, pt.y) ? "pointer" : "default";
+    });
+
+    window.addEventListener("blur", () => {
+      state.keys.clear();
+      canvas.style.cursor = "default";
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      render();
+    });
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      update(dt);
+      render();
+      requestAnimationFrame(frame);
+    }
+
+    function renderGameToText() {
+      const challenge = state.challenge
+        ? {
+            phase: state.challenge.phase,
+            promptX: Math.round(state.challenge.promptX),
+            promptSpeedMultiplier: Number(state.challenge.promptSpeedMultiplier.toFixed(2)),
+            choicesX: Math.round(state.challenge.choicesX),
+            choicesEntering: state.challenge.choicesEntering,
+            expression: state.challenge.expression,
+            resolved: state.challenge.resolved,
+            options: state.challenge.clouds.map((c) => ({
+              y: Math.round(c.y),
+              value: state.challenge.phase === "choices" ? c.value : null,
+              correct: c.correct,
+            })),
+          }
+        : null;
+
+      const payload = {
+        coordinateSystem: "origin=(0,0) top-left; x increases right; y increases down",
+        mode: state.mode,
+        player: {
+          x: Math.round(state.player.x),
+          y: Math.round(state.player.y),
+          vx: Number(state.player.vx.toFixed(1)),
+          vy: Number(state.player.vy.toFixed(1)),
+          fuel: Number(state.player.fuel.toFixed(1)),
+          shields: state.player.shields,
+          spriteReady: planeSpriteReady,
+        },
+        score: state.score,
+        streak: state.streak,
+        solved: state.solved,
+        timeLeft: Number(state.timeLeft.toFixed(1)),
+        cameraSpeed: Number(state.cameraSpeed.toFixed(1)),
+        math: {
+          mode: state.math.mode,
+          modeLabel: modeLabel(state.math.mode),
+          level: state.math.level,
+          levelLabel: levelLabel(state.math.level),
+          allowNegative: state.math.allowNegative,
+        },
+        brainBreak: {
+          timer: Number(state.brainBreakTimer.toFixed(2)),
+          wavesRemaining: state.brainBreakWavesRemaining,
+        },
+        rewardPopups: state.rewardPopups.length,
+        soundEnabled: audio.enabled,
+        jetThrottle: audio.jet ? Number(audio.jet.smoothedThrottle.toFixed(2)) : 0,
+        challenge,
+        collectibles: state.collectibles.slice(0, 6).map((item) => ({
+          type: item.type,
+          x: Math.round(item.x),
+          y: Math.round(item.y),
+        })),
+        feedback: state.feedback,
+      };
+      return JSON.stringify(payload);
+    }
+
+    function advanceTime(ms) {
+      const stepMs = 1000 / 60;
+      const steps = Math.max(1, Math.round(ms / stepMs));
+      for (let i = 0; i < steps; i += 1) {
+        update(stepMs / 1000);
+      }
+      render();
+    }
+
+    window.render_game_to_text = renderGameToText;
+    window.advanceTime = advanceTime;
+
+    render();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
