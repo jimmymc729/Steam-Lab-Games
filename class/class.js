@@ -21,6 +21,7 @@
     { slug: "maze-generator", title: "Random Maze Generator", path: "/maze-generator.html", status: "live" },
     { slug: "quake-lab", title: "Quake Lab", path: "/quake-lab/index.html", status: "live" },
     { slug: "sky-math-academy", title: "Sky Math Academy", path: "/math-flight-simulator/", status: "live" },
+    { slug: "balloon-pop-quantities", title: "Balloon Pop Quantities", path: "/balloon-pop-quantities.html", status: "live" },
     { slug: "rube-goldberg-machine", title: "Rube Goldberg Machine Builder", path: "/rube-goldberg%20copy.html", status: "live" },
     { slug: "ant-colony", title: "Ant Colony Lab", path: "/games/ant-colony-lab/", status: "coming_soon" },
     { slug: "moonjet-cavern", title: "Moonjet Cavern", path: "/games/moonjet-cavern/", status: "coming_soon" },

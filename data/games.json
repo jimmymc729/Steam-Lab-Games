@@ -49,6 +49,13 @@
     "tags": ["math", "arcade", "flight", "education", "single-player"]
   },
   {
+    "slug": "balloon-pop-quantities",
+    "title": "Balloon Pop Quantities",
+    "path": "/balloon-pop-quantities.html",
+    "status": "live",
+    "tags": ["math", "quantities", "counting", "touch", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",

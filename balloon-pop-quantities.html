@@ -1,0 +1,1958 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Balloon Pop Quantities</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #10213a;
+      --muted: #4d5f80;
+      --panel: #ffffff;
+      --line: #d7e2f5;
+      --primary: #ff6f61;
+      --primary-2: #ffd166;
+      --accent: #39a0ed;
+      --good: #25a55f;
+      --warn: #ff7b54;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --shadow: 0 18px 34px rgba(16, 33, 58, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: "Nunito", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(255, 209, 102, 0.42), transparent 34%),
+        radial-gradient(circle at 88% 10%, rgba(120, 179, 255, 0.33), transparent 36%),
+        radial-gradient(circle at 18% 94%, rgba(255, 138, 195, 0.24), transparent 38%),
+        radial-gradient(circle at 84% 92%, rgba(112, 222, 170, 0.21), transparent 40%),
+        #ecf6ff;
+    }
+
+    .app {
+      width: min(1200px, calc(100% - 1.2rem));
+      margin: 0.6rem auto 1rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.6rem;
+      padding: 0.65rem 0.95rem;
+      background: linear-gradient(130deg, rgba(255, 255, 255, 0.93), rgba(242, 249, 255, 0.9));
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Baloo 2", "Nunito", sans-serif;
+      font-size: clamp(1.35rem, 2.3vw, 2.05rem);
+      letter-spacing: 0.2px;
+      line-height: 1;
+    }
+
+    .subtitle {
+      margin: 0.14rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .hud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 0.42rem 0.82rem;
+      border: 1px solid #b9d3f2;
+      background: linear-gradient(140deg, #ffffff, #f2f8ff);
+      font-size: 0.92rem;
+      font-weight: 800;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .pill.alert {
+      color: #8f1b1b;
+      border-color: #ff9ea8;
+      background: linear-gradient(140deg, #fff7f8, #ffe3e7);
+      box-shadow: 0 0 0 2px rgba(255, 146, 163, 0.18) inset;
+    }
+
+    .surface {
+      background: linear-gradient(180deg, #fff, #fafdff);
+      border: 1px solid #c9dcf5;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .canvas-wrap {
+      width: 100%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.74), rgba(227, 242, 255, 0.9) 55%, rgba(255, 239, 248, 0.54));
+      padding: 0.55rem;
+    }
+
+    canvas {
+      width: min(100%, 1100px);
+      aspect-ratio: 16 / 9;
+      background: #cfe9ff;
+      border-radius: 16px;
+      border: 1px solid rgba(122, 155, 204, 0.52);
+      touch-action: none;
+      cursor: crosshair;
+      display: block;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.52rem;
+      padding: 0.7rem;
+      background: #fff;
+      border-top: 1px solid var(--line);
+    }
+
+    .rows {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.48rem;
+      align-items: center;
+    }
+
+    .label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin-right: 0.2rem;
+    }
+
+    button,
+    select {
+      border: 1px solid #c8d8f0;
+      border-radius: 999px;
+      padding: 0.56rem 0.92rem;
+      font: inherit;
+      font-weight: 800;
+      color: var(--ink);
+      background: #fff;
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(57, 160, 237, 0.4);
+      outline-offset: 1px;
+    }
+
+    .primary {
+      border: none;
+      background: linear-gradient(120deg, var(--primary), #ff8f70 65%, #ffb089);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(255, 111, 97, 0.35);
+    }
+
+    .secondary {
+      border: none;
+      background: linear-gradient(120deg, var(--accent), #6ec6ff 65%, #91d5ff);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(57, 160, 237, 0.28);
+    }
+
+    .chip {
+      font-size: 0.89rem;
+      font-weight: 700;
+      color: var(--muted);
+      padding: 0.2rem 0.3rem;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        width: min(100%, calc(100% - 0.6rem));
+      }
+
+      .topbar {
+        padding: 0.62rem 0.75rem;
+      }
+
+      .controls {
+        padding: 0.58rem;
+      }
+
+      button,
+      select {
+        min-height: 48px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="topbar" aria-label="Game header">
+      <div>
+        <h1 class="title">Balloon Pop Quantities</h1>
+        <p class="subtitle">Pop the target quantity. Built for whiteboards, Chromebooks, and iPads.</p>
+      </div>
+      <div class="hud" aria-live="polite">
+        <div class="pill" id="roundPill">Round 1</div>
+        <div class="pill" id="scorePill">Score 0</div>
+        <div class="pill" id="bestPill">Best 0</div>
+        <div class="pill" id="targetPill">Target 0</div>
+        <div class="pill" id="timePill">Left 35s</div>
+      </div>
+    </section>
+
+    <section class="surface">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1280" height="720" aria-label="Balloon game area"></canvas>
+      </div>
+      <div class="controls" aria-label="Teacher controls">
+        <div class="rows">
+          <span class="label">Session</span>
+          <button id="startBtn" class="primary">Start / Restart</button>
+          <button id="pauseBtn">Pause</button>
+          <button id="fullscreenBtn" class="secondary">Fullscreen (F)</button>
+          <button id="muteBtn">Sound On</button>
+          <span class="chip">Beat the timer each round, or choose Unlimited mode. Keyboard: F fullscreen, M mute, P pause.</span>
+        </div>
+        <div class="rows">
+          <span class="label">Range</span>
+          <select id="rangeSelect" aria-label="Number range">
+            <option value="5">Starter (1-5)</option>
+            <option value="10" selected>Core (1-10)</option>
+            <option value="12">Challenge (1-12)</option>
+          </select>
+          <span class="label">Look</span>
+          <select id="representationSelect" aria-label="Quantity display mode">
+            <option value="mixed" selected>Mixed (Dots + Numbers)</option>
+            <option value="dots">Dots Only</option>
+            <option value="numerals">Numbers Only</option>
+          </select>
+          <span class="label">Round Time</span>
+          <select id="timeSelect" aria-label="Time per round">
+            <option value="30">30s</option>
+            <option value="35" selected>35s</option>
+            <option value="45">45s</option>
+            <option value="0">Unlimited</option>
+          </select>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const roundPill = document.getElementById("roundPill");
+      const scorePill = document.getElementById("scorePill");
+      const bestPill = document.getElementById("bestPill");
+      const targetPill = document.getElementById("targetPill");
+      const timePill = document.getElementById("timePill");
+
+      const startBtn = document.getElementById("startBtn");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const fullscreenBtn = document.getElementById("fullscreenBtn");
+      const muteBtn = document.getElementById("muteBtn");
+      const rangeSelect = document.getElementById("rangeSelect");
+      const representationSelect = document.getElementById("representationSelect");
+      const timeSelect = document.getElementById("timeSelect");
+
+      const WORLD_WIDTH = 1280;
+      const WORLD_HEIGHT = 720;
+      const TAU = Math.PI * 2;
+      const TARGET_COUNT_BASE = 7;
+      const MAX_BALLOONS = 16;
+      const ROUND_CELEBRATION_SECONDS = 3.6;
+      const BALLOON_FIREWORK_INTERVAL = 0.055;
+      const SKY_FIREWORK_INTERVAL = 0.24;
+      const BEST_SCORE_KEY = "balloon_pop_quantities_best_score";
+      let savedBestScore = 0;
+      try {
+        savedBestScore = Number(window.localStorage.getItem(BEST_SCORE_KEY) || 0);
+      } catch (_error) {
+        savedBestScore = 0;
+      }
+
+      const palette = ["#ff7b8a", "#ffd85c", "#4ec5ff", "#8d73ff", "#55db79", "#ff8d5e", "#ff9fd2", "#45d2c8"];
+      const praiseText = ["Great pop!", "Nice counting!", "Awesome!", "You got it!", "Brilliant!"];
+      const ROUND_BACKGROUNDS = [
+        {
+          name: "Rainbow Meadow",
+          skyTop: "#bde7ff",
+          skyMid: "#9dd2ff",
+          skyLow: "#8cc8f8",
+          skyBottom: "#8cc4f0",
+          sunCore: "rgba(255,255,230,0.98)",
+          sunMid: "rgba(255,223,130,0.9)",
+          sunOuter: "rgba(255,189,100,0.2)",
+          rayColor: "#ffeab6",
+          rainbow: ["#ff7a8a", "#ffb04a", "#ffe45b", "#5adf8b", "#56b7ff", "#9778ff"],
+          cloud: "rgba(255,255,255,0.5)",
+          sparkleA: "#ffffff",
+          sparkleB: "#ffe8f2",
+          hillBackTop: "#8ddba0",
+          hillBackBottom: "#63bd83",
+          hillFrontTop: "#78ce7e",
+          hillFrontBottom: "#52b567",
+          decor: "kites",
+        },
+        {
+          name: "Cotton Candy Sunset",
+          skyTop: "#ffd7f0",
+          skyMid: "#ffc7e8",
+          skyLow: "#ffd8b8",
+          skyBottom: "#ffe6bf",
+          sunCore: "rgba(255,245,225,0.98)",
+          sunMid: "rgba(255,198,122,0.9)",
+          sunOuter: "rgba(255,140,120,0.22)",
+          rayColor: "#ffe6d1",
+          rainbow: ["#ff8ca2", "#ffb17b", "#ffe57b", "#9eea92", "#7dc7ff", "#b596ff"],
+          cloud: "rgba(255,255,255,0.46)",
+          sparkleA: "#fff6ff",
+          sparkleB: "#fff4cf",
+          hillBackTop: "#89d197",
+          hillBackBottom: "#5eb57d",
+          hillFrontTop: "#73c97f",
+          hillFrontBottom: "#49a862",
+          sunXFactor: 0.8,
+          decor: "petals",
+        },
+        {
+          name: "Mint Lagoon",
+          skyTop: "#c5f7f0",
+          skyMid: "#aeeef1",
+          skyLow: "#9cddff",
+          skyBottom: "#9cd3ff",
+          sunCore: "rgba(244,255,248,0.96)",
+          sunMid: "rgba(176,244,216,0.86)",
+          sunOuter: "rgba(120,230,214,0.24)",
+          rayColor: "#dbfff3",
+          rainbow: ["#ff95b9", "#ffc672", "#fff075", "#7fe8ad", "#74d9ff", "#a48dff"],
+          cloud: "rgba(250,255,255,0.48)",
+          sparkleA: "#ecffff",
+          sparkleB: "#fff3fb",
+          hillBackTop: "#8de1b3",
+          hillBackBottom: "#62bf8c",
+          hillFrontTop: "#71d29f",
+          hillFrontBottom: "#4eaf80",
+          decor: "bubbles",
+        },
+        {
+          name: "Dream Violet",
+          skyTop: "#c8d2ff",
+          skyMid: "#afb9ff",
+          skyLow: "#9cb2ff",
+          skyBottom: "#93adff",
+          sunCore: "rgba(251,246,255,0.97)",
+          sunMid: "rgba(220,196,255,0.88)",
+          sunOuter: "rgba(157,141,255,0.25)",
+          rayColor: "#ede7ff",
+          rainbow: ["#ffa0c8", "#ffb579", "#ffe06f", "#95e58e", "#7cc3ff", "#b084ff"],
+          cloud: "rgba(244,246,255,0.48)",
+          sparkleA: "#ffffff",
+          sparkleB: "#e9dfff",
+          hillBackTop: "#8bc7a1",
+          hillBackBottom: "#5aa87d",
+          hillFrontTop: "#73b98e",
+          hillFrontBottom: "#4a9b71",
+          decor: "planets",
+          rainbowAlpha: 0.18,
+        },
+        {
+          name: "Peach Sorbet",
+          skyTop: "#ffe0b8",
+          skyMid: "#ffd8cc",
+          skyLow: "#ffcae0",
+          skyBottom: "#f7bfff",
+          sunCore: "rgba(255,250,232,0.98)",
+          sunMid: "rgba(255,215,156,0.9)",
+          sunOuter: "rgba(255,151,126,0.23)",
+          rayColor: "#ffe7d4",
+          rainbow: ["#ff98aa", "#ffb86a", "#ffe769", "#93e38a", "#74beff", "#ac8bff"],
+          cloud: "rgba(255,249,252,0.48)",
+          sparkleA: "#fff8f2",
+          sparkleB: "#ffe3f2",
+          hillBackTop: "#95d89f",
+          hillBackBottom: "#69ba78",
+          hillFrontTop: "#7fd089",
+          hillFrontBottom: "#56b463",
+          decor: "kites",
+        },
+        {
+          name: "Aurora Grove",
+          skyTop: "#9ec2ff",
+          skyMid: "#9bc2ff",
+          skyLow: "#8fa4ef",
+          skyBottom: "#7f91d4",
+          sunCore: "rgba(245,255,255,0.86)",
+          sunMid: "rgba(172,247,233,0.72)",
+          sunOuter: "rgba(104,210,188,0.28)",
+          rayColor: "#dffffa",
+          rainbow: ["#8effc2", "#7fe4ff", "#b7a2ff", "#f2a2ff", "#9bf2d4", "#d8ff9d"],
+          cloud: "rgba(234,244,255,0.36)",
+          sparkleA: "#dffcff",
+          sparkleB: "#e7e1ff",
+          hillBackTop: "#80c19e",
+          hillBackBottom: "#4f9376",
+          hillFrontTop: "#68b487",
+          hillFrontBottom: "#3f8a66",
+          decor: "aurora",
+          showRainbow: false,
+          cloudCount: 5,
+        },
+        {
+          name: "Starlight Carnival",
+          skyTop: "#7f8fd8",
+          skyMid: "#8596e8",
+          skyLow: "#8ea6ff",
+          skyBottom: "#95b8ff",
+          sunCore: "rgba(248,247,255,0.94)",
+          sunMid: "rgba(214,212,255,0.82)",
+          sunOuter: "rgba(164,154,255,0.3)",
+          rayColor: "#ece9ff",
+          rainbow: ["#ff9fca", "#ffc078", "#ffe67b", "#8de78f", "#79c9ff", "#b694ff"],
+          cloud: "rgba(241,244,255,0.38)",
+          sparkleA: "#ffffff",
+          sparkleB: "#efe5ff",
+          hillBackTop: "#88c89a",
+          hillBackBottom: "#5ca573",
+          hillFrontTop: "#76bd8b",
+          hillFrontBottom: "#4a956a",
+          decor: "stars",
+          showRays: false,
+          rainbowAlpha: 0.2,
+        },
+        {
+          name: "Tropical Fiesta",
+          skyTop: "#9cefff",
+          skyMid: "#87deff",
+          skyLow: "#7bd0ff",
+          skyBottom: "#8dd9ff",
+          sunCore: "rgba(255,252,228,0.98)",
+          sunMid: "rgba(255,217,131,0.9)",
+          sunOuter: "rgba(255,165,108,0.24)",
+          rayColor: "#fff0bf",
+          rainbow: ["#ff6e88", "#ffa24f", "#ffe769", "#63de8f", "#5bb8ff", "#9c74ff"],
+          cloud: "rgba(255,255,255,0.44)",
+          sparkleA: "#e9feff",
+          sparkleB: "#fff7e8",
+          hillBackTop: "#9adf8e",
+          hillBackBottom: "#66bb67",
+          hillFrontTop: "#7fd67c",
+          hillFrontBottom: "#52b35a",
+          decor: "kites",
+          sparkleCount: 24,
+        },
+        {
+          name: "Moonbeam Meadow",
+          skyTop: "#8ca2da",
+          skyMid: "#8fa7e4",
+          skyLow: "#95b9f2",
+          skyBottom: "#9bc8f7",
+          sunCore: "rgba(245,250,255,0.95)",
+          sunMid: "rgba(218,233,255,0.88)",
+          sunOuter: "rgba(176,201,245,0.24)",
+          rayColor: "#e8f3ff",
+          rainbow: ["#f2a3ff", "#c5a6ff", "#93b3ff", "#8fe5ff", "#b8ffd7", "#f6ffb3"],
+          cloud: "rgba(238,245,255,0.4)",
+          sparkleA: "#ffffff",
+          sparkleB: "#dff0ff",
+          hillBackTop: "#88c8a0",
+          hillBackBottom: "#569671",
+          hillFrontTop: "#70b488",
+          hillFrontBottom: "#44805f",
+          decor: "fireflies",
+          sunXFactor: 0.22,
+          sunY: 118,
+          showRays: false,
+          rainbowAlpha: 0.14,
+        },
+        {
+          name: "Lemonade Morning",
+          skyTop: "#fff3b8",
+          skyMid: "#ffe7b8",
+          skyLow: "#ffdcbf",
+          skyBottom: "#ffd1ce",
+          sunCore: "rgba(255,252,232,0.98)",
+          sunMid: "rgba(255,225,152,0.92)",
+          sunOuter: "rgba(255,181,133,0.26)",
+          rayColor: "#fff3c4",
+          rainbow: ["#ff8e9f", "#ffc06a", "#fff075", "#93e986", "#77ccff", "#a48bff"],
+          cloud: "rgba(255,253,245,0.48)",
+          sparkleA: "#fffdf6",
+          sparkleB: "#fff0d8",
+          hillBackTop: "#96dc95",
+          hillBackBottom: "#6cbe6b",
+          hillFrontTop: "#83d281",
+          hillFrontBottom: "#5bb05d",
+          decor: "bubbles",
+          sunXFactor: 0.74,
+        },
+        {
+          name: "Cherry Blossom Sky",
+          skyTop: "#ffd9f1",
+          skyMid: "#ffcce9",
+          skyLow: "#ffc5dc",
+          skyBottom: "#ffc0d3",
+          sunCore: "rgba(255,243,252,0.96)",
+          sunMid: "rgba(255,206,235,0.9)",
+          sunOuter: "rgba(255,164,214,0.24)",
+          rayColor: "#ffe6f5",
+          rainbow: ["#ff90b4", "#ffc18f", "#ffe88d", "#9de39f", "#85c9ff", "#c09fff"],
+          cloud: "rgba(255,245,251,0.47)",
+          sparkleA: "#fff8ff",
+          sparkleB: "#ffe5f2",
+          hillBackTop: "#8fd4a2",
+          hillBackBottom: "#61ad7f",
+          hillFrontTop: "#79c28f",
+          hillFrontBottom: "#509d72",
+          decor: "petals",
+          sparkleCount: 22,
+        },
+        {
+          name: "Neon Dusk",
+          skyTop: "#8f90de",
+          skyMid: "#9496ea",
+          skyLow: "#a298ea",
+          skyBottom: "#b8a0e6",
+          sunCore: "rgba(255,233,197,0.95)",
+          sunMid: "rgba(255,171,158,0.84)",
+          sunOuter: "rgba(233,127,181,0.3)",
+          rayColor: "#ffe3d2",
+          rainbow: ["#ff74a8", "#ff9f6a", "#ffe26f", "#6ce8a0", "#62c6ff", "#9f78ff"],
+          cloud: "rgba(244,234,255,0.38)",
+          sparkleA: "#ffe9ff",
+          sparkleB: "#e8dcff",
+          hillBackTop: "#7dbc98",
+          hillBackBottom: "#4e8b70",
+          hillFrontTop: "#68a984",
+          hillFrontBottom: "#3f7b5f",
+          decor: "planets",
+          rainbowAlpha: 0.24,
+          cloudCount: 6,
+        },
+      ];
+
+      const state = {
+        mode: "menu",
+        round: 0,
+        score: 0,
+        combo: 0,
+        bestCombo: 0,
+        bestScore: Number.isFinite(savedBestScore) ? savedBestScore : 0,
+        highScoreShown: false,
+        maxValue: Number(rangeSelect.value),
+        representation: representationSelect.value,
+        roundDuration: Number(timeSelect.value),
+        timer: Number(timeSelect.value) > 0 ? Number(timeSelect.value) : Infinity,
+        targetValue: 1,
+        targetCount: TARGET_COUNT_BASE,
+        poppedTargets: 0,
+        balloons: [],
+        particles: [],
+        celebration: [],
+        feedback: "Tap Start to begin.",
+        feedbackTimer: 0,
+        objectiveHint: "Tap Start to begin.",
+        paused: false,
+        soundEnabled: true,
+        pendingRoundStart: 0,
+        celebrationDuration: ROUND_CELEBRATION_SECONDS,
+        celebrationBurstQueue: [],
+        celebrationBurstTimer: 0,
+        celebrationFireworkTimer: 0,
+        roundSummary: null,
+        backgroundThemeIndex: 0,
+        backgroundThemeOffset: 0,
+        phase: 0,
+      };
+
+      const pointer = {
+        x: 0,
+        y: 0,
+      };
+
+      const audio = {
+        ctx: null,
+        unlocked: false,
+        master: null,
+      };
+
+      function unlockAudio() {
+        if (audio.unlocked || !state.soundEnabled) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        audio.ctx = audio.ctx || new AudioCtx();
+        audio.master = audio.master || audio.ctx.createGain();
+        audio.master.gain.value = 0.25;
+        audio.master.connect(audio.ctx.destination);
+        audio.unlocked = true;
+      }
+
+      function setSoundEnabled(enabled) {
+        state.soundEnabled = enabled;
+        muteBtn.textContent = enabled ? "Sound On" : "Sound Off";
+        muteBtn.setAttribute("aria-pressed", enabled ? "false" : "true");
+        if (audio.master) {
+          audio.master.gain.value = enabled ? 0.25 : 0;
+        }
+      }
+
+      function playTone(frequency, duration, type, volume, slideTo) {
+        if (!state.soundEnabled || !audio.unlocked || !audio.ctx || !audio.master) return;
+        const now = audio.ctx.currentTime;
+        const osc = audio.ctx.createOscillator();
+        const gain = audio.ctx.createGain();
+        osc.type = type || "sine";
+        osc.frequency.setValueAtTime(frequency, now);
+        if (slideTo) {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(40, slideTo), now + duration);
+        }
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume || 0.12), now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+        osc.connect(gain);
+        gain.connect(audio.master);
+        osc.start(now);
+        osc.stop(now + duration + 0.02);
+      }
+
+      function playPop(correct) {
+        if (correct) {
+          const pitch = 560 + Math.min(260, state.combo * 20);
+          playTone(pitch, 0.12, "triangle", 0.1, pitch * 1.2);
+          playTone(pitch * 1.5, 0.08, "sine", 0.08, pitch * 1.9);
+        } else {
+          playTone(260, 0.18, "sawtooth", 0.07, 170);
+        }
+      }
+
+      function playFireworkBlast() {
+        const low = rand(150, 240);
+        const high = rand(720, 1220);
+        playTone(low, 0.2, "triangle", 0.055, 80);
+        playTone(high, 0.12, "sine", 0.09, high * 1.25);
+      }
+
+      function playRoundCelebrationFanfare() {
+        const notes = [620, 780, 910, 1020, 1180];
+        for (let i = 0; i < notes.length; i += 1) {
+          const note = notes[i];
+          setTimeout(() => playTone(note, 0.18, "triangle", 0.12, note * 1.3), i * 110);
+        }
+        setTimeout(() => playTone(330, 0.32, "square", 0.08, 130), 140);
+      }
+
+      function rand(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      function randInt(min, max) {
+        return Math.floor(rand(min, max + 1));
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function randomNonTargetValue(target, max) {
+        if (max <= 1) return 1;
+        let value = target;
+        while (value === target) {
+          value = randInt(1, max);
+        }
+        return value;
+      }
+
+      function formatRoundSeconds(seconds) {
+        if (!Number.isFinite(seconds)) return "Unlimited";
+        return `${Math.max(0, Math.ceil(seconds))}s`;
+      }
+
+      function updateBestScoreIfNeeded() {
+        if (state.score <= state.bestScore) return false;
+        state.bestScore = state.score;
+        try {
+          window.localStorage.setItem(BEST_SCORE_KEY, String(state.bestScore));
+        } catch (_error) {
+          // Ignore storage failures; gameplay should continue even without persistence.
+        }
+        return true;
+      }
+
+      function updateHud() {
+        roundPill.textContent = `Round ${Math.max(1, state.round)}`;
+        scorePill.textContent = `Score ${state.score}`;
+        bestPill.textContent = `Best ${state.bestScore}`;
+        targetPill.textContent = `Target ${state.targetValue}`;
+        if (state.roundDuration > 0) {
+          timePill.textContent = `Left ${formatRoundSeconds(state.timer)}`;
+        } else {
+          timePill.textContent = "Unlimited";
+        }
+        if (state.roundDuration > 0 && state.mode === "playing" && state.timer <= 5 && !state.paused) {
+          timePill.classList.add("alert");
+        } else {
+          timePill.classList.remove("alert");
+        }
+      }
+
+      function nextTargetCount() {
+        const growth = Math.floor((state.round - 1) / 2);
+        return clamp(TARGET_COUNT_BASE + growth, TARGET_COUNT_BASE, TARGET_COUNT_BASE + 5);
+      }
+
+      function createBalloon(value, forceRepresentation) {
+        const radius = rand(52, 66);
+        const hue = palette[randInt(0, palette.length - 1)];
+        const representation = forceRepresentation || (
+          state.representation === "mixed"
+            ? (Math.random() > 0.5 ? "dots" : "numerals")
+            : state.representation
+        );
+        return {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          value,
+          x: rand(radius + 20, WORLD_WIDTH - radius - 20),
+          y: rand(radius + 80, WORLD_HEIGHT - radius - 20),
+          r: radius,
+          vx: rand(-34, 34),
+          vy: rand(-30, 30),
+          wobble: rand(0.7, 1.8),
+          wobblePhase: rand(0, TAU),
+          color: hue,
+          representation,
+          sticker: Math.random() < 0.5 ? "star" : "heart",
+        };
+      }
+
+      function seedBalloons() {
+        state.balloons.length = 0;
+        const values = [];
+
+        for (let i = 0; i < state.targetCount; i += 1) {
+          values.push(state.targetValue);
+        }
+        while (values.length < MAX_BALLOONS) {
+          let v = randInt(1, state.maxValue);
+          if (v === state.targetValue) {
+            if (Math.random() < 0.6) {
+              v = randomNonTargetValue(state.targetValue, state.maxValue);
+            }
+          }
+          values.push(v);
+        }
+
+        for (let i = values.length - 1; i > 0; i -= 1) {
+          const j = randInt(0, i);
+          const temp = values[i];
+          values[i] = values[j];
+          values[j] = temp;
+        }
+
+        for (let i = 0; i < values.length; i += 1) {
+          state.balloons.push(createBalloon(values[i]));
+        }
+      }
+
+      function startRound() {
+        state.round += 1;
+        state.combo = 0;
+        state.timer = state.roundDuration > 0 ? state.roundDuration : Infinity;
+        state.backgroundThemeIndex = (state.backgroundThemeOffset + state.round - 1) % ROUND_BACKGROUNDS.length;
+        state.targetValue = randInt(1, state.maxValue);
+        state.targetCount = nextTargetCount();
+        state.poppedTargets = 0;
+        state.objectiveHint = `Pop every balloon showing quantity ${state.targetValue}.`;
+        state.feedback = state.objectiveHint;
+        state.feedbackTimer = 3;
+        state.pendingRoundStart = 0;
+        state.celebrationBurstQueue.length = 0;
+        state.roundSummary = null;
+        state.mode = "playing";
+        state.paused = false;
+        pauseBtn.textContent = "Pause";
+        seedBalloons();
+        updateHud();
+      }
+
+      function startGame() {
+        unlockAudio();
+        state.round = 0;
+        state.score = 0;
+        state.bestCombo = 0;
+        state.timer = state.roundDuration > 0 ? state.roundDuration : Infinity;
+        state.highScoreShown = false;
+        state.backgroundThemeOffset = randInt(0, ROUND_BACKGROUNDS.length - 1);
+        state.backgroundThemeIndex = state.backgroundThemeOffset;
+        state.particles.length = 0;
+        state.celebration.length = 0;
+        state.pendingRoundStart = 0;
+        state.celebrationBurstQueue.length = 0;
+        state.celebrationBurstTimer = 0;
+        state.celebrationFireworkTimer = 0;
+        state.roundSummary = null;
+        pauseBtn.textContent = "Pause";
+        startRound();
+      }
+
+      function togglePause() {
+        if (state.mode !== "playing") return;
+        state.paused = !state.paused;
+        pauseBtn.textContent = state.paused ? "Resume" : "Pause";
+        state.feedback = state.paused ? "Paused" : "Back to popping!";
+        state.feedbackTimer = 1.1;
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen?.();
+        } else {
+          document.exitFullscreen?.();
+        }
+      }
+
+      function spawnBurst(x, y, color) {
+        for (let i = 0; i < 18; i += 1) {
+          const speed = rand(60, 280);
+          const angle = rand(0, TAU);
+          const shapeRoll = Math.random();
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: rand(0.28, 0.64),
+            ttl: rand(0.28, 0.64),
+            size: rand(2.2, 6.4),
+            color: Math.random() < 0.6 ? color : palette[randInt(0, palette.length - 1)],
+            shape: shapeRoll < 0.5 ? "circle" : (shapeRoll < 0.78 ? "diamond" : "star"),
+            angle: rand(0, TAU),
+            spin: rand(-8, 8),
+          });
+        }
+      }
+
+      function spawnFireworkBurst(x, y, color, intensity = 1) {
+        const count = Math.round(34 * intensity);
+        for (let i = 0; i < count; i += 1) {
+          const speed = rand(120, 380) * intensity;
+          const angle = rand(0, TAU);
+          const shapeRoll = Math.random();
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - rand(40, 120),
+            life: rand(0.45, 1.05),
+            ttl: rand(0.45, 1.05),
+            size: rand(3, 8.5),
+            color: Math.random() < 0.45 ? color : palette[randInt(0, palette.length - 1)],
+            shape: shapeRoll < 0.45 ? "star" : (shapeRoll < 0.76 ? "circle" : "diamond"),
+            angle: rand(0, TAU),
+            spin: rand(-10, 10),
+          });
+        }
+      }
+
+      function beginRoundCelebration(roundBonus, unlockedHighScore) {
+        state.mode = "roundCelebrate";
+        state.pendingRoundStart = state.celebrationDuration;
+        state.celebrationBurstQueue = state.balloons.map((b) => ({
+          id: b.id,
+          x: b.x,
+          y: b.y,
+          color: b.color,
+        }));
+        for (let i = state.celebrationBurstQueue.length - 1; i > 0; i -= 1) {
+          const j = randInt(0, i);
+          const temp = state.celebrationBurstQueue[i];
+          state.celebrationBurstQueue[i] = state.celebrationBurstQueue[j];
+          state.celebrationBurstQueue[j] = temp;
+        }
+        state.celebrationBurstTimer = 0;
+        state.celebrationFireworkTimer = 0;
+        state.roundSummary = {
+          round: state.round,
+          score: state.score,
+          timeLabel: state.roundDuration > 0 ? `${formatRoundSeconds(state.timer)} left` : "Unlimited mode",
+          bonus: roundBonus,
+          highScore: unlockedHighScore,
+        };
+        state.feedback = unlockedHighScore ? "Round complete! New high score!" : "Round complete! Fireworks show!";
+        state.feedbackTimer = 1.6;
+        playRoundCelebrationFanfare();
+        if (state.celebrationBurstQueue.length === 0) {
+          spawnFireworkBurst(WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.42, palette[randInt(0, palette.length - 1)], 1.6);
+          playFireworkBlast();
+        }
+      }
+
+      function explodeNextCelebrationBalloon() {
+        const next = state.celebrationBurstQueue.shift();
+        if (!next) return;
+        const index = state.balloons.findIndex((b) => b.id === next.id);
+        if (index !== -1) state.balloons.splice(index, 1);
+        spawnFireworkBurst(next.x, next.y, next.color, 1.14);
+        playFireworkBlast();
+      }
+
+      function spawnCelebration(text) {
+        state.celebration.push({
+          text,
+          x: WORLD_WIDTH * 0.5 + rand(-120, 120),
+          y: WORLD_HEIGHT * 0.42 + rand(-20, 20),
+          vy: rand(-18, -34),
+          life: 0.9,
+          ttl: 0.9,
+        });
+      }
+
+      function resolveHit(balloonIndex) {
+        const balloon = state.balloons[balloonIndex];
+        if (!balloon) return;
+        const correct = balloon.value === state.targetValue;
+
+        state.balloons.splice(balloonIndex, 1);
+        spawnBurst(balloon.x, balloon.y, balloon.color);
+        playPop(correct);
+
+        if (correct) {
+          state.poppedTargets += 1;
+          state.combo += 1;
+          state.bestCombo = Math.max(state.bestCombo, state.combo);
+          const comboBonus = Math.min(24, state.combo * 2);
+          state.score += 10 + comboBonus;
+          state.feedback = `${praiseText[randInt(0, praiseText.length - 1)]} ${state.poppedTargets}/${state.targetCount}`;
+          state.feedbackTimer = 0.9;
+          const hasNewBest = updateBestScoreIfNeeded();
+          let unlockedHighScore = false;
+          if (hasNewBest && !state.highScoreShown) {
+            state.highScoreShown = true;
+            unlockedHighScore = true;
+          }
+          if (Math.random() > 0.45) spawnCelebration(praiseText[randInt(0, praiseText.length - 1)]);
+          if (state.poppedTargets >= state.targetCount) {
+            const roundBonus = 20 + state.round * 3;
+            state.score += roundBonus;
+            const beatBestAfterBonus = updateBestScoreIfNeeded();
+            if (beatBestAfterBonus && !state.highScoreShown) {
+              state.highScoreShown = true;
+              unlockedHighScore = true;
+            }
+            if (unlockedHighScore) spawnCelebration("New High Score!");
+            beginRoundCelebration(roundBonus, unlockedHighScore);
+          }
+        } else {
+          state.combo = 0;
+          state.score = Math.max(0, state.score - 4);
+          if (state.roundDuration > 0) {
+            state.timer = Math.max(0, state.timer - 1.1);
+          }
+          state.feedback = "Oops, wrong quantity. Try again.";
+          state.feedbackTimer = 1.2;
+        }
+      }
+
+      function canvasToWorld(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width / rect.width;
+        const sy = canvas.height / rect.height;
+        return {
+          x: (clientX - rect.left) * sx,
+          y: (clientY - rect.top) * sy,
+        };
+      }
+
+      function handleTap(x, y) {
+        unlockAudio();
+        if (state.mode === "menu") {
+          startGame();
+          return;
+        }
+        if (state.mode === "gameOver") {
+          startGame();
+          return;
+        }
+        if (state.mode !== "playing" || state.paused) return;
+
+        for (let i = state.balloons.length - 1; i >= 0; i -= 1) {
+          const b = state.balloons[i];
+          const dx = x - b.x;
+          const dy = y - b.y;
+          if ((dx * dx) + (dy * dy) <= b.r * b.r) {
+            resolveHit(i);
+            return;
+          }
+        }
+      }
+
+      function updateBalloons(dt) {
+        for (let i = state.balloons.length - 1; i >= 0; i -= 1) {
+          const b = state.balloons[i];
+          b.wobblePhase += b.wobble * dt;
+          b.x += (b.vx + Math.sin(b.wobblePhase) * 24) * dt;
+          b.y += (b.vy + Math.cos(b.wobblePhase * 1.3) * 12) * dt;
+
+          if (b.x < b.r) {
+            b.x = b.r;
+            b.vx = Math.abs(b.vx);
+          }
+          if (b.x > WORLD_WIDTH - b.r) {
+            b.x = WORLD_WIDTH - b.r;
+            b.vx = -Math.abs(b.vx);
+          }
+          if (b.y < b.r + 58) {
+            b.y = b.r + 58;
+            b.vy = Math.abs(b.vy);
+          }
+          if (b.y > WORLD_HEIGHT - b.r - 12) {
+            b.y = WORLD_HEIGHT - b.r - 12;
+            b.vy = -Math.abs(b.vy);
+          }
+        }
+
+        const requiredTargets = Math.max(0, state.targetCount - state.poppedTargets);
+        let currentTargets = state.balloons.reduce((count, b) => count + (b.value === state.targetValue ? 1 : 0), 0);
+        while (currentTargets < requiredTargets && state.balloons.length < MAX_BALLOONS) {
+          state.balloons.push(createBalloon(state.targetValue));
+          currentTargets += 1;
+        }
+        while (state.balloons.length < MAX_BALLOONS) {
+          let value = randInt(1, state.maxValue);
+          if (value === state.targetValue && state.maxValue > 1) {
+            value = randomNonTargetValue(state.targetValue, state.maxValue);
+          }
+          state.balloons.push(createBalloon(value));
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = state.particles.length - 1; i >= 0; i -= 1) {
+          const p = state.particles[i];
+          p.life -= dt;
+          if (p.life <= 0) {
+            state.particles.splice(i, 1);
+            continue;
+          }
+          p.vy += 420 * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.angle += (p.spin || 0) * dt;
+        }
+
+        for (let i = state.celebration.length - 1; i >= 0; i -= 1) {
+          const c = state.celebration[i];
+          c.life -= dt;
+          if (c.life <= 0) {
+            state.celebration.splice(i, 1);
+            continue;
+          }
+          c.y += c.vy * dt;
+        }
+      }
+
+      function update(dt) {
+        const safeDt = Math.min(0.05, dt);
+        state.phase += safeDt;
+
+        if (state.feedbackTimer > 0) {
+          state.feedbackTimer -= safeDt;
+        }
+
+        if (state.mode === "playing" && !state.paused) {
+          if (state.roundDuration > 0) {
+            state.timer -= safeDt;
+            if (state.timer <= 0) {
+              state.timer = 0;
+              state.mode = "gameOver";
+              state.feedback = "Time is up! Great effort!";
+              state.objectiveHint = "Press Start / Restart to play again.";
+            } else {
+              updateBalloons(safeDt);
+            }
+          } else {
+            updateBalloons(safeDt);
+          }
+        }
+
+        if (state.mode === "roundCelebrate") {
+          state.pendingRoundStart -= safeDt;
+          state.celebrationBurstTimer += safeDt;
+          state.celebrationFireworkTimer += safeDt;
+
+          while (state.celebrationBurstQueue.length > 0 && state.celebrationBurstTimer >= BALLOON_FIREWORK_INTERVAL) {
+            state.celebrationBurstTimer -= BALLOON_FIREWORK_INTERVAL;
+            explodeNextCelebrationBalloon();
+          }
+
+          while (state.celebrationFireworkTimer >= SKY_FIREWORK_INTERVAL) {
+            state.celebrationFireworkTimer -= SKY_FIREWORK_INTERVAL;
+            const fx = rand(140, WORLD_WIDTH - 140);
+            const fy = rand(130, WORLD_HEIGHT * 0.56);
+            spawnFireworkBurst(fx, fy, palette[randInt(0, palette.length - 1)], 1.05);
+            playFireworkBlast();
+          }
+
+          if (state.pendingRoundStart <= 0) {
+            state.balloons.length = 0;
+            startRound();
+          }
+        }
+
+        updateParticles(safeDt);
+        updateHud();
+      }
+
+      function drawThemeDecor(theme) {
+        const decor = theme.decor || "none";
+
+        if (decor === "kites") {
+          for (let i = 0; i < 4; i += 1) {
+            const x = 170 + i * 240 + Math.sin(state.phase * 0.7 + i) * 18;
+            const y = 120 + (i % 2) * 56 + Math.cos(state.phase * 0.8 + i) * 10;
+            const size = 20 + (i % 3) * 4;
+            ctx.fillStyle = theme.rainbow[i % theme.rainbow.length];
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x + size * 0.8, y);
+            ctx.lineTo(x, y + size);
+            ctx.lineTo(x - size * 0.8, y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "rgba(95, 92, 140, 0.45)";
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(x, y + size);
+            ctx.quadraticCurveTo(x + 22, y + size + 24, x - 12, y + size + 52);
+            ctx.stroke();
+          }
+        } else if (decor === "petals") {
+          ctx.save();
+          ctx.globalAlpha = 0.42;
+          for (let i = 0; i < 20; i += 1) {
+            const x = ((i * 90 + state.phase * (26 + (i % 4) * 3)) % (WORLD_WIDTH + 140)) - 70;
+            const y = 86 + (i % 5) * 72 + Math.sin(state.phase * 0.9 + i) * 18;
+            const r = 5 + (i % 3);
+            ctx.fillStyle = i % 2 === 0 ? "#ffd3ea" : "#fff2f8";
+            ctx.beginPath();
+            ctx.ellipse(x, y, r * 1.2, r * 0.8, state.phase * 0.7 + i, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        } else if (decor === "bubbles") {
+          ctx.save();
+          ctx.globalAlpha = 0.26;
+          for (let i = 0; i < 14; i += 1) {
+            const x = ((i * 110 + state.phase * 18) % (WORLD_WIDTH + 100)) - 50;
+            const y = WORLD_HEIGHT - 140 - ((state.phase * (30 + (i % 4) * 8) + i * 42) % 480);
+            const r = 10 + (i % 4) * 6;
+            ctx.fillStyle = i % 2 === 0 ? "#ffffff" : "#d9f8ff";
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        } else if (decor === "planets") {
+          const px = WORLD_WIDTH * 0.22;
+          const py = 132;
+          const pr = 38 + Math.sin(state.phase * 0.8) * 2;
+          ctx.fillStyle = "rgba(241, 218, 255, 0.35)";
+          ctx.beginPath();
+          ctx.arc(px, py, pr, 0, TAU);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(250, 237, 255, 0.55)";
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.ellipse(px, py + 1, pr * 1.5, pr * 0.52, state.phase * 0.08, 0, TAU);
+          ctx.stroke();
+
+          const px2 = WORLD_WIDTH * 0.72;
+          const py2 = 190;
+          const pr2 = 26 + Math.cos(state.phase * 1.1) * 2;
+          ctx.fillStyle = "rgba(181, 244, 255, 0.3)";
+          ctx.beginPath();
+          ctx.arc(px2, py2, pr2, 0, TAU);
+          ctx.fill();
+        } else if (decor === "aurora") {
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          for (let i = 0; i < 3; i += 1) {
+            ctx.strokeStyle = theme.rainbow[i * 2];
+            ctx.lineWidth = 16 - i * 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 70 + i * 34);
+            ctx.bezierCurveTo(
+              WORLD_WIDTH * 0.25,
+              20 + i * 24 + Math.sin(state.phase * 0.8 + i) * 20,
+              WORLD_WIDTH * 0.68,
+              130 + i * 24 + Math.cos(state.phase * 0.8 + i) * 16,
+              WORLD_WIDTH,
+              76 + i * 30
+            );
+            ctx.stroke();
+          }
+          ctx.restore();
+        } else if (decor === "stars") {
+          ctx.save();
+          ctx.globalAlpha = 0.3;
+          for (let i = 0; i < 28; i += 1) {
+            const x = ((i * 65 + state.phase * 4) % (WORLD_WIDTH + 40)) - 20;
+            const y = 56 + (i % 7) * 46;
+            const s = 2 + (i % 3);
+            ctx.fillStyle = i % 2 === 0 ? "#fff8d8" : "#f2e6ff";
+            ctx.fillRect(x - s, y, s * 2, 1.6);
+            ctx.fillRect(x, y - s, 1.6, s * 2);
+          }
+          ctx.restore();
+        } else if (decor === "fireflies") {
+          ctx.save();
+          for (let i = 0; i < 18; i += 1) {
+            const x = (i * 72 + state.phase * (12 + (i % 3))) % (WORLD_WIDTH + 40) - 20;
+            const y = 120 + (i % 6) * 64 + Math.sin(state.phase * 1.4 + i) * 16;
+            const glow = 4 + (i % 3) + Math.sin(state.phase * 3 + i) * 1.5;
+            const g = ctx.createRadialGradient(x, y, 0.2, x, y, glow * 2);
+            g.addColorStop(0, "rgba(255, 247, 153, 0.75)");
+            g.addColorStop(1, "rgba(255, 247, 153, 0)");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(x, y, glow * 2, 0, TAU);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawSky() {
+        const theme = ROUND_BACKGROUNDS[state.backgroundThemeIndex] || ROUND_BACKGROUNDS[0];
+        const grad = ctx.createLinearGradient(0, 0, 0, WORLD_HEIGHT);
+        grad.addColorStop(0, theme.skyTop);
+        grad.addColorStop(0.48, theme.skyMid);
+        grad.addColorStop(0.84, theme.skyLow);
+        grad.addColorStop(1, theme.skyBottom);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        const sunX = WORLD_WIDTH * (theme.sunXFactor || 0.86);
+        const sunY = theme.sunY || 106;
+        const sunRBase = theme.sunRadius || 58;
+        const sunR = sunRBase + Math.sin(state.phase * 1.4) * 3;
+        const sunGrad = ctx.createRadialGradient(sunX - 10, sunY - 10, 8, sunX, sunY, sunR);
+        sunGrad.addColorStop(0, theme.sunCore);
+        sunGrad.addColorStop(0.7, theme.sunMid);
+        sunGrad.addColorStop(1, theme.sunOuter);
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, sunR, 0, TAU);
+        ctx.fill();
+
+        if (theme.showRays !== false) {
+          ctx.save();
+          ctx.globalAlpha = theme.rayAlpha || 0.25;
+          const rayCount = theme.rayCount || 12;
+          for (let i = 0; i < rayCount; i += 1) {
+            const ang = (i / rayCount) * TAU + state.phase * 0.2;
+            const inner = sunR + 8;
+            const outer = sunR + 22 + Math.sin(state.phase * 1.8 + i) * 2;
+            ctx.strokeStyle = theme.rayColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(sunX + Math.cos(ang) * inner, sunY + Math.sin(ang) * inner);
+            ctx.lineTo(sunX + Math.cos(ang) * outer, sunY + Math.sin(ang) * outer);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        if (theme.showRainbow !== false) {
+          ctx.save();
+          const rainbow = theme.rainbow;
+          const rainbowX = WORLD_WIDTH * (theme.rainbowXFactor || 0.14);
+          const rainbowY = WORLD_HEIGHT + (theme.rainbowYOffset || 88);
+          const rainbowStart = theme.rainbowStart || Math.PI * 1.08;
+          const rainbowEnd = theme.rainbowEnd || Math.PI * 1.85;
+          const baseRadius = theme.rainbowRadius || 230;
+          const radiusStep = theme.rainbowStep || 13;
+          for (let i = 0; i < rainbow.length; i += 1) {
+            ctx.strokeStyle = rainbow[i];
+            ctx.globalAlpha = theme.rainbowAlpha || 0.28;
+            ctx.lineWidth = 13 - i;
+            ctx.beginPath();
+            ctx.arc(rainbowX, rainbowY, baseRadius + i * radiusStep, rainbowStart, rainbowEnd);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        ctx.fillStyle = theme.cloud;
+        const cloudCount = theme.cloudCount || 7;
+        const cloudSpeed = theme.cloudSpeed || 18;
+        for (let i = 0; i < cloudCount; i += 1) {
+          const x = ((state.phase * cloudSpeed + i * 210) % (WORLD_WIDTH + 220)) - 110;
+          const y = 90 + (i % 3) * 95 + Math.sin(state.phase * 0.6 + i) * 16;
+          ctx.beginPath();
+          ctx.ellipse(x, y, 72, 28, 0, 0, TAU);
+          ctx.ellipse(x + 40, y - 10, 58, 24, 0, 0, TAU);
+          ctx.ellipse(x - 38, y - 8, 52, 20, 0, 0, TAU);
+          ctx.fill();
+        }
+
+        drawThemeDecor(theme);
+
+        ctx.save();
+        ctx.globalAlpha = theme.sparkleAlpha || 0.32;
+        const sparkleCount = theme.sparkleCount || 18;
+        for (let i = 0; i < sparkleCount; i += 1) {
+          const tx = (i * 73 + state.phase * 12) % (WORLD_WIDTH + 40) - 20;
+          const ty = 70 + ((i % 5) * 28);
+          const sparkle = 2 + (i % 3);
+          ctx.fillStyle = i % 2 === 0 ? theme.sparkleA : theme.sparkleB;
+          ctx.fillRect(tx - sparkle, ty, sparkle * 2, 1.8);
+          ctx.fillRect(tx, ty - sparkle, 1.8, sparkle * 2);
+        }
+        ctx.restore();
+
+        const hillBack = ctx.createLinearGradient(0, WORLD_HEIGHT - 220, 0, WORLD_HEIGHT);
+        hillBack.addColorStop(0, theme.hillBackTop);
+        hillBack.addColorStop(1, theme.hillBackBottom);
+        ctx.fillStyle = hillBack;
+        ctx.beginPath();
+        ctx.moveTo(0, WORLD_HEIGHT);
+        ctx.quadraticCurveTo(WORLD_WIDTH * 0.2, WORLD_HEIGHT - 150, WORLD_WIDTH * 0.42, WORLD_HEIGHT - 88);
+        ctx.quadraticCurveTo(WORLD_WIDTH * 0.68, WORLD_HEIGHT - 46, WORLD_WIDTH, WORLD_HEIGHT - 112);
+        ctx.lineTo(WORLD_WIDTH, WORLD_HEIGHT);
+        ctx.closePath();
+        ctx.fill();
+
+        const hillFront = ctx.createLinearGradient(0, WORLD_HEIGHT - 150, 0, WORLD_HEIGHT);
+        hillFront.addColorStop(0, theme.hillFrontTop);
+        hillFront.addColorStop(1, theme.hillFrontBottom);
+        ctx.fillStyle = hillFront;
+        ctx.beginPath();
+        ctx.moveTo(0, WORLD_HEIGHT);
+        ctx.quadraticCurveTo(WORLD_WIDTH * 0.28, WORLD_HEIGHT - 94, WORLD_WIDTH * 0.56, WORLD_HEIGHT - 44);
+        ctx.quadraticCurveTo(WORLD_WIDTH * 0.76, WORLD_HEIGHT - 22, WORLD_WIDTH, WORLD_HEIGHT - 50);
+        ctx.lineTo(WORLD_WIDTH, WORLD_HEIGHT);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawString(x, y, r) {
+        ctx.strokeStyle = "rgba(88, 74, 56, 0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + r);
+        ctx.quadraticCurveTo(x + 10, y + r + 26, x - 4, y + r + 42);
+        ctx.stroke();
+      }
+
+      function drawStar(cx, cy, outerR, innerR, rotation) {
+        ctx.beginPath();
+        for (let i = 0; i < 5; i += 1) {
+          const outerAngle = rotation + i * (TAU / 5);
+          const innerAngle = outerAngle + TAU / 10;
+          const ox = cx + Math.cos(outerAngle) * outerR;
+          const oy = cy + Math.sin(outerAngle) * outerR;
+          const ix = cx + Math.cos(innerAngle) * innerR;
+          const iy = cy + Math.sin(innerAngle) * innerR;
+          if (i === 0) ctx.moveTo(ox, oy);
+          else ctx.lineTo(ox, oy);
+          ctx.lineTo(ix, iy);
+        }
+        ctx.closePath();
+      }
+
+      function drawHeart(cx, cy, size) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + size * 0.5);
+        ctx.bezierCurveTo(cx - size * 1.1, cy - size * 0.2, cx - size * 0.75, cy - size, cx, cy - size * 0.45);
+        ctx.bezierCurveTo(cx + size * 0.75, cy - size, cx + size * 1.1, cy - size * 0.2, cx, cy + size * 0.5);
+        ctx.closePath();
+      }
+
+      function drawDots(count, cx, cy, r) {
+        const cap = Math.min(12, count);
+        const columns = cap <= 10 ? 5 : 6;
+        const rows = 2;
+        const padX = r * 0.17;
+        const padY = r * 0.2;
+        const contentW = r * 1.42;
+        const contentH = r * 1.02;
+        const gapX = (contentW - padX * 2) / Math.max(1, columns - 1);
+        const gapY = (contentH - padY * 2) / Math.max(1, rows - 1);
+        const dotR = Math.max(4.3, r * 0.092);
+        const firstRowCount = Math.min(columns, cap);
+        const secondRowCount = Math.max(0, cap - firstRowCount);
+        const topY = cy - gapY * 0.5;
+
+        ctx.fillStyle = "#111111";
+        for (let i = 0; i < cap; i += 1) {
+          const row = i < columns ? 0 : 1;
+          const rowCount = row === 0 ? firstRowCount : secondRowCount;
+          const col = row === 0 ? i : i - columns;
+          const rowStartX = cx - ((Math.max(1, rowCount) - 1) * gapX) * 0.5;
+          ctx.beginPath();
+          ctx.arc(rowStartX + col * gapX, topY + row * gapY, dotR, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      function drawBalloon(balloon) {
+        const { x, y, r, color, sticker } = balloon;
+        const grad = ctx.createRadialGradient(x - r * 0.32, y - r * 0.42, r * 0.18, x, y, r * 1.1);
+        grad.addColorStop(0, "rgba(255,255,255,0.62)");
+        grad.addColorStop(0.14, color);
+        grad.addColorStop(0.78, color);
+        grad.addColorStop(1, "rgba(12,31,58,0.62)");
+
+        ctx.save();
+        ctx.shadowColor = "rgba(16,33,58,0.24)";
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * 0.98, r * 1.08, 0, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.36)";
+        ctx.lineWidth = Math.max(2, r * 0.07);
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * 0.98, r * 1.08, 0, 0, TAU);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(255,255,255,0.34)";
+        ctx.beginPath();
+        ctx.ellipse(x - r * 0.36, y - r * 0.36, r * 0.2, r * 0.24, 0.3, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.beginPath();
+        ctx.ellipse(x - r * 0.2, y - r * 0.16, r * 0.11, r * 0.13, 0.2, 0, TAU);
+        ctx.fill();
+
+        ctx.save();
+        ctx.globalAlpha = 0.26;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        const decoX = x + r * 0.24;
+        const decoY = y - r * 0.1;
+        if (sticker === "heart") {
+          drawHeart(decoX, decoY, r * 0.12);
+          ctx.fill();
+        } else {
+          drawStar(decoX, decoY, r * 0.15, r * 0.07, state.phase * 0.7);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        const labelGrad = ctx.createRadialGradient(x, y + 2, r * 0.08, x, y + 2, r * 0.56);
+        labelGrad.addColorStop(0, "rgba(255,255,255,0.32)");
+        labelGrad.addColorStop(1, "rgba(255,255,255,0.04)");
+        ctx.fillStyle = labelGrad;
+        ctx.beginPath();
+        ctx.ellipse(x, y + 2, r * 0.5, r * 0.43, 0, 0, TAU);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(16,33,58,0.28)";
+        ctx.beginPath();
+        ctx.moveTo(x - r * 0.12, y + r * 1.04);
+        ctx.lineTo(x + r * 0.12, y + r * 1.04);
+        ctx.lineTo(x, y + r * 1.18);
+        ctx.closePath();
+        ctx.fill();
+
+        drawString(x, y, r * 1.08);
+
+        if (balloon.representation === "dots") {
+          drawDots(balloon.value, x, y + 2, r * 0.64);
+        } else {
+          const valueText = String(balloon.value);
+          ctx.font = `900 ${Math.round(r * 0.82)}px \"Nunito\", \"Baloo 2\", sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = "rgba(10,28,50,0.24)";
+          ctx.shadowBlur = Math.max(4, r * 0.09);
+          ctx.shadowOffsetY = 1;
+          ctx.lineWidth = Math.max(2.1, r * 0.065);
+          ctx.strokeStyle = "rgba(255,255,255,0.9)";
+          ctx.strokeText(valueText, x, y + 3);
+          ctx.fillStyle = "#173f6b";
+          ctx.fillText(valueText, x, y + 3);
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+        }
+      }
+
+      function drawParticles() {
+        for (let i = 0; i < state.particles.length; i += 1) {
+          const p = state.particles[i];
+          const alpha = clamp(p.life / p.ttl, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = p.color;
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.angle || 0);
+          if (p.shape === "circle") {
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size * 0.55, 0, TAU);
+            ctx.fill();
+          } else if (p.shape === "star") {
+            drawStar(0, 0, p.size * 0.8, p.size * 0.38, p.angle || 0);
+            ctx.fill();
+          } else {
+            ctx.fillRect(-p.size * 0.5, -p.size * 0.5, p.size, p.size);
+          }
+          ctx.restore();
+        }
+        ctx.globalAlpha = 1;
+
+        for (let i = 0; i < state.celebration.length; i += 1) {
+          const c = state.celebration[i];
+          const alpha = clamp(c.life / c.ttl, 0, 1);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = "#fff";
+          ctx.font = "800 46px \"Baloo 2\", \"Nunito\", sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(c.text, c.x, c.y);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawHudOverlay() {
+        ctx.save();
+        ctx.fillStyle = "rgba(16,33,58,0.24)";
+        ctx.fillRect(0, 0, WORLD_WIDTH, 52);
+
+        ctx.fillStyle = "#fff";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.font = "800 26px \"Baloo 2\", \"Nunito\", sans-serif";
+        const left = 20;
+        ctx.fillText(`Pop quantity ${state.targetValue}`, left, 26);
+
+        ctx.textAlign = "center";
+        ctx.font = "800 22px \"Nunito\", sans-serif";
+        ctx.fillText(`Left: ${Math.max(0, state.targetCount - state.poppedTargets)} / ${state.targetCount}`, WORLD_WIDTH * 0.5, 26);
+
+        ctx.textAlign = "right";
+        ctx.fillText(`Combo x${state.combo}`, WORLD_WIDTH - 24, 26);
+        ctx.restore();
+
+        let bannerText = "";
+        let bannerAlpha = 0;
+        if (state.feedbackTimer > 0 && state.feedback) {
+          bannerText = state.feedback;
+          bannerAlpha = clamp(0.62 + Math.min(0.38, state.feedbackTimer * 0.28), 0.62, 1);
+        } else if (state.objectiveHint && state.mode === "playing") {
+          bannerText = state.objectiveHint;
+          bannerAlpha = 0.44;
+        }
+
+        if (bannerText) {
+          ctx.save();
+          ctx.globalAlpha = bannerAlpha;
+          ctx.fillStyle = "rgba(255,255,255,0.9)";
+          ctx.strokeStyle = "rgba(57,160,237,0.45)";
+          ctx.lineWidth = 3;
+          const w = 640;
+          const h = 64;
+          const x = (WORLD_WIDTH - w) / 2;
+          const y = WORLD_HEIGHT - 88;
+          roundRect(ctx, x, y, w, h, 20);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#16345a";
+          ctx.font = "800 32px \"Baloo 2\", \"Nunito\", sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(bannerText, WORLD_WIDTH * 0.5, y + h * 0.54);
+          ctx.restore();
+        }
+      }
+
+      function drawMenuCard() {
+        ctx.save();
+        const w = 860;
+        const h = 390;
+        const x = (WORLD_WIDTH - w) * 0.5;
+        const y = (WORLD_HEIGHT - h) * 0.5;
+
+        const card = ctx.createLinearGradient(x, y, x, y + h);
+        card.addColorStop(0, "rgba(255,255,255,0.95)");
+        card.addColorStop(1, "rgba(243,251,255,0.96)");
+        ctx.fillStyle = card;
+        ctx.strokeStyle = "rgba(126, 174, 230, 0.66)";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x, y, w, h, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#18345a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "800 70px \"Baloo 2\", \"Nunito\", sans-serif";
+        ctx.fillText("Balloon Pop Quantities", WORLD_WIDTH * 0.5, y + 84);
+
+        ctx.font = "800 34px \"Nunito\", sans-serif";
+        ctx.fillText("Pop every balloon matching the target quantity.", WORLD_WIDTH * 0.5, y + 154);
+
+        ctx.font = "700 30px \"Nunito\", sans-serif";
+        ctx.fillText("Tap or click balloons. Adjust settings below, then press Start.", WORLD_WIDTH * 0.5, y + 214);
+
+        ctx.font = "800 30px \"Baloo 2\", \"Nunito\", sans-serif";
+        ctx.fillStyle = "#1d5ca1";
+        ctx.fillText(`Current target range: 1-${state.maxValue}`, WORLD_WIDTH * 0.5, y + 274);
+        ctx.fillText(`Display mode: ${state.representation === "mixed" ? "Mixed" : state.representation === "dots" ? "Dots" : "Numbers"}`, WORLD_WIDTH * 0.5, y + 312);
+
+        ctx.fillStyle = "#25a55f";
+        ctx.fillText("Teacher tip: Pair students for turn-taking and strategy talk.", WORLD_WIDTH * 0.5, y + 350);
+        ctx.restore();
+      }
+
+      function drawGameOver() {
+        ctx.save();
+        ctx.fillStyle = "rgba(6, 16, 29, 0.42)";
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(255,255,255,0.7)";
+        ctx.lineWidth = 3;
+        const w = 560;
+        const h = 300;
+        const x = (WORLD_WIDTH - w) * 0.5;
+        const y = (WORLD_HEIGHT - h) * 0.5;
+        roundRect(ctx, x, y, w, h, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#18345a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "800 64px \"Baloo 2\", \"Nunito\", sans-serif";
+        ctx.fillText("Nice Try!", WORLD_WIDTH * 0.5, y + 64);
+
+        ctx.font = "800 34px \"Nunito\", sans-serif";
+        ctx.fillText(`Final score: ${state.score}`, WORLD_WIDTH * 0.5, y + 124);
+        ctx.fillText(`Best combo: x${state.bestCombo}`, WORLD_WIDTH * 0.5, y + 168);
+
+        ctx.font = "700 28px \"Nunito\", sans-serif";
+        ctx.fillStyle = "#2d5a95";
+        ctx.fillText("Press Start or tap the canvas to play again.", WORLD_WIDTH * 0.5, y + 228);
+        ctx.restore();
+      }
+
+      function drawRoundCelebrationOverlay() {
+        if (!state.roundSummary) return;
+        const progress = 1 - clamp(state.pendingRoundStart / state.celebrationDuration, 0, 1);
+        const pulse = 0.5 + Math.sin(state.phase * 9.5) * 0.5;
+
+        ctx.save();
+        const wash = ctx.createRadialGradient(
+          WORLD_WIDTH * 0.5,
+          WORLD_HEIGHT * 0.45,
+          60,
+          WORLD_WIDTH * 0.5,
+          WORLD_HEIGHT * 0.45,
+          WORLD_WIDTH * 0.58
+        );
+        wash.addColorStop(0, `rgba(255, 255, 255, ${0.2 + pulse * 0.12})`);
+        wash.addColorStop(1, "rgba(17, 33, 60, 0.45)");
+        ctx.fillStyle = wash;
+        ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+        for (let i = 0; i < 8; i += 1) {
+          const angle = progress * TAU + (i / 8) * TAU;
+          const rx = WORLD_WIDTH * 0.5 + Math.cos(angle) * (190 + i * 18);
+          const ry = WORLD_HEIGHT * 0.44 + Math.sin(angle * 1.2) * (86 + i * 12);
+          ctx.globalAlpha = 0.22 + (i % 3) * 0.06;
+          ctx.fillStyle = palette[i % palette.length];
+          ctx.beginPath();
+          ctx.arc(rx, ry, 12 + (i % 4) * 7, 0, TAU);
+          ctx.fill();
+        }
+
+        const panelW = 780;
+        const panelH = 302;
+        const panelX = (WORLD_WIDTH - panelW) * 0.5;
+        const panelY = WORLD_HEIGHT * 0.5 - panelH * 0.5;
+        const panelGrad = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
+        panelGrad.addColorStop(0, "rgba(255,255,255,0.95)");
+        panelGrad.addColorStop(0.5, "rgba(246,251,255,0.96)");
+        panelGrad.addColorStop(1, "rgba(255,242,250,0.96)");
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = panelGrad;
+        ctx.strokeStyle = "rgba(102, 164, 255, 0.62)";
+        ctx.lineWidth = 4;
+        roundRect(ctx, panelX, panelY, panelW, panelH, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = "#1a4580";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "800 62px \"Baloo 2\", \"Nunito\", sans-serif";
+        ctx.fillText(`Round ${state.roundSummary.round} Complete!`, WORLD_WIDTH * 0.5, panelY + 72);
+
+        ctx.font = "800 40px \"Nunito\", sans-serif";
+        ctx.fillStyle = "#0f3a67";
+        ctx.fillText(`Score: ${state.roundSummary.score}`, WORLD_WIDTH * 0.5, panelY + 142);
+        ctx.fillText(`Time: ${state.roundSummary.timeLabel}`, WORLD_WIDTH * 0.5, panelY + 188);
+        ctx.fillStyle = "#d26a00";
+        ctx.fillText(`Bonus: +${state.roundSummary.bonus}`, WORLD_WIDTH * 0.5, panelY + 234);
+
+        if (state.roundSummary.highScore) {
+          ctx.fillStyle = "#ff4f87";
+          ctx.font = "800 46px \"Baloo 2\", \"Nunito\", sans-serif";
+          ctx.fillText("NEW HIGH SCORE!", WORLD_WIDTH * 0.5, panelY + 276);
+        } else {
+          ctx.fillStyle = "#267a4c";
+          ctx.font = "800 34px \"Baloo 2\", \"Nunito\", sans-serif";
+          ctx.fillText("Amazing effort! Keep popping!", WORLD_WIDTH * 0.5, panelY + 274);
+        }
+        ctx.restore();
+      }
+
+      function roundRect(context, x, y, w, h, r) {
+        const radius = Math.min(r, w / 2, h / 2);
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + w - radius, y);
+        context.quadraticCurveTo(x + w, y, x + w, y + radius);
+        context.lineTo(x + w, y + h - radius);
+        context.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        context.lineTo(x + radius, y + h);
+        context.quadraticCurveTo(x, y + h, x, y + h - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+      }
+
+      function render() {
+        drawSky();
+
+        for (let i = 0; i < state.balloons.length; i += 1) {
+          drawBalloon(state.balloons[i]);
+        }
+
+        drawParticles();
+        drawHudOverlay();
+
+        if (state.mode === "menu") {
+          drawMenuCard();
+        }
+
+        if (state.mode === "roundCelebrate") {
+          drawRoundCelebrationOverlay();
+        }
+
+        if (state.mode === "gameOver") {
+          drawGameOver();
+        }
+
+        if (state.paused && state.mode === "playing") {
+          ctx.save();
+          ctx.fillStyle = "rgba(10, 24, 44, 0.34)";
+          ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+          ctx.fillStyle = "#fff";
+          ctx.font = "800 64px \"Baloo 2\", \"Nunito\", sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Paused", WORLD_WIDTH * 0.5, WORLD_HEIGHT * 0.5);
+          ctx.restore();
+        }
+      }
+
+      let rafId = null;
+      let lastTs = performance.now();
+
+      function frame(ts) {
+        const delta = (ts - lastTs) / 1000;
+        lastTs = ts;
+        update(delta);
+        render();
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function resizeCanvasDisplay() {
+        const rect = canvas.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        if (canvas.width !== WORLD_WIDTH || canvas.height !== WORLD_HEIGHT) {
+          canvas.width = WORLD_WIDTH;
+          canvas.height = WORLD_HEIGHT;
+        }
+      }
+
+      function onPointerDown(event) {
+        event.preventDefault();
+        const world = canvasToWorld(event.clientX, event.clientY);
+        pointer.x = world.x;
+        pointer.y = world.y;
+        handleTap(world.x, world.y);
+      }
+
+      startBtn.addEventListener("click", startGame);
+      pauseBtn.addEventListener("click", togglePause);
+      fullscreenBtn.addEventListener("click", toggleFullscreen);
+      muteBtn.addEventListener("click", () => {
+        unlockAudio();
+        setSoundEnabled(!state.soundEnabled);
+      });
+
+      rangeSelect.addEventListener("change", () => {
+        state.maxValue = Number(rangeSelect.value);
+        if (state.mode === "menu") render();
+      });
+
+      representationSelect.addEventListener("change", () => {
+        state.representation = representationSelect.value;
+        if (state.mode === "menu") render();
+      });
+
+      timeSelect.addEventListener("change", () => {
+        state.roundDuration = Number(timeSelect.value);
+        if (state.mode === "menu") {
+          state.timer = state.roundDuration > 0 ? state.roundDuration : Infinity;
+          updateHud();
+        }
+      });
+
+      canvas.addEventListener("pointerdown", onPointerDown, { passive: false });
+      canvas.addEventListener("pointermove", (event) => {
+        const world = canvasToWorld(event.clientX, event.clientY);
+        pointer.x = world.x;
+        pointer.y = world.y;
+      }, { passive: true });
+
+      window.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase();
+        if (key === "f") {
+          event.preventDefault();
+          toggleFullscreen();
+        }
+        if (key === "m") {
+          event.preventDefault();
+          unlockAudio();
+          setSoundEnabled(!state.soundEnabled);
+        }
+        if (key === "p") {
+          event.preventDefault();
+          togglePause();
+        }
+        if ((key === "enter" || key === " ") && (state.mode === "menu" || state.mode === "gameOver")) {
+          event.preventDefault();
+          startGame();
+        }
+      });
+
+      window.addEventListener("resize", resizeCanvasDisplay);
+
+      document.addEventListener("fullscreenchange", () => {
+        setTimeout(resizeCanvasDisplay, 30);
+      });
+
+      function renderGameToText() {
+        const visible = state.balloons.slice(0, 16).map((b) => ({
+          id: b.id,
+          x: Math.round(b.x),
+          y: Math.round(b.y),
+          r: Math.round(b.r),
+          value: b.value,
+          representation: b.representation,
+          isTarget: b.value === state.targetValue,
+        }));
+
+        return JSON.stringify({
+          coordinateSystem: "origin top-left; +x right; +y down; canvas 1280x720",
+          mode: state.mode,
+          paused: state.paused,
+          round: state.round,
+          backgroundThemeIndex: state.backgroundThemeIndex,
+          backgroundThemeName: (ROUND_BACKGROUNDS[state.backgroundThemeIndex] || ROUND_BACKGROUNDS[0]).name,
+          score: state.score,
+          bestScore: state.bestScore,
+          combo: state.combo,
+          bestCombo: state.bestCombo,
+          timer: Number.isFinite(state.timer) ? Number(state.timer.toFixed(2)) : null,
+          settings: {
+            maxValue: state.maxValue,
+            representation: state.representation,
+            roundDuration: state.roundDuration,
+            unlimited: state.roundDuration === 0,
+          },
+          objective: {
+            targetValue: state.targetValue,
+            targetCount: state.targetCount,
+            poppedTargets: state.poppedTargets,
+            remainingTargets: Math.max(0, state.targetCount - state.poppedTargets),
+          },
+          balloonsVisible: visible,
+          counts: {
+            totalBalloons: state.balloons.length,
+            visibleTargets: state.balloons.reduce((acc, b) => acc + (b.value === state.targetValue ? 1 : 0), 0),
+            particles: state.particles.length,
+            celebration: state.celebration.length,
+            celebrationQueue: state.celebrationBurstQueue.length,
+          },
+          feedback: state.feedback,
+          objectiveHint: state.objectiveHint,
+          roundSummary: state.roundSummary,
+          pendingRoundStart: Number(state.pendingRoundStart.toFixed(2)),
+          soundEnabled: state.soundEnabled,
+          pointer: { x: Math.round(pointer.x), y: Math.round(pointer.y) },
+        });
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = (ms) => {
+        const frames = Math.max(1, Math.round(ms / (1000 / 60)));
+        for (let i = 0; i < frames; i += 1) {
+          update(1 / 60);
+        }
+        render();
+      };
+
+      resizeCanvasDisplay();
+      updateHud();
+      render();
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
