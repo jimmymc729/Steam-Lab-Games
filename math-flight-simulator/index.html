@@ -37,6 +37,7 @@
       color: var(--ink);
       font-family: "Nunito", "Segoe UI", Tahoma, sans-serif;
       overflow: hidden;
+      overscroll-behavior: none;
     }
 
     .frame {
@@ -57,6 +58,7 @@
       height: 100%;
       display: block;
       image-rendering: auto;
+      touch-action: none;
     }
 
     .overlay {
@@ -70,12 +72,32 @@
       letter-spacing: 0.02em;
       pointer-events: none;
     }
+
+    @media (max-aspect-ratio: 1 / 1) {
+      body {
+        place-items: stretch;
+      }
+
+      .frame {
+        width: 100vw;
+        height: 100vh;
+        aspect-ratio: auto;
+        border-radius: 0;
+        border-width: 0;
+      }
+
+      .overlay {
+        inset: auto 10px 8px auto;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="frame">
     <canvas id="game" width="1280" height="720" aria-label="Math flight simulator canvas"></canvas>
-    <div class="overlay">Press <strong>Enter</strong> to launch, <strong>F</strong> fullscreen, <strong>M</strong> sound</div>
+    <div class="overlay">Press Enter or Tap to launch, F fullscreen, M sound</div>
   </div>
 
   <script>
@@ -98,6 +120,8 @@
     const FONT_TITLE = '"Baloo 2", "Nunito", sans-serif';
     const FONT_MATH = '"Atkinson Hyperlegible", "Nunito", sans-serif';
     const FONT_UI = '"Nunito", "Segoe UI", sans-serif';
+    const HAS_COARSE_POINTER = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false;
+    const HAS_TOUCH = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
 
     const state = {
       mode: "menu",
@@ -140,6 +164,15 @@
         levelButtons: [],
         negativeButton: null,
         startButton: null,
+      },
+      touch: {
+        enabled: HAS_COARSE_POINTER || HAS_TOUCH,
+        seenTouch: HAS_TOUCH,
+        joystickPointerId: null,
+        boostPointerId: null,
+        inputX: 0,
+        inputY: 0,
+        boost: false,
       },
       rewardPopups: [],
       praiseCursor: 0,
@@ -227,6 +260,113 @@
         x: (event.clientX - rect.left) * scaleX,
         y: (event.clientY - rect.top) * scaleY,
       };
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function touchControlsVisible() {
+      return state.touch.enabled || state.touch.seenTouch;
+    }
+
+    function touchControlLayout() {
+      return {
+        joystick: {
+          x: 124,
+          y: WORLD_HEIGHT - 110,
+          outerR: 78,
+          knobR: 33,
+        },
+        boost: {
+          x: WORLD_WIDTH - 122,
+          y: WORLD_HEIGHT - 112,
+          r: 58,
+        },
+      };
+    }
+
+    function resetTouchInput() {
+      state.touch.joystickPointerId = null;
+      state.touch.boostPointerId = null;
+      state.touch.inputX = 0;
+      state.touch.inputY = 0;
+      state.touch.boost = false;
+    }
+
+    function setJoystickFromPoint(x, y) {
+      const layout = touchControlLayout();
+      const dx = x - layout.joystick.x;
+      const dy = y - layout.joystick.y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const range = layout.joystick.outerR - layout.joystick.knobR * 0.5;
+      const limited = Math.min(dist, range);
+      const vx = (dx / dist) * limited;
+      const vy = (dy / dist) * limited;
+      state.touch.inputX = clamp(vx / range, -1, 1);
+      state.touch.inputY = clamp(vy / range, -1, 1);
+    }
+
+    function handleTouchPointerDown(event, pt) {
+      const touchLike = event.pointerType === "touch" || event.pointerType === "pen";
+      if (!touchLike) {
+        return false;
+      }
+      if (!touchControlsVisible()) {
+        return false;
+      }
+
+      const layout = touchControlLayout();
+      const joyDist = Math.hypot(pt.x - layout.joystick.x, pt.y - layout.joystick.y);
+      const boostDist = Math.hypot(pt.x - layout.boost.x, pt.y - layout.boost.y);
+      let handled = false;
+
+      if (joyDist <= layout.joystick.outerR * 1.35 && state.touch.joystickPointerId === null) {
+        state.touch.enabled = true;
+        state.touch.seenTouch = true;
+        state.touch.joystickPointerId = event.pointerId;
+        setJoystickFromPoint(pt.x, pt.y);
+        handled = true;
+      }
+
+      if (boostDist <= layout.boost.r * 1.25 && state.touch.boostPointerId === null) {
+        state.touch.enabled = true;
+        state.touch.seenTouch = true;
+        state.touch.boostPointerId = event.pointerId;
+        state.touch.boost = true;
+        handled = true;
+      }
+
+      return handled;
+    }
+
+    function handleTouchPointerMove(event, pt) {
+      let handled = false;
+      if (event.pointerId === state.touch.joystickPointerId) {
+        setJoystickFromPoint(pt.x, pt.y);
+        handled = true;
+      }
+      if (event.pointerId === state.touch.boostPointerId) {
+        state.touch.boost = true;
+        handled = true;
+      }
+      return handled;
+    }
+
+    function releaseTouchPointer(pointerId) {
+      let handled = false;
+      if (pointerId === state.touch.joystickPointerId) {
+        state.touch.joystickPointerId = null;
+        state.touch.inputX = 0;
+        state.touch.inputY = 0;
+        handled = true;
+      }
+      if (pointerId === state.touch.boostPointerId) {
+        state.touch.boostPointerId = null;
+        state.touch.boost = false;
+        handled = true;
+      }
+      return handled;
     }
 
     function drawMenuButton(rect, label, selected = false) {
@@ -481,12 +621,14 @@
         || state.keys.has("a")
         || state.keys.has("s")
         || state.keys.has("d")
+        || Math.abs(state.touch.inputX) > 0.08
+        || Math.abs(state.touch.inputY) > 0.08
       );
 
       if (state.mode === "playing" && directionalPressed) {
         const speedNorm = Math.min(1, Math.hypot(state.player.vx, state.player.vy) / 560);
         const forwardNorm = Math.max(0, state.player.vx) / 560;
-        afterburner = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
+        afterburner = (state.keys.has("shift") || state.keys.has(" ") || state.touch.boost) && state.player.fuel > 8;
         targetThrottle = 0.32 + speedNorm * 0.42 + forwardNorm * 0.14 + (afterburner ? 0.18 : 0);
         if (state.brainBreakTimer > 0) {
           targetThrottle += 0.02;
@@ -641,6 +783,7 @@
       state.brainBreakTimer = 0;
       state.brainBreakNextWave = 0;
       state.brainBreakWavesRemaining = 0;
+      resetTouchInput();
       state.rewardPopups = [];
       state.praiseCursor = 0;
 
@@ -1024,9 +1167,11 @@
       const down = state.keys.has("arrowdown") || state.keys.has("s");
       const left = state.keys.has("arrowleft") || state.keys.has("a");
       const right = state.keys.has("arrowright") || state.keys.has("d");
-      const boosting = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
-      const inputX = (right ? 1 : 0) - (left ? 1 : 0);
-      const inputY = (down ? 1 : 0) - (up ? 1 : 0);
+      const keyInputX = (right ? 1 : 0) - (left ? 1 : 0);
+      const keyInputY = (down ? 1 : 0) - (up ? 1 : 0);
+      const inputX = clamp(keyInputX + state.touch.inputX, -1, 1);
+      const inputY = clamp(keyInputY + state.touch.inputY, -1, 1);
+      const boosting = (state.keys.has("shift") || state.keys.has(" ") || state.touch.boost) && state.player.fuel > 8;
 
       const moveSpeed = boosting ? boostSpeed : baseSpeed;
       const targetVx = inputX * moveSpeed + (boosting ? 95 : 0);
@@ -1349,7 +1494,7 @@
 
     function drawPlayer() {
       const tilt = state.player.vy * 0.002;
-      const boosting = (state.keys.has("shift") || state.keys.has(" ")) && state.player.fuel > 8;
+      const boosting = (state.keys.has("shift") || state.keys.has(" ") || state.touch.boost) && state.player.fuel > 8;
       ctx.save();
       ctx.translate(state.player.x, state.player.y);
       ctx.rotate(tilt);
@@ -1526,7 +1671,7 @@
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
         ctx.font = `800 25px ${FONT_UI}`;
-        ctx.fillText("Pass the equation gate, then colorful answer capsules appear", WORLD_WIDTH / 2, promptY - 88);
+        ctx.fillText("Choose the correct answer", WORLD_WIDTH / 2, promptY - 88);
         ctx.restore();
         return;
       }
@@ -1743,6 +1888,7 @@
       ctx.fillStyle = "#e7f7ff";
       ctx.fillText("Controls: Arrow keys or WASD to steer, Shift/Space to boost", WORLD_WIDTH / 2, 300);
       ctx.fillText("After each answer, enjoy a fuel-up brain break before the next problem", WORLD_WIDTH / 2, 332);
+      ctx.fillText("On iPad/mobile: drag the left joystick and hold BOOST on the right", WORLD_WIDTH / 2, 356);
 
       ctx.fillStyle = "#d6ecff";
       ctx.font = `800 24px ${FONT_TITLE}`;
@@ -1799,7 +1945,7 @@
       ctx.fill();
       ctx.fillStyle = "#0e2d50";
       ctx.font = `800 30px ${FONT_TITLE}`;
-      ctx.fillText("Press Enter To Launch", WORLD_WIDTH / 2, 607);
+      ctx.fillText("Press Enter Or Tap To Launch", WORLD_WIDTH / 2, 607);
       startButton = { x: WORLD_WIDTH / 2 - 210, y: 580, w: 420, h: 42 };
 
       ctx.font = `700 18px ${FONT_UI}`;
@@ -1844,7 +1990,7 @@
       ctx.fill();
       ctx.fillStyle = "#0f2e51";
       ctx.font = `800 34px ${FONT_TITLE}`;
-      ctx.fillText("Press Enter To Play Again", WORLD_WIDTH / 2, 537);
+      ctx.fillText("Press Enter Or Tap To Play Again", WORLD_WIDTH / 2, 537);
       ctx.restore();
     }
 
@@ -1862,6 +2008,59 @@
       ctx.fillText("Paused", WORLD_WIDTH / 2, WORLD_HEIGHT / 2 - 18);
       ctx.font = `700 24px ${FONT_UI}`;
       ctx.fillText("Press P to continue your flight", WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 36);
+      ctx.restore();
+    }
+
+    function drawTouchControls() {
+      if (!touchControlsVisible() || state.mode !== "playing") {
+        return;
+      }
+
+      const layout = touchControlLayout();
+      const joyRange = layout.joystick.outerR - layout.joystick.knobR * 0.5;
+      const knobX = layout.joystick.x + state.touch.inputX * joyRange;
+      const knobY = layout.joystick.y + state.touch.inputY * joyRange;
+      const boostOn = state.touch.boost && state.player.fuel > 8;
+
+      ctx.save();
+      ctx.globalAlpha = 0.88;
+
+      ctx.fillStyle = "rgba(8, 29, 58, 0.34)";
+      ctx.beginPath();
+      ctx.arc(layout.joystick.x, layout.joystick.y, layout.joystick.outerR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(193, 235, 255, 0.72)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.beginPath();
+      ctx.arc(knobX, knobY, layout.joystick.knobR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      const boostGrad = ctx.createRadialGradient(layout.boost.x - 12, layout.boost.y - 12, 8, layout.boost.x, layout.boost.y, layout.boost.r);
+      boostGrad.addColorStop(0, boostOn ? "rgba(255, 255, 170, 0.95)" : "rgba(212, 240, 255, 0.9)");
+      boostGrad.addColorStop(1, boostOn ? "rgba(255, 130, 40, 0.92)" : "rgba(88, 176, 229, 0.82)");
+      ctx.fillStyle = boostGrad;
+      ctx.beginPath();
+      ctx.arc(layout.boost.x, layout.boost.y, layout.boost.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = boostOn ? "rgba(255, 246, 198, 0.95)" : "rgba(220, 245, 255, 0.8)";
+      ctx.lineWidth = boostOn ? 4 : 3;
+      ctx.stroke();
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#0f2f52";
+      ctx.font = `800 24px ${FONT_TITLE}`;
+      ctx.fillText("BOOST", layout.boost.x, layout.boost.y + 3);
+
+      ctx.fillStyle = "rgba(239, 251, 255, 0.84)";
+      ctx.font = `700 16px ${FONT_UI}`;
+      ctx.fillText("Drag to steer", layout.joystick.x, layout.joystick.y + layout.joystick.outerR + 24);
       ctx.restore();
     }
 
@@ -1888,6 +2087,7 @@
       drawRewardPopups();
       drawPlayer();
       drawHud();
+      drawTouchControls();
       if (state.mode === "paused") {
         drawPausedOverlay();
       }
@@ -1974,18 +2174,49 @@
     canvas.addEventListener("pointerdown", (event) => {
       unlockAudio();
       const pt = canvasPointFromEvent(event);
+      if (state.mode === "gameover" || state.mode === "victory") {
+        resetPlayState();
+        event.preventDefault();
+        return;
+      }
       if (handleMenuPointer(pt.x, pt.y)) {
+        event.preventDefault();
+        return;
+      }
+      if (state.mode === "playing" && handleTouchPointerDown(event, pt)) {
+        canvas.setPointerCapture?.(event.pointerId);
         event.preventDefault();
       }
     });
 
     canvas.addEventListener("pointermove", (event) => {
       const pt = canvasPointFromEvent(event);
-      canvas.style.cursor = isMenuPointerTarget(pt.x, pt.y) ? "pointer" : "default";
+      if (handleTouchPointerMove(event, pt)) {
+        event.preventDefault();
+        return;
+      }
+      canvas.style.cursor = state.mode === "menu" && isMenuPointerTarget(pt.x, pt.y) ? "pointer" : "default";
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      if (releaseTouchPointer(event.pointerId)) {
+        event.preventDefault();
+      }
+    });
+
+    canvas.addEventListener("pointercancel", (event) => {
+      if (releaseTouchPointer(event.pointerId)) {
+        event.preventDefault();
+      }
+    });
+
+    canvas.addEventListener("lostpointercapture", (event) => {
+      releaseTouchPointer(event.pointerId);
     });
 
     window.addEventListener("blur", () => {
       state.keys.clear();
+      resetTouchInput();
       canvas.style.cursor = "default";
     });
 
@@ -2051,6 +2282,12 @@
         rewardPopups: state.rewardPopups.length,
         soundEnabled: audio.enabled,
         jetThrottle: audio.jet ? Number(audio.jet.smoothedThrottle.toFixed(2)) : 0,
+        touch: {
+          enabled: touchControlsVisible(),
+          inputX: Number(state.touch.inputX.toFixed(2)),
+          inputY: Number(state.touch.inputY.toFixed(2)),
+          boost: state.touch.boost,
+        },
         challenge,
         collectibles: state.collectibles.slice(0, 6).map((item) => ({
           type: item.type,
