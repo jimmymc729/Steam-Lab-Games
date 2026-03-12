@@ -14,6 +14,13 @@
     "tags": ["art", "science", "motion", "single-player"]
   },
   {
+    "slug": "spiro-spark-studio",
+    "title": "Spiro Spark Studio",
+    "path": "/spirograph-studio.html",
+    "status": "live",
+    "tags": ["math", "art", "geometry", "simulation", "single-player"]
+  },
+  {
     "slug": "buoyancy-sandbox",
     "title": "Buoyancy Sandbox",
     "path": "/buoyancy-sandbox.html",
