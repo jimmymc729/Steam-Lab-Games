@@ -610,7 +610,7 @@
       </div>
       <div class="stage-foot">
         <div class="progress-wrap"><div class="progress" id="progressBar"></div></div>
-        <p class="tip">Tips: Tap the canvas to start/pause. Press <strong>F</strong> for fullscreen. Print makes a clean worksheet-style page.</p>
+        <p class="tip">Tips: Tap the canvas to start/pause. Press <strong>F</strong> for fullscreen. Shape changes start a fresh layer, style changes continue live, and only <strong>Clear Canvas</strong> erases artwork.</p>
       </div>
     </section>
   </div>
@@ -747,16 +747,15 @@
         const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
         const width = Math.max(320, Math.round(rect.width * dpr));
         const height = Math.max(240, Math.round(rect.height * dpr));
-        if (ui.canvas.width === width && ui.canvas.height === height) {
-          return;
+        const sizeChanged = ui.canvas.width !== width || ui.canvas.height !== height;
+        const snapshot = sizeChanged && drawingLayer.width > 0 ? exportImageData() : null;
+
+        if (sizeChanged) {
+          ui.canvas.width = width;
+          ui.canvas.height = height;
+          drawingLayer.width = width;
+          drawingLayer.height = height;
         }
-
-        const snapshot = drawingLayer.width > 0 ? exportImageData() : null;
-
-        ui.canvas.width = width;
-        ui.canvas.height = height;
-        drawingLayer.width = width;
-        drawingLayer.height = height;
 
         centerX = width * 0.5;
         centerY = height * 0.5;
@@ -764,8 +763,7 @@
         state.lastCanvasSize.width = width;
         state.lastCanvasSize.height = height;
 
-        paintPaper(drawingCtx, width, height, state.paperColor);
-        if (snapshot) {
+        if (sizeChanged && snapshot) {
           const img = new Image();
           img.onload = function () {
             drawingCtx.drawImage(img, 0, 0, width, height);
@@ -934,7 +932,7 @@
       function drawScene() {
         const width = ui.canvas.width;
         const height = ui.canvas.height;
-        canvasCtx.clearRect(0, 0, width, height);
+        paintPaper(canvasCtx, width, height, state.paperColor);
         canvasCtx.drawImage(drawingLayer, 0, 0);
         drawGuides();
       }
@@ -960,14 +958,20 @@
         ui.guideToggle.classList.toggle("on", state.showGuides);
       }
 
-      function hardResetDrawing() {
+      function clearCanvasArt() {
+        drawingCtx.clearRect(0, 0, drawingLayer.width, drawingLayer.height);
+      }
+
+      function hardResetDrawing(clearCanvas) {
+        if (clearCanvas) {
+          clearCanvasArt();
+        }
         state.t = 0;
         state.segmentCount = 0;
         state.loopCount = 0;
         state.done = false;
         state.hueBase = (state.hueBase + 48) % 360;
         state.lastPoint = toCanvas(pointAt(0));
-        paintPaper(drawingCtx, drawingLayer.width, drawingLayer.height, state.paperColor);
         updateHud();
       }
 
@@ -975,7 +979,8 @@
         recalcSpan();
         setNumericField("gearRadius", state.gearRadius);
         resizeCanvas();
-        hardResetDrawing();
+        hardResetDrawing(false);
+        updateHud();
         drawScene();
       }
 
@@ -1075,8 +1080,20 @@
         state.running = true;
       }
 
+      function applyGeometryChange() {
+        setStateFromUi();
+        applySettingsAndReset();
+      }
+
+      function applyStyleChange() {
+        setStateFromUi();
+        resizeCanvas();
+        updateHud();
+        drawScene();
+      }
+
       function bindInputs() {
-        const numberInputs = [
+        const rangeInputs = [
           ["fixedRadius", 0],
           ["gearRadius", 0],
           ["penOffset", 0],
@@ -1084,38 +1101,41 @@
           ["drawSpeed", 1]
         ];
 
-        numberInputs.forEach(([id, precision]) => {
+        rangeInputs.forEach(([id, precision]) => {
           const input = ui[id];
           const out = ui[id + "Out"];
           input.addEventListener("input", function () {
             out.textContent = Number(input.value).toFixed(precision).replace(/\.0$/, "");
-            setStateFromUi();
-            applySettingsAndReset();
           });
         });
 
-        ["curveType", "colorMode", "paletteName", "penColor", "paperColor"].forEach((id) => {
-          ui[id].addEventListener("input", function () {
-            setStateFromUi();
-            applySettingsAndReset();
+        ["fixedRadius", "gearRadius", "penOffset", "curveType"].forEach((id) => {
+          ui[id].addEventListener("change", function () {
+            applyGeometryChange();
+          });
+        });
+
+        ["lineWidth", "drawSpeed", "colorMode", "paletteName", "penColor", "paperColor"].forEach((id) => {
+          ui[id].addEventListener("change", function () {
+            applyStyleChange();
           });
         });
 
         ui.playPauseBtn.addEventListener("click", function () {
           if (state.done) {
-            hardResetDrawing();
+            hardResetDrawing(false);
           }
           state.running = !state.running;
           updateHud();
         });
 
         ui.restartBtn.addEventListener("click", function () {
-          hardResetDrawing();
+          hardResetDrawing(false);
           state.running = true;
         });
 
         ui.clearBtn.addEventListener("click", function () {
-          hardResetDrawing();
+          hardResetDrawing(true);
           state.running = false;
         });
 
@@ -1154,7 +1174,7 @@
 
         ui.canvas.addEventListener("pointerdown", function () {
           if (state.done) {
-            hardResetDrawing();
+            hardResetDrawing(false);
             state.running = true;
           } else {
             state.running = !state.running;
@@ -1167,7 +1187,7 @@
           if (key === " " || key === "enter") {
             event.preventDefault();
             if (state.done) {
-              hardResetDrawing();
+              hardResetDrawing(false);
               state.running = true;
             } else {
               state.running = !state.running;
@@ -1175,11 +1195,11 @@
             updateHud();
           }
           if (key === "r") {
-            hardResetDrawing();
+            hardResetDrawing(false);
             state.running = true;
           }
           if (key === "c") {
-            hardResetDrawing();
+            hardResetDrawing(true);
             state.running = false;
           }
           if (key === "f") {
