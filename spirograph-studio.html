@@ -1,0 +1,1300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Spiro Spark Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --sky: #ecf8ff;
+      --paper: #fffdf8;
+      --ink: #13223f;
+      --soft-ink: #40639a;
+      --panel: #ffffff;
+      --line: #c8dcf3;
+      --hot: #ff5f87;
+      --sun: #ffb23f;
+      --sea: #22a6f5;
+      --mint: #31c28d;
+      --grape: #6f62ff;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --shadow: 0 14px 40px rgba(19, 34, 63, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+    }
+
+    body {
+      font-family: "Nunito", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(34, 166, 245, 0.2), transparent 30%),
+        radial-gradient(circle at 85% 7%, rgba(255, 95, 135, 0.16), transparent 36%),
+        radial-gradient(circle at 60% 94%, rgba(255, 178, 63, 0.2), transparent 34%),
+        linear-gradient(180deg, #f0fbff 0%, #f7fcff 48%, #fffef9 100%);
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    .app {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(270px, 360px) 1fr;
+      gap: 16px;
+      padding: 14px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.92));
+      border: 1px solid rgba(113, 144, 192, 0.22);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .control-panel {
+      overflow: auto;
+      padding: 14px;
+      gap: 12px;
+    }
+
+    .title-wrap {
+      padding: 8px 8px 2px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Baloo 2", "Nunito", sans-serif;
+      font-size: clamp(1.5rem, 2.8vw, 2rem);
+      line-height: 1;
+      color: #0f3e73;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--soft-ink);
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .group {
+      border: 1px solid var(--line);
+      background: linear-gradient(160deg, rgba(247, 251, 255, 0.92), rgba(255, 252, 244, 0.74));
+      border-radius: var(--radius-md);
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .group h2 {
+      margin: 0;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #4d78a9;
+    }
+
+    .group-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #1d84e2;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .group-note {
+      margin: -2px 0 0;
+      color: #486694;
+      font-size: 0.86rem;
+      line-height: 1.3;
+    }
+
+    .field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .field label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #18406b;
+    }
+
+    .value-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #3b5c8c;
+    }
+
+    .value-row output {
+      min-width: 3ch;
+      text-align: right;
+      font-weight: 800;
+      color: #122f58;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      appearance: none;
+      background: linear-gradient(90deg, #b6dfff, #ffdae5);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #2f8de5;
+      box-shadow: 0 2px 8px rgba(16, 47, 87, 0.18);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #2f8de5;
+      box-shadow: 0 2px 8px rgba(16, 47, 87, 0.18);
+    }
+
+    .select,
+    .text-input {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid #99bde5;
+      background: #fff;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 0.97rem;
+      color: var(--ink);
+    }
+
+    .select:focus,
+    .text-input:focus {
+      outline: 2px solid rgba(34, 166, 245, 0.35);
+      border-color: #4f9de8;
+    }
+
+    .split-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn {
+      min-height: 46px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      font-family: "Nunito", "Segoe UI", sans-serif;
+      cursor: pointer;
+      color: #fff;
+      transition: transform 0.08s ease, filter 0.2s ease;
+      touch-action: manipulation;
+      padding: 10px 12px;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-main {
+      background: linear-gradient(135deg, #2ea8ff, #2074e4);
+    }
+
+    .btn-fun {
+      background: linear-gradient(135deg, #ff6f79, #ff4aa6);
+    }
+
+    .btn-calm {
+      background: linear-gradient(135deg, #6b8ec8, #5373a8);
+    }
+
+    .btn-sun {
+      background: linear-gradient(135deg, #ffcc52, #ff9c3d);
+      color: #2c2840;
+    }
+
+    .btn-mint {
+      background: linear-gradient(135deg, #29ca99, #0fa878);
+    }
+
+    .btn-primary-action {
+      min-height: 54px;
+      font-size: 1.08rem;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid #b7d3ef;
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: #f8fcff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #274c79;
+    }
+
+    .switch {
+      position: relative;
+      width: 62px;
+      height: 34px;
+      border-radius: 999px;
+      background: #bbcee5;
+      cursor: pointer;
+      border: none;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      top: 4px;
+      left: 4px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.22s ease;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .switch.on {
+      background: #3bb1ff;
+    }
+
+    .switch.on::after {
+      transform: translateX(28px);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 0;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .stage-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 4px;
+      color: #2d4b76;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.87rem;
+      font-weight: 800;
+      background: #e8f5ff;
+      border: 1px solid #b9dcfb;
+      color: #1d5689;
+    }
+
+    .status {
+      font-weight: 800;
+      font-size: 0.95rem;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      border-radius: 16px;
+      border: 2px solid #b7d1ea;
+      overflow: hidden;
+      min-height: 320px;
+      background: var(--paper);
+      touch-action: none;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      touch-action: none;
+    }
+
+    .stage-foot {
+      display: grid;
+      gap: 8px;
+    }
+
+    .progress-wrap {
+      height: 16px;
+      border-radius: 999px;
+      background: #dceefe;
+      overflow: hidden;
+      border: 1px solid #bedaf5;
+    }
+
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #28c38b, #1ea3f5, #7262ff);
+      transition: width 0.16s linear;
+    }
+
+    .tip {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #486694;
+      text-align: center;
+    }
+
+    .print-sheet {
+      display: none;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(320px, 52vh) 1fr;
+        padding: 10px;
+      }
+
+      .stage {
+        order: 1;
+      }
+
+      .control-panel {
+        order: 2;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        overflow-y: auto;
+      }
+
+      .app {
+        height: auto;
+        min-height: 100vh;
+        grid-template-rows: 54vh auto;
+      }
+
+      .split-2,
+      .preset-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      .app {
+        display: none !important;
+      }
+
+      .print-sheet {
+        display: block;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        color: #111;
+        font-family: "Nunito", "Segoe UI", sans-serif;
+      }
+
+      .print-sheet h1 {
+        font-size: 24px;
+        margin: 0 0 6px;
+      }
+
+      .print-meta {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+
+      .print-art {
+        width: min(900px, 100%);
+        border: 2px solid #111;
+        border-radius: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel control-panel">
+      <div class="title-wrap">
+        <h1>Spiro Spark Studio</h1>
+        <p class="subtitle">Make colorful math-art patterns. Tap big controls, hit print, and share with your class.</p>
+      </div>
+
+      <div class="group">
+        <div class="group-head">
+          <span class="step-badge">1</span>
+          <h2>Choose A Starting Pattern</h2>
+        </div>
+        <p class="group-note">Tap one to begin fast, or press Surprise for a random challenge.</p>
+        <button id="playPauseBtn" class="btn btn-main btn-primary-action">Start Drawing</button>
+        <div class="preset-grid">
+          <button class="btn btn-main preset" data-preset="flower">Flower Burst</button>
+          <button class="btn btn-fun preset" data-preset="star">Star Bloom</button>
+          <button class="btn btn-sun preset" data-preset="ribbon">Ribbon Wheel</button>
+          <button class="btn btn-mint preset" data-preset="atom">Orbit Wave</button>
+        </div>
+        <button id="surpriseBtn" class="btn btn-fun">Surprise Me</button>
+      </div>
+
+      <div class="group">
+        <div class="group-head">
+          <span class="step-badge">2</span>
+          <h2>Shape The Design</h2>
+        </div>
+        <p class="group-note">Use these three sliders to control the geometry of your spirograph.</p>
+        <div class="field">
+          <label for="curveType">Track Type</label>
+          <select id="curveType" class="select">
+            <option value="hypo">Inside Ring (Hypotrochoid)</option>
+            <option value="epi">Outside Ring (Epitrochoid)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="value-row"><label for="fixedRadius">Big Ring</label><output id="fixedRadiusOut">140</output></div>
+          <input id="fixedRadius" type="range" min="80" max="220" value="140" />
+        </div>
+        <div class="field">
+          <div class="value-row"><label for="gearRadius">Rolling Gear</label><output id="gearRadiusOut">63</output></div>
+          <input id="gearRadius" type="range" min="18" max="140" value="63" />
+        </div>
+        <div class="field">
+          <div class="value-row"><label for="penOffset">Pen Offset</label><output id="penOffsetOut">72</output></div>
+          <input id="penOffset" type="range" min="4" max="180" value="72" />
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-head">
+          <span class="step-badge">3</span>
+          <h2>Pick Colors And Speed</h2>
+        </div>
+        <p class="group-note">Change style settings to make each design look totally different.</p>
+        <div class="field">
+          <div class="value-row"><label for="lineWidth">Pen Size</label><output id="lineWidthOut">3</output></div>
+          <input id="lineWidth" type="range" min="1" max="10" value="3" />
+        </div>
+        <div class="field">
+          <div class="value-row"><label for="drawSpeed">Draw Speed</label><output id="drawSpeedOut">2.4</output></div>
+          <input id="drawSpeed" type="range" min="0.5" max="6" value="2.4" step="0.1" />
+        </div>
+        <div class="split-2">
+          <div class="field">
+            <label for="colorMode">Color Mode</label>
+            <select id="colorMode" class="select">
+              <option value="single">Single Color</option>
+              <option value="rainbow">Rainbow Trail</option>
+              <option value="cycle">Palette Cycle</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="penColor">Pen Color</label>
+            <input id="penColor" type="color" class="select" value="#ff4f8e" />
+          </div>
+        </div>
+        <div class="split-2">
+          <div class="field">
+            <label for="paperColor">Paper Color</label>
+            <input id="paperColor" type="color" class="select" value="#fffdf8" />
+          </div>
+          <div class="field">
+            <label for="paletteName">Palette</label>
+            <select id="paletteName" class="select">
+              <option value="classroom">Classroom Pop</option>
+              <option value="ocean">Ocean Splash</option>
+              <option value="sunset">Sunset Party</option>
+              <option value="forest">Forest Candy</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-head">
+          <span class="step-badge">4</span>
+          <h2>Draw Controls</h2>
+        </div>
+        <p class="group-note">Use these during drawing to reset, clear, or go fullscreen on boards.</p>
+        <div class="split-2">
+          <button id="restartBtn" class="btn btn-calm">Restart Trace</button>
+          <button id="clearBtn" class="btn btn-calm">Clear Canvas</button>
+        </div>
+        <div class="split-2">
+          <button id="fullscreenBtn" class="btn btn-calm">Fullscreen</button>
+          <button id="downloadBtn" class="btn btn-mint">Download PNG</button>
+        </div>
+        <div class="toggle-row">
+          Show moving guides
+          <button id="guideToggle" class="switch on" type="button" aria-label="Toggle moving guides"></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-head">
+          <span class="step-badge">5</span>
+          <h2>Save And Print</h2>
+        </div>
+        <p class="group-note">Add a name so student work prints with a clear label.</p>
+        <div class="field">
+          <label for="authorInput">Student or Class Name</label>
+          <input id="authorInput" class="text-input" maxlength="50" placeholder="e.g., Room 12 - Team Geometry" />
+        </div>
+        <button id="printBtn" class="btn btn-sun">Print Design</button>
+      </div>
+    </section>
+
+    <section class="panel stage">
+      <div class="stage-head">
+        <div class="chip-row">
+          <span class="chip" id="formulaChip">Inside Ring</span>
+          <span class="chip" id="ratioChip">Ratio 140:63</span>
+          <span class="chip" id="loopsChip">Loop 0/0</span>
+        </div>
+        <div class="status" id="statusText">Ready to draw</div>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="spiroCanvas"></canvas>
+      </div>
+      <div class="stage-foot">
+        <div class="progress-wrap"><div class="progress" id="progressBar"></div></div>
+        <p class="tip">Tips: Tap the canvas to start/pause. Press <strong>F</strong> for fullscreen. Print makes a clean worksheet-style page.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="print-sheet" id="printSheet">
+    <h1>Spiro Spark Studio Design</h1>
+    <p class="print-meta"><strong id="printAuthor">Student Artist</strong> | <span id="printDate"></span></p>
+    <img id="printImage" class="print-art" alt="Spirograph Design" />
+  </section>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const TAU = Math.PI * 2;
+      const PALETTES = {
+        classroom: ["#ff5f87", "#ffb23f", "#39b8ff", "#34c38f", "#6d63ff"],
+        ocean: ["#0fa3ff", "#23d7f2", "#4ecdc4", "#1d77ff", "#005f99"],
+        sunset: ["#ff5e62", "#ff9966", "#ffd166", "#f94180", "#8338ec"],
+        forest: ["#2a9d8f", "#38b000", "#b7e4c7", "#52b788", "#40916c"]
+      };
+
+      const PRESETS = {
+        flower: { curveType: "hypo", fixedRadius: 150, gearRadius: 60, penOffset: 84, lineWidth: 3, drawSpeed: 2.4, colorMode: "cycle", paletteName: "classroom" },
+        star: { curveType: "hypo", fixedRadius: 180, gearRadius: 39, penOffset: 80, lineWidth: 2, drawSpeed: 3.4, colorMode: "rainbow", paletteName: "sunset" },
+        ribbon: { curveType: "epi", fixedRadius: 100, gearRadius: 42, penOffset: 76, lineWidth: 4, drawSpeed: 2.0, colorMode: "cycle", paletteName: "ocean" },
+        atom: { curveType: "epi", fixedRadius: 130, gearRadius: 74, penOffset: 46, lineWidth: 3, drawSpeed: 1.8, colorMode: "single", penColor: "#1f7ddf", paletteName: "forest" }
+      };
+
+      const state = {
+        curveType: "hypo",
+        fixedRadius: 140,
+        gearRadius: 63,
+        penOffset: 72,
+        lineWidth: 3,
+        drawSpeed: 2.4,
+        colorMode: "single",
+        penColor: "#ff4f8e",
+        paperColor: "#fffdf8",
+        paletteName: "classroom",
+        running: false,
+        done: false,
+        showGuides: true,
+        t: 0,
+        tMax: TAU,
+        segmentCount: 0,
+        loopCount: 0,
+        totalLoops: 1,
+        hueBase: 0,
+        lastPoint: null,
+        lastCanvasSize: { width: 0, height: 0 }
+      };
+
+      const ui = {
+        canvas: document.getElementById("spiroCanvas"),
+        curveType: document.getElementById("curveType"),
+        fixedRadius: document.getElementById("fixedRadius"),
+        gearRadius: document.getElementById("gearRadius"),
+        penOffset: document.getElementById("penOffset"),
+        lineWidth: document.getElementById("lineWidth"),
+        drawSpeed: document.getElementById("drawSpeed"),
+        colorMode: document.getElementById("colorMode"),
+        penColor: document.getElementById("penColor"),
+        paperColor: document.getElementById("paperColor"),
+        paletteName: document.getElementById("paletteName"),
+        playPauseBtn: document.getElementById("playPauseBtn"),
+        restartBtn: document.getElementById("restartBtn"),
+        clearBtn: document.getElementById("clearBtn"),
+        fullscreenBtn: document.getElementById("fullscreenBtn"),
+        printBtn: document.getElementById("printBtn"),
+        downloadBtn: document.getElementById("downloadBtn"),
+        surpriseBtn: document.getElementById("surpriseBtn"),
+        guideToggle: document.getElementById("guideToggle"),
+        statusText: document.getElementById("statusText"),
+        formulaChip: document.getElementById("formulaChip"),
+        ratioChip: document.getElementById("ratioChip"),
+        loopsChip: document.getElementById("loopsChip"),
+        progressBar: document.getElementById("progressBar"),
+        authorInput: document.getElementById("authorInput"),
+        printSheet: document.getElementById("printSheet"),
+        printImage: document.getElementById("printImage"),
+        printAuthor: document.getElementById("printAuthor"),
+        printDate: document.getElementById("printDate"),
+        fixedRadiusOut: document.getElementById("fixedRadiusOut"),
+        gearRadiusOut: document.getElementById("gearRadiusOut"),
+        penOffsetOut: document.getElementById("penOffsetOut"),
+        lineWidthOut: document.getElementById("lineWidthOut"),
+        drawSpeedOut: document.getElementById("drawSpeedOut")
+      };
+
+      const canvasCtx = ui.canvas.getContext("2d", { alpha: false });
+      const drawingLayer = document.createElement("canvas");
+      const drawingCtx = drawingLayer.getContext("2d");
+      let centerX = 0;
+      let centerY = 0;
+      let worldScale = 1;
+      let rafId = 0;
+      let lastTs = performance.now();
+
+      function gcd(a, b) {
+        let x = Math.round(Math.abs(a));
+        let y = Math.round(Math.abs(b));
+        while (y !== 0) {
+          const tmp = y;
+          y = x % y;
+          x = tmp;
+        }
+        return x || 1;
+      }
+
+      function recalcSpan() {
+        state.gearRadius = Math.min(state.gearRadius, state.fixedRadius - (state.curveType === "hypo" ? 2 : -1));
+        if (state.curveType === "hypo") {
+          state.gearRadius = Math.max(8, Math.min(state.gearRadius, state.fixedRadius - 2));
+        } else {
+          state.gearRadius = Math.max(8, state.gearRadius);
+        }
+
+        const g = gcd(state.fixedRadius, state.gearRadius);
+        state.totalLoops = Math.min(40, Math.max(1, Math.round(state.gearRadius / g)));
+        state.tMax = TAU * state.totalLoops;
+        state.loopCount = 0;
+      }
+
+      function worldExtents() {
+        if (state.curveType === "hypo") {
+          return Math.abs(state.fixedRadius - state.gearRadius) + state.penOffset + 10;
+        }
+        return state.fixedRadius + state.gearRadius + state.penOffset + 10;
+      }
+
+      function resizeCanvas() {
+        const rect = ui.canvas.getBoundingClientRect();
+        const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+        const width = Math.max(320, Math.round(rect.width * dpr));
+        const height = Math.max(240, Math.round(rect.height * dpr));
+        if (ui.canvas.width === width && ui.canvas.height === height) {
+          return;
+        }
+
+        const snapshot = drawingLayer.width > 0 ? exportImageData() : null;
+
+        ui.canvas.width = width;
+        ui.canvas.height = height;
+        drawingLayer.width = width;
+        drawingLayer.height = height;
+
+        centerX = width * 0.5;
+        centerY = height * 0.5;
+        worldScale = Math.min(width, height) * 0.42 / worldExtents();
+        state.lastCanvasSize.width = width;
+        state.lastCanvasSize.height = height;
+
+        paintPaper(drawingCtx, width, height, state.paperColor);
+        if (snapshot) {
+          const img = new Image();
+          img.onload = function () {
+            drawingCtx.drawImage(img, 0, 0, width, height);
+          };
+          img.src = snapshot;
+        }
+      }
+
+      function paintPaper(ctx, width, height, paperColor) {
+        ctx.save();
+        ctx.fillStyle = paperColor;
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = "#e9eef8";
+        ctx.lineWidth = 1;
+        for (let x = 18; x < width; x += 24) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+          ctx.stroke();
+        }
+        for (let y = 18; y < height; y += 24) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function toCanvas(point) {
+        return {
+          x: centerX + point.x * worldScale,
+          y: centerY - point.y * worldScale
+        };
+      }
+
+      function pointAt(t) {
+        const R = state.fixedRadius;
+        const r = state.gearRadius;
+        const d = state.penOffset;
+
+        if (state.curveType === "hypo") {
+          const x = (R - r) * Math.cos(t) + d * Math.cos(((R - r) / r) * t);
+          const y = (R - r) * Math.sin(t) - d * Math.sin(((R - r) / r) * t);
+          return { x, y };
+        }
+
+        const x = (R + r) * Math.cos(t) - d * Math.cos(((R + r) / r) * t);
+        const y = (R + r) * Math.sin(t) - d * Math.sin(((R + r) / r) * t);
+        return { x, y };
+      }
+
+      function gearStateAt(t) {
+        const R = state.fixedRadius;
+        const r = state.gearRadius;
+        if (state.curveType === "hypo") {
+          return {
+            center: {
+              x: (R - r) * Math.cos(t),
+              y: (R - r) * Math.sin(t)
+            },
+            radius: r
+          };
+        }
+
+        return {
+          center: {
+            x: (R + r) * Math.cos(t),
+            y: (R + r) * Math.sin(t)
+          },
+          radius: r
+        };
+      }
+
+      function colorForSegment() {
+        if (state.colorMode === "single") {
+          return state.penColor;
+        }
+        if (state.colorMode === "rainbow") {
+          const hue = (state.hueBase + state.segmentCount * 1.35) % 360;
+          return "hsl(" + hue.toFixed(1) + ", 86%, 52%)";
+        }
+
+        const palette = PALETTES[state.paletteName] || PALETTES.classroom;
+        const idx = Math.floor(state.segmentCount / 16) % palette.length;
+        return palette[idx];
+      }
+
+      function drawSegment(from, to) {
+        drawingCtx.save();
+        drawingCtx.lineCap = "round";
+        drawingCtx.lineJoin = "round";
+        drawingCtx.strokeStyle = colorForSegment();
+        drawingCtx.lineWidth = state.lineWidth * Math.max(1, worldScale / 6.5);
+        drawingCtx.beginPath();
+        drawingCtx.moveTo(from.x, from.y);
+        drawingCtx.lineTo(to.x, to.y);
+        drawingCtx.stroke();
+        drawingCtx.restore();
+      }
+
+      function stepDraw(dt) {
+        if (!state.running || state.done) {
+          return;
+        }
+
+        const steps = Math.max(1, Math.round(state.drawSpeed * 1.4));
+        const tStep = (0.02 + state.drawSpeed * 0.0032) * (dt * 60);
+
+        for (let i = 0; i < steps; i += 1) {
+          if (state.t >= state.tMax) {
+            state.running = false;
+            state.done = true;
+            state.t = state.tMax;
+            break;
+          }
+
+          const current = toCanvas(pointAt(state.t));
+          if (state.lastPoint) {
+            drawSegment(state.lastPoint, current);
+            state.segmentCount += 1;
+          }
+          state.lastPoint = current;
+          state.t = Math.min(state.t + tStep, state.tMax);
+          state.loopCount = Math.min(state.totalLoops, Math.floor((state.t / state.tMax) * state.totalLoops));
+        }
+      }
+
+      function drawGuides() {
+        if (!state.showGuides) {
+          return;
+        }
+
+        const tGuide = state.done ? state.tMax : state.t;
+        const penWorld = pointAt(tGuide);
+        const gear = gearStateAt(tGuide);
+
+        canvasCtx.save();
+        canvasCtx.lineWidth = Math.max(1.8, worldScale * 0.05);
+        canvasCtx.strokeStyle = "rgba(43, 95, 152, 0.28)";
+        canvasCtx.beginPath();
+        canvasCtx.arc(centerX, centerY, state.fixedRadius * worldScale, 0, TAU);
+        canvasCtx.stroke();
+
+        const gearCanvas = toCanvas(gear.center);
+        canvasCtx.strokeStyle = "rgba(254, 148, 66, 0.45)";
+        canvasCtx.beginPath();
+        canvasCtx.arc(gearCanvas.x, gearCanvas.y, gear.radius * worldScale, 0, TAU);
+        canvasCtx.stroke();
+
+        const penCanvas = toCanvas(penWorld);
+        canvasCtx.strokeStyle = "rgba(24, 64, 107, 0.35)";
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(gearCanvas.x, gearCanvas.y);
+        canvasCtx.lineTo(penCanvas.x, penCanvas.y);
+        canvasCtx.stroke();
+
+        canvasCtx.fillStyle = "rgba(255, 79, 142, 0.94)";
+        canvasCtx.beginPath();
+        canvasCtx.arc(penCanvas.x, penCanvas.y, Math.max(5, worldScale * 0.09), 0, TAU);
+        canvasCtx.fill();
+        canvasCtx.restore();
+      }
+
+      function drawScene() {
+        const width = ui.canvas.width;
+        const height = ui.canvas.height;
+        canvasCtx.clearRect(0, 0, width, height);
+        canvasCtx.drawImage(drawingLayer, 0, 0);
+        drawGuides();
+      }
+
+      function updateHud() {
+        const progress = state.tMax > 0 ? Math.min(1, state.t / state.tMax) : 0;
+        ui.progressBar.style.width = (progress * 100).toFixed(2) + "%";
+        ui.formulaChip.textContent = state.curveType === "hypo" ? "Inside Ring" : "Outside Ring";
+        ui.ratioChip.textContent = "Ratio " + state.fixedRadius + ":" + state.gearRadius;
+        ui.loopsChip.textContent = "Loop " + Math.max(0, state.loopCount) + "/" + state.totalLoops;
+
+        if (state.done) {
+          ui.statusText.textContent = "Complete! Print or download your design.";
+        } else if (state.running) {
+          ui.statusText.textContent = "Drawing... " + Math.round(progress * 100) + "%";
+        } else if (state.segmentCount > 0) {
+          ui.statusText.textContent = "Paused at " + Math.round(progress * 100) + "%";
+        } else {
+          ui.statusText.textContent = "Ready to draw";
+        }
+
+        ui.playPauseBtn.textContent = state.running ? "Pause Drawing" : "Start Drawing";
+        ui.guideToggle.classList.toggle("on", state.showGuides);
+      }
+
+      function hardResetDrawing() {
+        state.t = 0;
+        state.segmentCount = 0;
+        state.loopCount = 0;
+        state.done = false;
+        state.hueBase = (state.hueBase + 48) % 360;
+        state.lastPoint = toCanvas(pointAt(0));
+        paintPaper(drawingCtx, drawingLayer.width, drawingLayer.height, state.paperColor);
+        updateHud();
+      }
+
+      function applySettingsAndReset() {
+        recalcSpan();
+        setNumericField("gearRadius", state.gearRadius);
+        resizeCanvas();
+        hardResetDrawing();
+        drawScene();
+      }
+
+      function exportImageData() {
+        return drawingLayer.toDataURL("image/png");
+      }
+
+      function exportImageForPrint() {
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = drawingLayer.width;
+        exportCanvas.height = drawingLayer.height;
+        const ctx = exportCanvas.getContext("2d");
+        paintPaper(ctx, exportCanvas.width, exportCanvas.height, state.paperColor);
+        ctx.drawImage(drawingLayer, 0, 0);
+        return exportCanvas.toDataURL("image/png");
+      }
+
+      function setNumericField(id, value, precision) {
+        const input = ui[id];
+        const out = ui[id + "Out"];
+        input.value = String(value);
+        const decimals = typeof precision === "number" ? precision : 0;
+        out.textContent = Number(value).toFixed(decimals).replace(/\.0$/, "");
+      }
+
+      function setSelectValue(id, value) {
+        ui[id].value = value;
+      }
+
+      function setStateFromUi() {
+        state.curveType = ui.curveType.value;
+        state.fixedRadius = Number(ui.fixedRadius.value);
+        state.gearRadius = Number(ui.gearRadius.value);
+        state.penOffset = Number(ui.penOffset.value);
+        state.lineWidth = Number(ui.lineWidth.value);
+        state.drawSpeed = Number(ui.drawSpeed.value);
+        state.colorMode = ui.colorMode.value;
+        state.penColor = ui.penColor.value;
+        state.paperColor = ui.paperColor.value;
+        state.paletteName = ui.paletteName.value;
+      }
+
+      function applyPreset(name) {
+        const preset = PRESETS[name];
+        if (!preset) {
+          return;
+        }
+
+        if (preset.curveType) setSelectValue("curveType", preset.curveType);
+        if (preset.fixedRadius) setNumericField("fixedRadius", preset.fixedRadius);
+        if (preset.gearRadius) setNumericField("gearRadius", preset.gearRadius);
+        if (preset.penOffset) setNumericField("penOffset", preset.penOffset);
+        if (preset.lineWidth) setNumericField("lineWidth", preset.lineWidth);
+        if (preset.drawSpeed) setNumericField("drawSpeed", preset.drawSpeed, 1);
+        if (preset.colorMode) setSelectValue("colorMode", preset.colorMode);
+        if (preset.paletteName) setSelectValue("paletteName", preset.paletteName);
+        if (preset.penColor) ui.penColor.value = preset.penColor;
+
+        setStateFromUi();
+        applySettingsAndReset();
+      }
+
+      function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function randomHexColor() {
+        const value = Math.floor(Math.random() * 16777215);
+        return "#" + value.toString(16).padStart(6, "0");
+      }
+
+      function surpriseMe() {
+        const type = Math.random() > 0.5 ? "hypo" : "epi";
+        const fixed = randomInt(90, 210);
+        const gearMax = type === "hypo" ? Math.max(22, fixed - 6) : 140;
+        const gear = randomInt(20, gearMax);
+        const pen = randomInt(12, 170);
+        const width = randomInt(1, 6);
+        const speed = (Math.random() * 4.4 + 1.2).toFixed(1);
+        const modes = ["single", "rainbow", "cycle"];
+        const mode = modes[randomInt(0, modes.length - 1)];
+        const paletteNames = Object.keys(PALETTES);
+        const palette = paletteNames[randomInt(0, paletteNames.length - 1)];
+
+        setSelectValue("curveType", type);
+        setNumericField("fixedRadius", fixed);
+        setNumericField("gearRadius", gear);
+        setNumericField("penOffset", pen);
+        setNumericField("lineWidth", width);
+        setNumericField("drawSpeed", Number(speed), 1);
+        setSelectValue("colorMode", mode);
+        setSelectValue("paletteName", palette);
+        ui.penColor.value = randomHexColor();
+
+        setStateFromUi();
+        applySettingsAndReset();
+        state.running = true;
+      }
+
+      function bindInputs() {
+        const numberInputs = [
+          ["fixedRadius", 0],
+          ["gearRadius", 0],
+          ["penOffset", 0],
+          ["lineWidth", 0],
+          ["drawSpeed", 1]
+        ];
+
+        numberInputs.forEach(([id, precision]) => {
+          const input = ui[id];
+          const out = ui[id + "Out"];
+          input.addEventListener("input", function () {
+            out.textContent = Number(input.value).toFixed(precision).replace(/\.0$/, "");
+            setStateFromUi();
+            applySettingsAndReset();
+          });
+        });
+
+        ["curveType", "colorMode", "paletteName", "penColor", "paperColor"].forEach((id) => {
+          ui[id].addEventListener("input", function () {
+            setStateFromUi();
+            applySettingsAndReset();
+          });
+        });
+
+        ui.playPauseBtn.addEventListener("click", function () {
+          if (state.done) {
+            hardResetDrawing();
+          }
+          state.running = !state.running;
+          updateHud();
+        });
+
+        ui.restartBtn.addEventListener("click", function () {
+          hardResetDrawing();
+          state.running = true;
+        });
+
+        ui.clearBtn.addEventListener("click", function () {
+          hardResetDrawing();
+          state.running = false;
+        });
+
+        ui.surpriseBtn.addEventListener("click", surpriseMe);
+
+        ui.downloadBtn.addEventListener("click", function () {
+          const link = document.createElement("a");
+          const stamp = new Date().toISOString().slice(0, 10);
+          link.download = "spiro-spark-" + stamp + ".png";
+          link.href = exportImageForPrint();
+          link.click();
+        });
+
+        ui.printBtn.addEventListener("click", function () {
+          const author = ui.authorInput.value.trim() || "Student Artist";
+          ui.printAuthor.textContent = author;
+          ui.printDate.textContent = new Date().toLocaleDateString();
+          ui.printImage.src = exportImageForPrint();
+          window.print();
+        });
+
+        ui.guideToggle.addEventListener("click", function () {
+          state.showGuides = !state.showGuides;
+          drawScene();
+          updateHud();
+        });
+
+        ui.fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+        document.querySelectorAll(".preset").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            applyPreset(btn.dataset.preset);
+            state.running = true;
+          });
+        });
+
+        ui.canvas.addEventListener("pointerdown", function () {
+          if (state.done) {
+            hardResetDrawing();
+            state.running = true;
+          } else {
+            state.running = !state.running;
+          }
+          updateHud();
+        });
+
+        window.addEventListener("keydown", function (event) {
+          const key = event.key.toLowerCase();
+          if (key === " " || key === "enter") {
+            event.preventDefault();
+            if (state.done) {
+              hardResetDrawing();
+              state.running = true;
+            } else {
+              state.running = !state.running;
+            }
+            updateHud();
+          }
+          if (key === "r") {
+            hardResetDrawing();
+            state.running = true;
+          }
+          if (key === "c") {
+            hardResetDrawing();
+            state.running = false;
+          }
+          if (key === "f") {
+            toggleFullscreen();
+          }
+        });
+
+        window.addEventListener("resize", function () {
+          resizeCanvas();
+          drawScene();
+        });
+
+        document.addEventListener("fullscreenchange", function () {
+          setTimeout(function () {
+            resizeCanvas();
+            drawScene();
+          }, 70);
+        });
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (error) {
+          console.warn("Fullscreen not available", error);
+        }
+      }
+
+      function animate(ts) {
+        const dt = Math.min(0.05, (ts - lastTs) / 1000);
+        lastTs = ts;
+        stepDraw(dt);
+        drawScene();
+        updateHud();
+        rafId = window.requestAnimationFrame(animate);
+      }
+
+      function renderGameToText() {
+        const pen = pointAt(state.t);
+        const progress = state.tMax > 0 ? Math.min(1, state.t / state.tMax) : 0;
+        const payload = {
+          mode: state.running ? "drawing" : (state.done ? "complete" : "idle"),
+          coordinateSystem: "Origin at canvas center, +x right, +y up in world units before scaling to canvas pixels.",
+          canvas: {
+            width: state.lastCanvasSize.width,
+            height: state.lastCanvasSize.height,
+            scalePixelsPerWorldUnit: Number(worldScale.toFixed(4))
+          },
+          pattern: {
+            curveType: state.curveType,
+            fixedRadius: state.fixedRadius,
+            gearRadius: state.gearRadius,
+            penOffset: state.penOffset,
+            lineWidth: state.lineWidth,
+            drawSpeed: state.drawSpeed,
+            colorMode: state.colorMode,
+            paletteName: state.paletteName
+          },
+          progress: {
+            t: Number(state.t.toFixed(4)),
+            tMax: Number(state.tMax.toFixed(4)),
+            percentage: Number((progress * 100).toFixed(2)),
+            loops: { current: state.loopCount, total: state.totalLoops },
+            segmentCount: state.segmentCount
+          },
+          pen: {
+            x: Number(pen.x.toFixed(3)),
+            y: Number(pen.y.toFixed(3))
+          },
+          guidesVisible: state.showGuides
+        };
+        return JSON.stringify(payload);
+      }
+
+      function advanceTime(ms) {
+        const frameMs = 1000 / 60;
+        const steps = Math.max(1, Math.round(ms / frameMs));
+        for (let i = 0; i < steps; i += 1) {
+          stepDraw(1 / 60);
+        }
+        drawScene();
+        updateHud();
+      }
+
+      function initUiValues() {
+        setNumericField("fixedRadius", state.fixedRadius);
+        setNumericField("gearRadius", state.gearRadius);
+        setNumericField("penOffset", state.penOffset);
+        setNumericField("lineWidth", state.lineWidth);
+        setNumericField("drawSpeed", state.drawSpeed, 1);
+        ui.curveType.value = state.curveType;
+        ui.colorMode.value = state.colorMode;
+        ui.penColor.value = state.penColor;
+        ui.paperColor.value = state.paperColor;
+        ui.paletteName.value = state.paletteName;
+      }
+
+      function init() {
+        initUiValues();
+        bindInputs();
+        applySettingsAndReset();
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(animate);
+      }
+
+      window.render_game_to_text = renderGameToText;
+      window.advanceTime = advanceTime;
+      init();
+    })();
+  </script>
+</body>
+</html>
