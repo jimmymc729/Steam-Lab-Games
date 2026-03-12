@@ -37,7 +37,7 @@
   {
     "slug": "sky-math-academy",
     "title": "Sky Math Academy",
-    "path": "/math-flight-simulator.html",
+    "path": "/math-flight-simulator/",
     "status": "live",
     "tags": ["math", "arcade", "flight", "education", "single-player"]
   },
