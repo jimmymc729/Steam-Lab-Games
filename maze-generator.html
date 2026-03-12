@@ -428,6 +428,7 @@
         <button id="newMazeBtn" type="button">New Maze</button>
         <button id="restartBtn" class="secondary" type="button">Restart Position</button>
         <button id="soundBtn" class="secondary" type="button" aria-pressed="true">Sound: On</button>
+        <button id="printBtn" class="secondary" type="button">Print Maze</button>
       </div>
 
       <p id="message" class="message" role="status" aria-live="polite"></p>
@@ -460,6 +461,7 @@
       const newMazeBtn = document.getElementById("newMazeBtn");
       const restartBtn = document.getElementById("restartBtn");
       const soundBtn = document.getElementById("soundBtn");
+      const printBtn = document.getElementById("printBtn");
       const sizeSelect = document.getElementById("sizeSelect");
       const modeSelect = document.getElementById("modeSelect");
       const aiPaceSelect = document.getElementById("aiPaceSelect");
@@ -875,6 +877,92 @@
         messageEl.textContent = text || "";
       }
 
+      function buildPrintableMazeDataUrl() {
+        const cellSize = 26;
+        const margin = 28;
+        const boardSize = mazeSize * cellSize;
+        const titleHeight = 92;
+        const canvasSize = boardSize + margin * 2;
+
+        const printCanvas = document.createElement("canvas");
+        printCanvas.width = canvasSize;
+        printCanvas.height = canvasSize + titleHeight;
+        const pctx = printCanvas.getContext("2d");
+
+        pctx.fillStyle = "#ffffff";
+        pctx.fillRect(0, 0, printCanvas.width, printCanvas.height);
+
+        pctx.fillStyle = "#111111";
+        pctx.font = "700 28px 'Avenir Next', 'Segoe UI', sans-serif";
+        pctx.fillText("Maze Challenge", margin, 38);
+        pctx.textAlign = "right";
+        pctx.font = "700 18px 'Avenir Next', 'Segoe UI', sans-serif";
+        pctx.fillStyle = "#1e3f5b";
+        pctx.fillText("STEAM Lab Games", printCanvas.width - margin, 38);
+        pctx.textAlign = "left";
+        pctx.font = "500 16px 'Avenir Next', 'Segoe UI', sans-serif";
+        pctx.fillStyle = "#333333";
+        pctx.fillText("Size: " + mazeSize + "x" + mazeSize, margin, 64);
+        pctx.fillText("Start: top-left path • Goal: bottom-right path", margin, 84);
+
+        const offsetY = titleHeight;
+        for (let y = 0; y < mazeSize; y += 1) {
+          for (let x = 0; x < mazeSize; x += 1) {
+            pctx.fillStyle = maze[y][x] === WALL ? "#111111" : "#ffffff";
+            pctx.fillRect(margin + x * cellSize, offsetY + margin + y * cellSize, cellSize, cellSize);
+          }
+        }
+
+        pctx.strokeStyle = "#111111";
+        pctx.lineWidth = 2;
+        pctx.strokeRect(margin, offsetY + margin, boardSize, boardSize);
+
+        pctx.fillStyle = "#e8f1ff";
+        pctx.fillRect(
+          margin + START.x * cellSize + 1,
+          offsetY + margin + START.y * cellSize + 1,
+          cellSize - 2,
+          cellSize - 2
+        );
+        pctx.fillStyle = "#2157a0";
+        pctx.font = "700 14px 'Avenir Next', 'Segoe UI', sans-serif";
+        pctx.fillText("S", margin + START.x * cellSize + 7, offsetY + margin + START.y * cellSize + 18);
+
+        pctx.fillStyle = "#e6f8ee";
+        pctx.fillRect(
+          margin + exitCell.x * cellSize + 1,
+          offsetY + margin + exitCell.y * cellSize + 1,
+          cellSize - 2,
+          cellSize - 2
+        );
+        pctx.fillStyle = "#0d6b3c";
+        pctx.font = "700 14px 'Avenir Next', 'Segoe UI', sans-serif";
+        pctx.fillText("G", margin + exitCell.x * cellSize + 7, offsetY + margin + exitCell.y * cellSize + 18);
+
+        return printCanvas.toDataURL("image/png");
+      }
+
+      function printMaze() {
+        if (!maze || maze.length === 0) return;
+
+        const imageDataUrl = buildPrintableMazeDataUrl();
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+          setMessage("Popup blocked. Please allow popups to print the maze.");
+          return;
+        }
+
+        const html = "<!doctype html><html><head><meta charset='utf-8'><title>Print Maze</title>"
+          + "<style>@page{size:auto;margin:12mm;}body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;background:#fff;display:flex;justify-content:center;}main{padding:10mm;}img{max-width:100%;height:auto;display:block;}@media print{main{padding:0;}}</style>"
+          + "</head><body><main><img alt='Printable maze' src='" + imageDataUrl + "'/></main>"
+          + "<script>window.onload=function(){setTimeout(function(){window.print();},120);};<\/script>"
+          + "</body></html>";
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+      }
+
       function getCssVar(name, fallback) {
         const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
         return value || fallback;
@@ -1089,6 +1177,7 @@
           setSoundEnabled(!soundEnabled);
           if (soundEnabled) playTone(620, 0.08, 0.03, "triangle", 0);
         });
+        printBtn.addEventListener("click", printMaze);
         arrowButtons.forEach((button) => {
           button.addEventListener("click", (event) => {
             event.preventDefault();
