@@ -56,6 +56,13 @@
     "tags": ["math", "quantities", "counting", "touch", "single-player"]
   },
   {
+    "slug": "greater-gator",
+    "title": "Greater Gator",
+    "path": "/greater-gator.html",
+    "status": "live",
+    "tags": ["math", "comparison", "touch", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
