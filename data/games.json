@@ -63,6 +63,13 @@
     "tags": ["math", "comparison", "touch", "single-player"]
   },
   {
+    "slug": "math-cannon",
+    "title": "Math Cannon",
+    "path": "/math-cannon.html",
+    "status": "live",
+    "tags": ["math", "fact fluency", "arcade", "touch", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
