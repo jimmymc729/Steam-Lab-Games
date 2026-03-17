@@ -77,6 +77,13 @@
     "tags": ["science", "pollination", "nature", "ecology", "single-player"]
   },
   {
+    "slug": "ten-frame-builder",
+    "title": "Ten Frame Builder",
+    "path": "/ten-frame-builder/index.html",
+    "status": "live",
+    "tags": ["math", "number sense", "ten frame", "classroom", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
