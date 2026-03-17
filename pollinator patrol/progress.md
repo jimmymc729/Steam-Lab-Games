@@ -207,3 +207,13 @@ Original prompt: Update /Users/jamesmcnicholas/Documents/Steam Lab Games/pollina
     - added faint outline for white flowers
   - Tightened mode selector visual weight (smaller chip, icon, text, and lighter shadow).
 - Syntax validation: JS parse check OK.
+- Added iPad-specific touch controls (desktop unchanged):
+  - New in-canvas touch UI (`touch-controls`): joystick + `E` action button.
+  - Controls are enabled only on iPad/iPadOS detection (`/iPad/` UA or `MacIntel` + touch points).
+  - Body gets `ipad-controls-enabled` class to reveal touch UI only for iPad.
+  - Joystick maps to movement vector with deadzone and clamped radius.
+  - `E` touch button triggers interaction (collect/pollinate).
+  - Touch state resets on blur and game reset to avoid stuck movement.
+  - iPad-only instruction line appended: `Touch: Use joystick + E button`.
+- Added iPad control constants: `IPAD_JOYSTICK_MAX_PIXELS`, `IPAD_JOYSTICK_DEADZONE`.
+- Syntax validation: JS parse check OK.

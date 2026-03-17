@@ -329,6 +329,94 @@
       color: var(--warning);
     }
 
+    .touch-controls {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      padding: 14px;
+    }
+
+    body.ipad-controls-enabled .touch-controls {
+      display: block;
+    }
+
+    .touch-joystick {
+      position: absolute;
+      left: 14px;
+      bottom: 18px;
+      width: 142px;
+      height: 142px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.5), rgba(223, 244, 205, 0.2));
+      border: 2px solid rgba(139, 194, 122, 0.75);
+      box-shadow: 0 6px 12px rgba(39, 75, 24, 0.12);
+      pointer-events: auto;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .touch-joystick::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 999px;
+      border: 1px dashed rgba(90, 138, 72, 0.45);
+    }
+
+    .touch-stick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 56px;
+      height: 56px;
+      margin-left: -28px;
+      margin-top: -28px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffffff, #def2cf);
+      border: 2px solid rgba(121, 179, 103, 0.9);
+      box-shadow: 0 3px 6px rgba(42, 79, 28, 0.18);
+      transition: transform 30ms linear;
+      pointer-events: none;
+    }
+
+    .touch-action-btn {
+      position: absolute;
+      right: 18px;
+      bottom: 24px;
+      width: 94px;
+      height: 94px;
+      border-radius: 999px;
+      border: 2px solid rgba(136, 190, 112, 0.9);
+      background: radial-gradient(circle at 38% 34%, #fff7d8, #f2c764 72%);
+      color: #5c4411;
+      font: 800 1rem "Trebuchet MS", "Verdana", sans-serif;
+      box-shadow: 0 8px 14px rgba(123, 91, 20, 0.22);
+      pointer-events: auto;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    .touch-action-btn:active {
+      transform: scale(0.96);
+      filter: brightness(0.98);
+    }
+
+    .touch-controls-label {
+      position: absolute;
+      left: 24px;
+      bottom: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(45, 82, 38, 0.8);
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid rgba(143, 197, 121, 0.55);
+      border-radius: 999px;
+      padding: 2px 8px;
+      pointer-events: none;
+    }
+
     .win-overlay {
       position: absolute;
       inset: 0;
@@ -398,6 +486,24 @@
 
       .instructions {
         font-size: 0.86rem;
+      }
+
+      body.ipad-controls-enabled .touch-joystick {
+        width: 126px;
+        height: 126px;
+      }
+
+      body.ipad-controls-enabled .touch-stick {
+        width: 50px;
+        height: 50px;
+        margin-left: -25px;
+        margin-top: -25px;
+      }
+
+      body.ipad-controls-enabled .touch-action-btn {
+        width: 86px;
+        height: 86px;
+        font-size: 0.95rem;
       }
     }
 
@@ -488,6 +594,14 @@
         </div>
       </aside>
 
+      <div class="touch-controls" id="touchControls" aria-hidden="true">
+        <div class="touch-joystick" id="touchJoystick">
+          <div class="touch-stick" id="touchStick"></div>
+        </div>
+        <button class="touch-action-btn" id="touchActionBtn" type="button" aria-label="Collect or pollinate">E</button>
+        <div class="touch-controls-label">Touch Controls</div>
+      </div>
+
       <div id="assetBanner" class="banner">Loading sprite sheet...</div>
 
       <div class="win-overlay" id="winOverlay">
@@ -555,6 +669,8 @@
 
       HIDE_HIVE_RADIUS: 34,
       HIDE_BUSH_RADIUS: 30,
+      IPAD_JOYSTICK_MAX_PIXELS: 40,
+      IPAD_JOYSTICK_DEADZONE: 0.12,
 
       GARDEN_TOP_SAFE_Y: 118,
       FLOWER_MIN_SPACING: 88,
@@ -581,8 +697,13 @@
     const restartBtn = document.getElementById("restartButton");
     const instructionsPanelEl = document.getElementById("instructionsPanel");
     const instructionsToggleEl = document.getElementById("instructionsToggle");
+    const instructionsBodyEl = document.getElementById("instructionsBody");
     const modeSelectEl = document.getElementById("modeSelect");
     const pathNoteEl = document.getElementById("pathNote");
+    const touchControlsEl = document.getElementById("touchControls");
+    const touchJoystickEl = document.getElementById("touchJoystick");
+    const touchStickEl = document.getElementById("touchStick");
+    const touchActionBtnEl = document.getElementById("touchActionBtn");
     pathNoteEl.textContent = "Classroom Edition";
 
     canvas.width = CONFIG.WORLD_WIDTH;
@@ -593,6 +714,13 @@
       normal: { label: "Normal" },
       easy: { label: "Easy" },
       relaxed: { label: "Relaxed" }
+    };
+
+    const touchInput = {
+      enabled: false,
+      moveX: 0,
+      moveY: 0,
+      activePointerId: null
     };
 
     function safeReadMode() {
@@ -623,8 +751,96 @@
       setInstructionsExpanded(expanded);
     }
 
+    function isIpadLikeDevice() {
+      const ua = navigator.userAgent || "";
+      const platform = navigator.platform || "";
+      const touchPoints = navigator.maxTouchPoints || 0;
+      return /iPad/.test(ua) || (platform === "MacIntel" && touchPoints > 1);
+    }
+
+    function setTouchStickPosition(nx, ny) {
+      touchInput.moveX = nx;
+      touchInput.moveY = ny;
+      if (touchStickEl) {
+        const max = CONFIG.IPAD_JOYSTICK_MAX_PIXELS;
+        touchStickEl.style.transform = `translate(${(nx * max).toFixed(1)}px, ${(ny * max).toFixed(1)}px)`;
+      }
+    }
+
+    function resetTouchJoystick() {
+      touchInput.activePointerId = null;
+      setTouchStickPosition(0, 0);
+    }
+
+    function updateJoystickFromPoint(clientX, clientY) {
+      if (!touchJoystickEl) return;
+      const rect = touchJoystickEl.getBoundingClientRect();
+      const cx = rect.left + rect.width * 0.5;
+      const cy = rect.top + rect.height * 0.5;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      const max = CONFIG.IPAD_JOYSTICK_MAX_PIXELS;
+      const dist = Math.hypot(dx, dy);
+      const clamped = dist > max && dist > 0.001 ? max / dist : 1;
+      let nx = (dx * clamped) / max;
+      let ny = (dy * clamped) / max;
+      const dead = CONFIG.IPAD_JOYSTICK_DEADZONE;
+      if (Math.hypot(nx, ny) < dead) {
+        nx = 0;
+        ny = 0;
+      }
+      setTouchStickPosition(nx, ny);
+    }
+
+    function setupIpadTouchControls() {
+      touchInput.enabled = isIpadLikeDevice();
+      if (!touchInput.enabled) return;
+
+      document.body.classList.add("ipad-controls-enabled");
+      touchControlsEl?.setAttribute("aria-hidden", "false");
+
+      if (instructionsBodyEl) {
+        const touchLine = document.createElement("p");
+        touchLine.innerHTML = "<strong>Touch:</strong> Use joystick + E button";
+        instructionsBodyEl.appendChild(touchLine);
+      }
+
+      const startJoystick = (event) => {
+        event.preventDefault();
+        unlockAudio();
+        touchInput.activePointerId = event.pointerId;
+        updateJoystickFromPoint(event.clientX, event.clientY);
+        touchJoystickEl?.setPointerCapture?.(event.pointerId);
+      };
+      const moveJoystick = (event) => {
+        if (touchInput.activePointerId !== event.pointerId) return;
+        event.preventDefault();
+        updateJoystickFromPoint(event.clientX, event.clientY);
+      };
+      const endJoystick = (event) => {
+        if (touchInput.activePointerId !== event.pointerId) return;
+        event.preventDefault();
+        resetTouchJoystick();
+      };
+
+      touchJoystickEl?.addEventListener("pointerdown", startJoystick);
+      touchJoystickEl?.addEventListener("pointermove", moveJoystick);
+      touchJoystickEl?.addEventListener("pointerup", endJoystick);
+      touchJoystickEl?.addEventListener("pointercancel", endJoystick);
+      touchJoystickEl?.addEventListener("pointerleave", endJoystick);
+
+      const pressAction = (event) => {
+        event.preventDefault();
+        unlockAudio();
+        interactPressed = true;
+      };
+      touchActionBtnEl?.addEventListener("pointerdown", pressAction);
+      touchActionBtnEl?.addEventListener("touchstart", pressAction, { passive: false });
+    }
+
     setInstructionsExpanded(false);
     modeSelectEl.value = safeReadMode();
+    setupIpadTouchControls();
 
     // =========================
     // Asset loading
@@ -2594,6 +2810,7 @@
       state.growthPatches = [];
       keysDown.clear();
       interactPressed = false;
+      if (touchInput.enabled) resetTouchJoystick();
       startRound(1);
       audio.nextChirpTime = 1.4 + Math.random() * 1.5;
     }
@@ -2636,6 +2853,7 @@
     window.addEventListener("blur", () => {
       keysDown.clear();
       interactPressed = false;
+      if (touchInput.enabled) resetTouchJoystick();
     });
     window.addEventListener("pointerdown", unlockAudio);
     window.addEventListener("touchstart", unlockAudio, { passive: true });
@@ -3461,8 +3679,12 @@
       const left = keysDown.has("arrowleft") || keysDown.has("a");
       const right = keysDown.has("arrowright") || keysDown.has("d");
 
-      const dx = (right ? 1 : 0) - (left ? 1 : 0);
-      const dy = (down ? 1 : 0) - (up ? 1 : 0);
+      let dx = (right ? 1 : 0) - (left ? 1 : 0);
+      let dy = (down ? 1 : 0) - (up ? 1 : 0);
+      if (touchInput.enabled && dx === 0 && dy === 0) {
+        dx = touchInput.moveX;
+        dy = touchInput.moveY;
+      }
       const dir = normalize(dx, dy);
       const moving = dir.x !== 0 || dir.y !== 0;
 
