@@ -1,0 +1,4029 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pollinator Patrol</title>
+  <style>
+    :root {
+      --sky-top: #dff6ff;
+      --sky-bottom: #f0ffe5;
+      --panel-bg: rgba(255, 255, 255, 0.92);
+      --panel-border: #a6d69b;
+      --ink: #2d4b2a;
+      --accent: #f9b94f;
+      --accent-2: #8ccf72;
+      --good: #3a9444;
+      --warning: #b0552a;
+      --shadow: rgba(22, 48, 18, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Verdana", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom));
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 8px 10px;
+    }
+
+    .game-wrap {
+      width: min(1320px, 99vw, calc((100vh - 72px) * 1.6));
+      display: grid;
+      gap: 10px;
+    }
+
+    .title-bar {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      background:
+        radial-gradient(200px 90px at 14% 0%, rgba(249, 185, 79, 0.14), transparent 72%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 255, 242, 0.94));
+      border: 2px solid #8fc982;
+      border-radius: 14px;
+      padding: 9px 14px 10px;
+      box-shadow: 0 6px 14px rgba(39, 82, 33, 0.11);
+      overflow: hidden;
+      margin-bottom: 2px;
+    }
+
+    .title-bar::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(249, 185, 79, 0.95), rgba(143, 201, 130, 0.9));
+      opacity: 0.74;
+    }
+
+    .title-bar::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 0;
+      height: 1px;
+      background: rgba(140, 194, 128, 0.45);
+      pointer-events: none;
+    }
+
+    .title-left {
+      display: grid;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.28rem, 2.3vw, 1.84rem);
+      letter-spacing: 0.025em;
+      color: #2c6227;
+      line-height: 1.03;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
+      position: relative;
+      padding-bottom: 4px;
+    }
+
+    .title::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 150px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(249, 185, 79, 0.86), rgba(132, 207, 114, 0.86));
+      opacity: 0.78;
+    }
+
+    .path-note {
+      justify-self: start;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.045em;
+      text-transform: uppercase;
+      color: rgba(47, 95, 41, 0.82);
+      background: rgba(246, 254, 241, 0.92);
+      border: 1px solid rgba(140, 198, 120, 0.72);
+      border-radius: 999px;
+      padding: 3px 10px;
+      box-shadow: none;
+    }
+
+    .path-note::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ffe29a, #f1b94a);
+      box-shadow: 0 0 0 1px rgba(251, 232, 182, 0.6);
+    }
+
+    .top-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mode-picker {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #8fc982;
+      border-radius: 999px;
+      padding: 4px 8px 4px 9px;
+      box-shadow: 0 2px 5px rgba(60, 111, 45, 0.09);
+      z-index: 1;
+    }
+
+    .mode-picker::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff6c8, #f8b954);
+      box-shadow: 0 0 0 1px rgba(249, 228, 170, 0.5);
+      margin-right: 1px;
+    }
+
+    .mode-picker label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #3b6632;
+      letter-spacing: 0.03em;
+    }
+
+    .mode-picker select {
+      border: 1px solid #88bd79;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font: 700 0.82rem "Trebuchet MS", "Verdana", sans-serif;
+      color: #2f5f28;
+      background: #ffffff;
+      outline: none;
+      cursor: pointer;
+      box-shadow: none;
+    }
+
+    .mode-picker select:hover {
+      filter: brightness(1.02);
+    }
+
+    .mode-picker select:focus-visible {
+      box-shadow: 0 0 0 2px rgba(138, 197, 114, 0.35);
+    }
+
+    .board {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 3px solid #98c887;
+      box-shadow: 0 12px 22px var(--shadow);
+      background: #b9e4a8;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: calc(100vh - 98px);
+      aspect-ratio: 16 / 10;
+      image-rendering: auto;
+      background: #b5de95;
+    }
+
+    .hud {
+      position: absolute;
+      inset: 10px 10px auto 10px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid #9dcd8f;
+      border-radius: 12px;
+      padding: 8px 10px;
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .card strong {
+      display: block;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .card span {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .instructions {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      width: min(340px, calc(100% - 20px));
+      background: rgba(255, 255, 255, 0.93);
+      border: 2px solid #99cb8a;
+      border-radius: 12px;
+      padding: 8px 10px 9px;
+      z-index: 3;
+      pointer-events: auto;
+      transition: width 140ms ease, padding 140ms ease;
+    }
+
+    .instructions.collapsed {
+      width: 178px;
+      padding: 6px 8px;
+    }
+
+    .instructions-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .instructions.collapsed .instructions-header {
+      margin-bottom: 0;
+    }
+
+    .instructions-toggle {
+      border: 1px solid #91c47f;
+      background: rgba(255, 255, 255, 0.96);
+      color: #2f5e28;
+      border-radius: 999px;
+      font: 700 0.78rem "Trebuchet MS", "Verdana", sans-serif;
+      padding: 4px 9px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .instructions-toggle:hover {
+      filter: brightness(1.04);
+    }
+
+    .instructions-body {
+      display: block;
+    }
+
+    .instructions.collapsed .instructions-body {
+      display: none;
+    }
+
+    .instructions h2 {
+      margin: 0;
+      font-size: 1rem;
+      color: #356f2e;
+    }
+
+    .instructions p {
+      margin: 4px 0;
+      font-size: 0.92rem;
+      line-height: 1.3;
+    }
+
+    .banner {
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+      z-index: 4;
+      background: rgba(255, 255, 255, 0.95);
+      border: 2px solid #8ac879;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      text-align: center;
+      min-width: 300px;
+      max-width: min(90%, 680px);
+      box-shadow: 0 8px 14px rgba(0, 0, 0, 0.1);
+    }
+
+    .banner.error {
+      border-color: #d89a76;
+      color: var(--warning);
+    }
+
+    .win-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(23, 44, 20, 0.5);
+      z-index: 5;
+      padding: 16px;
+    }
+
+    .win-panel {
+      background: #fffef4;
+      border: 3px solid #a7d696;
+      border-radius: 18px;
+      max-width: 620px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 16px 28px rgba(0, 0, 0, 0.2);
+    }
+
+    .win-panel h2 {
+      margin: 0 0 8px;
+      color: #2f7a33;
+      font-size: clamp(1.2rem, 2.8vw, 1.8rem);
+    }
+
+    .win-panel p {
+      margin: 0 0 14px;
+      line-height: 1.45;
+      font-size: 1rem;
+    }
+
+    .restart-btn {
+      border: 0;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 700;
+      background: linear-gradient(180deg, #ffd06c, #f5b64b);
+      color: #5a3f0e;
+      padding: 10px 18px;
+      cursor: pointer;
+      box-shadow: 0 8px 12px rgba(129, 86, 17, 0.2);
+    }
+
+    .restart-btn:hover {
+      filter: brightness(1.05);
+    }
+
+    @media (max-width: 760px) {
+      .game-wrap {
+        width: min(99vw, calc((100vh - 64px) * 1.6));
+      }
+
+      .top-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .hud {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .path-note {
+        font-size: 0.8rem;
+      }
+
+      .instructions {
+        font-size: 0.86rem;
+      }
+    }
+
+    @media (max-height: 860px) {
+      .path-note {
+        display: none;
+      }
+
+      .title-bar {
+        padding: 7px 10px;
+      }
+
+      .card {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-wrap">
+    <section class="title-bar">
+      <div class="title-left">
+        <h1 class="title">Pollinator Patrol</h1>
+        <div class="path-note" id="pathNote"></div>
+      </div>
+      <div class="top-controls">
+        <div class="mode-picker">
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect" aria-label="Select game difficulty mode">
+            <option value="hard">Hard</option>
+            <option value="normal">Normal</option>
+            <option value="easy">Easy</option>
+            <option value="relaxed">Relaxed</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="board">
+      <canvas id="game" width="960" height="600" aria-label="Pollinator Patrol game canvas"></canvas>
+
+      <div class="hud" aria-live="polite">
+        <div class="card">
+          <strong>Pollinated Count</strong>
+          <span id="pollinatedCount">0 / 6</span>
+        </div>
+        <div class="card">
+          <strong>Pollen Status</strong>
+          <span id="pollenStatus">Empty</span>
+        </div>
+        <div class="card">
+          <strong>Round</strong>
+          <span id="roundStatus">1</span>
+        </div>
+        <div class="card">
+          <strong>Danger</strong>
+          <span id="dangerStatus">0 Birds</span>
+        </div>
+        <div class="card">
+          <strong>Reward Stars</strong>
+          <span id="rewardStars">0</span>
+        </div>
+        <div class="card">
+          <strong>Combo</strong>
+          <span id="comboStatus">Ready</span>
+        </div>
+        <div class="card">
+          <strong>Sound (M)</strong>
+          <span id="soundStatus">On</span>
+        </div>
+      </div>
+
+      <aside class="instructions collapsed" id="instructionsPanel">
+        <div class="instructions-header">
+          <h2>How to Play</h2>
+          <button class="instructions-toggle" id="instructionsToggle" type="button">H: Open</button>
+        </div>
+        <div class="instructions-body" id="instructionsBody">
+          <p>Fly to a flower</p>
+          <p>Press E or Space to collect pollen</p>
+          <p>Bring pollen to another flower</p>
+          <p>Pollinate 6 flowers to help the garden grow</p>
+          <p>Hide in the hive or bushes to avoid birds</p>
+          <p style="margin-top: 8px;"><strong>Move:</strong> Arrow Keys or WASD</p>
+          <p><strong>Sound:</strong> Press M to mute/unmute</p>
+          <p><strong>Mode:</strong> Use top selector</p>
+          <p><strong>Help:</strong> Press H to collapse/open</p>
+        </div>
+      </aside>
+
+      <div id="assetBanner" class="banner">Loading sprite sheet...</div>
+
+      <div class="win-overlay" id="winOverlay">
+        <div class="win-panel">
+          <h2 id="overlayTitle">Garden Saved!</h2>
+          <p id="overlayMessage">
+            Great job! You helped pollinate the flowers. Pollination helps plants make seeds and grow new plants.
+          </p>
+          <button class="restart-btn" id="restartButton">Play Again</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /*
+      Pollinator Patrol sprite setup:
+      1) Place the main, extras, and birds 4x4 sprite sheets in this folder.
+      2) Update SPRITE_SHEET_PATH, EXTRAS_SHEET_PATH, and BIRD_SHEET_PATH below if paths are different.
+      3) All sheets are sliced by grid cell (4 columns x 4 rows), so no manual crop values are needed.
+    */
+
+    // =========================
+    // Easy-to-edit constants
+    // =========================
+    const CONFIG = {
+      SPRITE_SHEET_PATH: "./pollinator-spritesheet-clean.png",
+      EXTRAS_SHEET_PATH: "./pollinator-extras-spritesheet-clean.png",
+      BIRD_SHEET_PATH: "./pollinator-birds-spritesheet-clean.png",
+      PLAYER_SPEED: 250,
+      INTERACTION_RADIUS: 60,
+      NUMBER_OF_FLOWERS: 10,
+      WIN_GOAL: 6,
+      BUTTERFLY_COUNT: 5,
+      COMBO_WINDOW_SECONDS: 7,
+      PREFER_AUTO_TRIM: false,
+      USE_FULL_CELL_SLICES: false,
+      FLOWER_COLOR_MODE: "pixel", // "pixel" (default) or "filter"
+      USE_PROCEDURAL_GLOW: true,
+
+      WORLD_WIDTH: 960,
+      WORLD_HEIGHT: 600,
+      WORLD_MARGIN: 22,
+
+      PLAYER_ACCEL: 1350,
+      PLAYER_DRAG: 8.2,
+      EFFECT_POOL_MAX: 260,
+      FLOWER_RADIUS: 24,
+      DECOR_SCALE: 1.0,
+
+      BIRD_COLLISION_RADIUS: 22,
+      BIRD_SCOUT_SPEED: 150,
+      BIRD_HUNTER_SPEED: 180,
+      BIRD_RAPTOR_SPEED: 165,
+      BIRD_RAPTOR_DASH_SPEED: 360,
+      BIRD_ACCEL: 6.8,
+      BIRD_WANDER_MIN: 1.2,
+      BIRD_WANDER_MAX: 2.3,
+      BIRD_CHASE_BURST: 1.15,
+      BIRD_CHASE_COOLDOWN: 1.9,
+      BIRD_PREDICTION_TIME: 0.35,
+      BIRD_RAPTOR_WARNING_TIME: 0.9,
+      BIRD_RAPTOR_DASH_TIME: 0.55,
+      BIRD_RAPTOR_COOLDOWN: 2.4,
+
+      HIDE_HIVE_RADIUS: 34,
+      HIDE_BUSH_RADIUS: 30,
+
+      GARDEN_TOP_SAFE_Y: 118,
+      FLOWER_MIN_SPACING: 88,
+      FLOWER_DECOR_CLEARANCE: 66,
+      DECOR_MIN_SPACING: 94
+    };
+
+    // =========================
+    // Canvas and UI references
+    // =========================
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const pollinatedCountEl = document.getElementById("pollinatedCount");
+    const pollenStatusEl = document.getElementById("pollenStatus");
+    const rewardStarsEl = document.getElementById("rewardStars");
+    const comboStatusEl = document.getElementById("comboStatus");
+    const soundStatusEl = document.getElementById("soundStatus");
+    const roundStatusEl = document.getElementById("roundStatus");
+    const dangerStatusEl = document.getElementById("dangerStatus");
+    const assetBannerEl = document.getElementById("assetBanner");
+    const winOverlayEl = document.getElementById("winOverlay");
+    const overlayTitleEl = document.getElementById("overlayTitle");
+    const overlayMessageEl = document.getElementById("overlayMessage");
+    const restartBtn = document.getElementById("restartButton");
+    const instructionsPanelEl = document.getElementById("instructionsPanel");
+    const instructionsToggleEl = document.getElementById("instructionsToggle");
+    const modeSelectEl = document.getElementById("modeSelect");
+    const pathNoteEl = document.getElementById("pathNote");
+    pathNoteEl.textContent = "Classroom Edition";
+
+    canvas.width = CONFIG.WORLD_WIDTH;
+    canvas.height = CONFIG.WORLD_HEIGHT;
+
+    const MODE_CONFIG = {
+      hard: { label: "Hard" },
+      normal: { label: "Normal" },
+      easy: { label: "Easy" },
+      relaxed: { label: "Relaxed" }
+    };
+
+    function safeReadMode() {
+      try {
+        const saved = localStorage.getItem("pollinatorPatrolMode");
+        return MODE_CONFIG[saved] ? saved : "hard";
+      } catch (_err) {
+        return "hard";
+      }
+    }
+
+    function safeSaveMode(modeId) {
+      try {
+        localStorage.setItem("pollinatorPatrolMode", modeId);
+      } catch (_err) {
+        // Ignore storage errors on restricted environments.
+      }
+    }
+
+    function setInstructionsExpanded(expanded) {
+      instructionsPanelEl.classList.toggle("collapsed", !expanded);
+      instructionsToggleEl.textContent = expanded ? "H: Close" : "H: Open";
+      instructionsToggleEl.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+
+    function toggleInstructions() {
+      const expanded = instructionsPanelEl.classList.contains("collapsed");
+      setInstructionsExpanded(expanded);
+    }
+
+    setInstructionsExpanded(false);
+    modeSelectEl.value = safeReadMode();
+
+    // =========================
+    // Asset loading
+    // =========================
+    const spriteSheet = new Image();
+    const assets = {
+      ready: false,
+      error: false,
+      cellWidth: 0,
+      cellHeight: 0,
+      frameMap: {},
+      trimMode: "none",
+      cleanPollinatedCanvas: null,
+      pollinatedCleanSuccess: false
+    };
+    const extrasSheet = new Image();
+    const extrasAssets = {
+      ready: false,
+      error: false,
+      cellWidth: 0,
+      cellHeight: 0,
+      frameMap: {}
+    };
+    const birdSheet = new Image();
+    const birdAssets = {
+      ready: false,
+      error: false,
+      cellWidth: 0,
+      cellHeight: 0,
+      frameMap: {},
+      renderSource: null
+    };
+
+    spriteSheet.onload = () => {
+      assets.ready = true;
+      assets.error = false;
+      assets.cellWidth = spriteSheet.width / 4;
+      assets.cellHeight = spriteSheet.height / 4;
+      if (CONFIG.USE_FULL_CELL_SLICES) {
+        assets.frameMap = buildCellFrameMap();
+        assets.trimMode = "cells";
+      } else if (CONFIG.PREFER_AUTO_TRIM) {
+        try {
+          assets.frameMap = buildAutoFrameMap();
+          assets.trimMode = "auto";
+        } catch (err) {
+          console.warn("Auto sprite trim failed; using trim hints.", err);
+          assets.frameMap = buildHintFrameMap();
+          assets.trimMode = "hints";
+        }
+      } else {
+        assets.frameMap = buildHintFrameMap();
+        assets.trimMode = "hints";
+      }
+      if (!assets.frameMap || Object.keys(assets.frameMap).length === 0) {
+        assets.frameMap = buildHintFrameMap();
+        assets.trimMode = "hints";
+      }
+      assets.cleanPollinatedCanvas = createCleanPollinatedSpriteCanvas();
+      if (typeof state !== "undefined" && state.flowerPalette) {
+        refreshFlowerSpriteCache();
+      }
+      assetBannerEl.textContent = "Sprites loaded. Help the garden bloom!";
+      assetBannerEl.classList.remove("error");
+      setTimeout(() => {
+        if (!assets.error) assetBannerEl.style.display = "none";
+      }, 1800);
+    };
+
+    spriteSheet.onerror = () => {
+      assets.ready = false;
+      assets.error = true;
+      assetBannerEl.style.display = "block";
+      assetBannerEl.classList.add("error");
+      assetBannerEl.textContent = "Sprite sheet missing. Using fallback shapes. Update SPRITE_SHEET_PATH to your sheet file.";
+    };
+
+    spriteSheet.src = CONFIG.SPRITE_SHEET_PATH;
+    extrasSheet.onload = () => {
+      extrasAssets.ready = true;
+      extrasAssets.error = false;
+      extrasAssets.cellWidth = extrasSheet.width / 4;
+      extrasAssets.cellHeight = extrasSheet.height / 4;
+      extrasAssets.frameMap = buildExtrasFrameMap();
+    };
+
+    extrasSheet.onerror = () => {
+      extrasAssets.ready = false;
+      extrasAssets.error = true;
+      console.warn("Extras sheet missing; bonus visuals will use fallback shapes.");
+    };
+
+    extrasSheet.src = CONFIG.EXTRAS_SHEET_PATH;
+    birdSheet.onload = () => {
+      birdAssets.ready = true;
+      birdAssets.error = false;
+      birdAssets.cellWidth = birdSheet.width / 4;
+      birdAssets.cellHeight = birdSheet.height / 4;
+      try {
+        birdAssets.renderSource = birdSheet;
+        birdAssets.frameMap = buildBirdFrameMap(birdAssets.renderSource);
+      } catch (err) {
+        console.warn("Bird sprite processing fallback active.", err);
+        birdAssets.renderSource = birdSheet;
+        birdAssets.frameMap = {};
+      }
+    };
+
+    birdSheet.onerror = () => {
+      birdAssets.ready = false;
+      birdAssets.error = true;
+      birdAssets.renderSource = null;
+      console.warn("Bird sheet missing; predator visuals will use fallback shapes.");
+    };
+
+    birdSheet.src = CONFIG.BIRD_SHEET_PATH;
+
+    // =========================
+    // Sprite definitions (4x4)
+    // =========================
+    const SPRITES = {
+      bee_idle: { col: 0, row: 0 },
+      bee_fly_1: { col: 1, row: 0 },
+      bee_fly_2: { col: 2, row: 0 },
+      bee_fly_3: { col: 3, row: 0 },
+
+      flower_red: { col: 0, row: 1 },
+      flower_yellow: { col: 1, row: 1 },
+      flower_white: { col: 2, row: 1 },
+      flower_pollinated: { col: 3, row: 1 },
+
+      beehive: { col: 0, row: 2 },
+      grass: { col: 1, row: 2 },
+      rock: { col: 2, row: 2 },
+      bush: { col: 3, row: 2 },
+
+      pollen_particle: { col: 0, row: 3 },
+      sparkle: { col: 1, row: 3 },
+      glow: { col: 2, row: 3 }
+    };
+    const EXTRA_SPRITES = {
+      butterfly_blue_1: { col: 0, row: 0 },
+      butterfly_blue_2: { col: 1, row: 0 },
+      butterfly_pink_1: { col: 2, row: 0 },
+      butterfly_pink_2: { col: 3, row: 0 },
+
+      ladybug_idle: { col: 0, row: 1 },
+      dragonfly_idle: { col: 1, row: 1 },
+      star_badge: { col: 2, row: 1 },
+      honey_drop: { col: 3, row: 1 },
+
+      seedling_stage_1: { col: 0, row: 2 },
+      seedling_stage_2: { col: 1, row: 2 },
+      seedling_stage_3: { col: 2, row: 2 },
+      clover_patch: { col: 3, row: 2 },
+
+      wind_swirl: { col: 0, row: 3 },
+      mission_scroll: { col: 1, row: 3 },
+      combo_burst: { col: 2, row: 3 }
+    };
+    const BIRD_SPRITES = {
+      bird_scout_idle: { col: 0, row: 0 },
+      bird_scout_fly_1: { col: 1, row: 0 },
+      bird_scout_fly_2: { col: 2, row: 0 },
+      bird_scout_dive: { col: 3, row: 0 },
+
+      bird_hunter_idle: { col: 0, row: 1 },
+      bird_hunter_fly_1: { col: 1, row: 1 },
+      bird_hunter_fly_2: { col: 2, row: 1 },
+      bird_hunter_dive: { col: 3, row: 1 },
+
+      bird_raptor_idle: { col: 0, row: 2 },
+      bird_raptor_fly_1: { col: 1, row: 2 },
+      bird_raptor_fly_2: { col: 2, row: 2 },
+      bird_raptor_dive: { col: 3, row: 2 },
+
+      bird_warning_icon: { col: 0, row: 3 },
+      bird_shadow_small: { col: 1, row: 3 },
+      bird_shadow_large: { col: 2, row: 3 },
+      feathers_burst_fx: { col: 3, row: 3 }
+    };
+
+    const FLOWER_TYPES = ["flower_red", "flower_yellow", "flower_white"];
+    const FLOWER_SPRITE_NAMES = ["flower_red", "flower_yellow", "flower_white", "flower_pollinated"];
+    const FLOWER_NAME_WORDS = ["Bloom", "Sun", "Sky", "Meadow", "Candy", "Coral", "Berry", "Spring", "Rainbow", "Petal"];
+    let flowerRecoloringWarned = false;
+
+    function clamp01(value) {
+      return Math.max(0, Math.min(1, value));
+    }
+
+    function wrapHue(hue) {
+      let h = hue % 360;
+      if (h < 0) h += 360;
+      return h;
+    }
+
+    function randomBetween(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function hslToRgb(h, s, l) {
+      const hue = wrapHue(h) / 360;
+      const sat = clamp01(s);
+      const lig = clamp01(l);
+
+      if (sat === 0) {
+        const v = Math.round(lig * 255);
+        return [v, v, v];
+      }
+
+      const q = lig < 0.5 ? lig * (1 + sat) : lig + sat - lig * sat;
+      const p = 2 * lig - q;
+      const hueToChannel = (t) => {
+        let tt = t;
+        if (tt < 0) tt += 1;
+        if (tt > 1) tt -= 1;
+        if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+        if (tt < 1 / 2) return q;
+        if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+        return p;
+      };
+
+      return [
+        Math.round(hueToChannel(hue + 1 / 3) * 255),
+        Math.round(hueToChannel(hue) * 255),
+        Math.round(hueToChannel(hue - 1 / 3) * 255)
+      ];
+    }
+
+    function rgbToHsl(r, g, b) {
+      const rr = r / 255;
+      const gg = g / 255;
+      const bb = b / 255;
+      const max = Math.max(rr, gg, bb);
+      const min = Math.min(rr, gg, bb);
+      let h = 0;
+      let s = 0;
+      const l = (max + min) / 2;
+
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        if (max === rr) h = ((gg - bb) / d + (gg < bb ? 6 : 0)) / 6;
+        else if (max === gg) h = ((bb - rr) / d + 2) / 6;
+        else h = ((rr - gg) / d + 4) / 6;
+      }
+      return [h * 360, s, l];
+    }
+
+    function rgbToHex(rgb) {
+      return `#${rgb.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+    }
+
+    function hexToRgb(hex) {
+      const raw = hex.replace("#", "");
+      const value = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
+      return [
+        parseInt(value.slice(0, 2), 16),
+        parseInt(value.slice(2, 4), 16),
+        parseInt(value.slice(4, 6), 16)
+      ];
+    }
+
+    const FLOWER_THEME_PRESETS = [
+      {
+        name: "Blueberry Twilight",
+        center: "#ffd26c",
+        colors: {
+          flower_red: "#4e6dff",
+          flower_yellow: "#7a54ff",
+          flower_white: "#9f7bff",
+          flower_pollinated: "#ff8ec9"
+        }
+      },
+      {
+        name: "Ocean Pop",
+        center: "#ffe083",
+        colors: {
+          flower_red: "#2b9fff",
+          flower_yellow: "#00c2d1",
+          flower_white: "#2b7dff",
+          flower_pollinated: "#42d6ff"
+        }
+      },
+      {
+        name: "Cotton Candy",
+        center: "#ffe28c",
+        colors: {
+          flower_red: "#ff77b8",
+          flower_yellow: "#ff66e0",
+          flower_white: "#8ca8ff",
+          flower_pollinated: "#ff9a76"
+        }
+      },
+      {
+        name: "Sunset Garden",
+        center: "#ffd166",
+        colors: {
+          flower_red: "#ff5d6d",
+          flower_yellow: "#ff9b42",
+          flower_white: "#f46dff",
+          flower_pollinated: "#ff7f50"
+        }
+      },
+      {
+        name: "Jungle Party",
+        center: "#ffd560",
+        colors: {
+          flower_red: "#30cb70",
+          flower_yellow: "#00b894",
+          flower_white: "#4ac5ff",
+          flower_pollinated: "#7ed957"
+        }
+      },
+      {
+        name: "Royal Bloom",
+        center: "#ffdf7a",
+        colors: {
+          flower_red: "#5a50d9",
+          flower_yellow: "#7f3cff",
+          flower_white: "#b06bff",
+          flower_pollinated: "#8f5bff"
+        }
+      },
+      {
+        name: "Neon Garden",
+        center: "#ffe87a",
+        colors: {
+          flower_red: "#ff4d9d",
+          flower_yellow: "#e74cff",
+          flower_white: "#4cc9ff",
+          flower_pollinated: "#75ff77"
+        }
+      },
+      {
+        name: "Rainbow Meadow",
+        center: "#ffd65e",
+        colors: {
+          flower_red: "#ff5f45",
+          flower_yellow: "#ffd348",
+          flower_white: "#5ea4ff",
+          flower_pollinated: "#8e6bff"
+        }
+      }
+    ];
+
+    function varyHexColor(hex, hueJitter = 14, satJitter = 0.1, lightJitter = 0.1) {
+      const [r, g, b] = hexToRgb(hex);
+      const [h, s, l] = rgbToHsl(r, g, b);
+      const hh = wrapHue(h + randomBetween(-hueJitter, hueJitter));
+      const ss = clamp01(s + randomBetween(-satJitter, satJitter));
+      const ll = clamp01(l + randomBetween(-lightJitter, lightJitter));
+      return rgbToHex(hslToRgb(hh, ss, ll));
+    }
+
+    function clampHexHsl(hex, satMin, satMax, lightMin, lightMax) {
+      const [r, g, b] = hexToRgb(hex);
+      const [h, s, l] = rgbToHsl(r, g, b);
+      const cs = clamp(s, satMin, satMax);
+      const cl = clamp(l, lightMin, lightMax);
+      return rgbToHex(hslToRgb(h, cs, cl));
+    }
+
+    function blendHexToward(hex, targetHex, amount) {
+      const a = clamp01(amount);
+      const [r1, g1, b1] = hexToRgb(hex);
+      const [r2, g2, b2] = hexToRgb(targetHex);
+      return rgbToHex([
+        Math.round(r1 + (r2 - r1) * a),
+        Math.round(g1 + (g2 - g1) * a),
+        Math.round(b1 + (b2 - b1) * a)
+      ]);
+    }
+
+    function normalizeFlowerPalette(palette) {
+      if (!palette?.colors) return palette;
+      const red = blendHexToward(
+        clampHexHsl(palette.colors.flower_red, 0.28, 0.66, 0.34, 0.57),
+        "#7fb18a",
+        0.06
+      );
+      const yellow = blendHexToward(
+        clampHexHsl(palette.colors.flower_yellow, 0.26, 0.64, 0.4, 0.62),
+        "#a9bb7a",
+        0.08
+      );
+      const white = blendHexToward(
+        clampHexHsl(palette.colors.flower_white, 0.08, 0.34, 0.64, 0.83),
+        "#d9e2cf",
+        0.1
+      );
+      const pollinated = blendHexToward(
+        clampHexHsl(palette.colors.flower_pollinated, 0.28, 0.66, 0.4, 0.62),
+        "#b693b0",
+        0.07
+      );
+      return {
+        ...palette,
+        center: blendHexToward(clampHexHsl(palette.center, 0.42, 0.72, 0.48, 0.66), "#f1d57a", 0.1),
+        colors: {
+          flower_red: red,
+          flower_yellow: yellow,
+          flower_white: white,
+          flower_pollinated: pollinated
+        }
+      };
+    }
+
+    function createThemePalette(theme, roundNumber = 1) {
+      const variant = Math.floor(Math.random() * 10000);
+      return normalizeFlowerPalette({
+        id: `theme-${theme.name.replace(/\s+/g, "-").toLowerCase()}-${roundNumber}-${variant}`,
+        name: `${theme.name} ${roundNumber}`,
+        center: varyHexColor(theme.center, 8, 0.07, 0.08),
+        colors: {
+          flower_red: varyHexColor(theme.colors.flower_red, 20, 0.12, 0.11),
+          flower_yellow: varyHexColor(theme.colors.flower_yellow, 20, 0.12, 0.11),
+          flower_white: varyHexColor(theme.colors.flower_white, 20, 0.12, 0.11),
+          flower_pollinated: varyHexColor(theme.colors.flower_pollinated, 20, 0.12, 0.11)
+        }
+      });
+    }
+
+    function createRandomHueTriplet() {
+      const base = Math.floor(Math.random() * 360);
+      const scheme = Math.floor(Math.random() * 4);
+      if (scheme === 0) return [wrapHue(base - 18), wrapHue(base + 12), wrapHue(base + 34)];
+      if (scheme === 1) return [wrapHue(base), wrapHue(base + 118), wrapHue(base + 236)];
+      if (scheme === 2) return [wrapHue(base), wrapHue(base + 148), wrapHue(base + 210)];
+      return [
+        wrapHue(base + randomBetween(-18, 18)),
+        wrapHue(base + randomBetween(95, 165)),
+        wrapHue(base + randomBetween(210, 300))
+      ];
+    }
+
+    function generateProceduralRoundFlowerPalette(roundNumber = 1) {
+      const hues = createRandomHueTriplet();
+      const makeColor = (h, satBias = 0, lightBias = 0) =>
+        rgbToHex(
+          hslToRgb(
+            h,
+            clamp01(randomBetween(0.44, 0.68) + satBias),
+            clamp01(randomBetween(0.42, 0.62) + lightBias)
+          )
+        );
+
+      const colors = {
+        flower_red: makeColor(hues[0], 0.02, -0.03),
+        flower_yellow: makeColor(hues[1], 0.0, 0.01),
+        flower_white: makeColor(hues[2], -0.25, 0.17),
+        flower_pollinated: makeColor(hues[0] + randomBetween(24, 48), -0.06, 0.07)
+      };
+      const center = rgbToHex(hslToRgb(randomBetween(30, 58), randomBetween(0.75, 0.94), randomBetween(0.56, 0.67)));
+      const id = `${Math.round(hues[0])}-${Math.round(hues[1])}-${Math.round(hues[2])}-${Math.round(roundNumber * 17 + Math.random() * 99)}`;
+      const word = FLOWER_NAME_WORDS[Math.floor(Math.random() * FLOWER_NAME_WORDS.length)];
+      return normalizeFlowerPalette({
+        id,
+        name: `${word} ${roundNumber}`,
+        center,
+        colors
+      });
+    }
+
+    function generateRoundFlowerPalette(roundNumber = 1) {
+      const useTheme = Math.random() < 0.78;
+      if (useTheme) {
+        const theme = FLOWER_THEME_PRESETS[Math.floor(Math.random() * FLOWER_THEME_PRESETS.length)];
+        return createThemePalette(theme, roundNumber);
+      }
+      return generateProceduralRoundFlowerPalette(roundNumber);
+    }
+
+    function chooseFlowerPalette(previousId = null, roundNumber = 1) {
+      for (let tries = 0; tries < 16; tries++) {
+        const palette = generateRoundFlowerPalette(roundNumber);
+        if (palette.id !== previousId) return palette;
+      }
+      return generateRoundFlowerPalette(roundNumber);
+    }
+
+    function shortestHueDelta(fromHue, toHue) {
+      return ((((toHue - fromHue) % 360) + 540) % 360) - 180;
+    }
+
+    function buildFlowerFilterForTarget(spriteName, targetHex) {
+      const [r, g, b] = hexToRgb(targetHex);
+      const [h, s, l] = rgbToHsl(r, g, b);
+      const baseHueMap = {
+        flower_red: 4,
+        flower_yellow: 52,
+        flower_white: 0,
+        flower_pollinated: 340
+      };
+      const baseHue = baseHueMap[spriteName] ?? 0;
+      const rotate = Math.round(shortestHueDelta(baseHue, h));
+      const satMul = (0.95 + s * 1.45).toFixed(2);
+      const bright = (0.82 + l * 0.32).toFixed(2);
+      const contrast = (0.98 + s * 0.22).toFixed(2);
+
+      if (spriteName === "flower_white") {
+        const whiteSat = (1.1 + s * 0.95).toFixed(2);
+        return `sepia(0.2) hue-rotate(${Math.round(h)}deg) saturate(${whiteSat}) brightness(${bright}) contrast(${contrast})`;
+      }
+
+      return `hue-rotate(${rotate}deg) saturate(${satMul}) brightness(${bright}) contrast(${contrast})`;
+    }
+
+    function buildFlowerFilterMap(palette) {
+      if (!palette?.colors) return {};
+      const map = {};
+      for (const spriteName of FLOWER_SPRITE_NAMES) {
+        const hex = palette.colors[spriteName] || palette.colors.flower_red;
+        map[spriteName] = spriteName === "flower_pollinated" ? "none" : buildFlowerFilterForTarget(spriteName, hex);
+      }
+      return map;
+    }
+
+    function recolorFlowerSpriteCanvas(canvasCtx, width, height, petalHex, centerHex) {
+      const petal = hexToRgb(petalHex);
+      const center = hexToRgb(centerHex);
+      const imageData = canvasCtx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+
+      // Sample likely background colors from borders. This removes leftover checker pixels.
+      const border = [];
+      const pushBorder = (x, y) => {
+        const i = (y * width + x) * 4;
+        border.push([data[i], data[i + 1], data[i + 2]]);
+      };
+      for (let x = 0; x < width; x++) {
+        pushBorder(x, 0);
+        pushBorder(x, height - 1);
+      }
+      for (let y = 0; y < height; y++) {
+        pushBorder(0, y);
+        pushBorder(width - 1, y);
+      }
+      const bgA = border[Math.floor(border.length * 0.2)] || [170, 170, 170];
+      const bgB = border[Math.floor(border.length * 0.8)] || [205, 205, 205];
+      const dist3 = (r, g, b, c) => Math.hypot(r - c[0], g - c[1], b - c[2]);
+
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        if (a < 12) continue;
+
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const chroma = max - min;
+        const brightness = (r + g + b) / 3;
+        const bgDist = Math.min(dist3(r, g, b, bgA), dist3(r, g, b, bgB));
+
+        // Remove likely checkerboard remnants.
+        if (bgDist < 40 && chroma < 26 && brightness > 70 && brightness < 245) {
+          data[i + 3] = 0;
+          continue;
+        }
+
+        // Preserve dark outlines for readability.
+        if (brightness < 34) continue;
+
+        const [h, s, l] = rgbToHsl(r, g, b);
+        const isCenter = h >= 18 && h <= 78 && s > 0.18 && l > 0.22 && brightness > 60;
+        const target = isCenter ? center : petal;
+        const shade = isCenter ? 0.66 + l * 0.58 : 0.62 + l * 0.55;
+        const mix = isCenter ? 0.72 : 0.6;
+
+        data[i] = Math.round(Math.min(255, target[0] * shade) * mix + r * (1 - mix));
+        data[i + 1] = Math.round(Math.min(255, target[1] * shade) * mix + g * (1 - mix));
+        data[i + 2] = Math.round(Math.min(255, target[2] * shade) * mix + b * (1 - mix));
+      }
+
+      canvasCtx.putImageData(imageData, 0, 0);
+    }
+
+    function createFlowerSpriteCacheForPalette(palette) {
+      const cache = {};
+      if (!assets.ready || !palette || !palette.colors) return cache;
+
+      for (const spriteName of FLOWER_SPRITE_NAMES) {
+        if (spriteName === "flower_pollinated" && assets.cleanPollinatedCanvas && assets.pollinatedCleanSuccess) {
+          cache[spriteName] = assets.cleanPollinatedCanvas;
+          continue;
+        }
+
+        const frame = assets.frameMap[spriteName] || (() => {
+          const base = SPRITES[spriteName];
+          return {
+            sx: Math.round(base.col * assets.cellWidth),
+            sy: Math.round(base.row * assets.cellHeight),
+            sw: Math.round(assets.cellWidth),
+            sh: Math.round(assets.cellHeight)
+          };
+        })();
+
+        const flowerCanvas = document.createElement("canvas");
+        flowerCanvas.width = Math.max(1, Math.round(frame.sw));
+        flowerCanvas.height = Math.max(1, Math.round(frame.sh));
+        const flowerCtx = flowerCanvas.getContext("2d", { willReadFrequently: true });
+        flowerCtx.drawImage(
+          spriteSheet,
+          frame.sx,
+          frame.sy,
+          frame.sw,
+          frame.sh,
+          0,
+          0,
+          flowerCanvas.width,
+          flowerCanvas.height
+        );
+        if (spriteName !== "flower_pollinated") {
+          recolorFlowerSpriteCanvas(
+            flowerCtx,
+            flowerCanvas.width,
+            flowerCanvas.height,
+            palette.colors[spriteName] || palette.colors.flower_red,
+            palette.center
+          );
+        }
+        cache[spriteName] = flowerCanvas;
+      }
+      return cache;
+    }
+
+    // In some school-device/browser setups, pixel readback can be blocked.
+    // If recolor fails once, keep gameplay running with original flower sprites.
+    function refreshFlowerSpriteCache() {
+      if (!state.flowerPalette || !assets.ready) {
+        state.flowerSpriteCache = {};
+        state.flowerUseFilterFallback = true;
+        return;
+      }
+
+      if (CONFIG.FLOWER_COLOR_MODE === "filter") {
+        state.flowerSpriteCache = {};
+        state.flowerUseFilterFallback = true;
+        return;
+      }
+
+      try {
+        state.flowerSpriteCache = createFlowerSpriteCacheForPalette(state.flowerPalette);
+        state.flowerUseFilterFallback = false;
+      } catch (err) {
+        state.flowerSpriteCache = {};
+        state.flowerUseFilterFallback = true;
+        if (!flowerRecoloringWarned) {
+          flowerRecoloringWarned = true;
+          console.warn("Flower recoloring disabled due to canvas read restrictions.", err);
+        }
+      }
+    }
+
+    function buildCellFrameMap() {
+      const map = {};
+      for (const [name, base] of Object.entries(SPRITES)) {
+        map[name] = {
+          sx: Math.round(base.col * assets.cellWidth),
+          sy: Math.round(base.row * assets.cellHeight),
+          sw: Math.round(assets.cellWidth),
+          sh: Math.round(assets.cellHeight)
+        };
+      }
+      return map;
+    }
+
+    // Normalized trim hints per sprite (x, y, w, h as fractions of a 4x4 cell).
+    // These are used if auto-trim can't run (for example, file:// canvas security limits).
+    const SPRITE_TRIM_HINTS = {
+      bee_idle: { x: 0.324, y: 0.195, w: 0.352, h: 0.609 },
+      bee_fly_1: { x: 0.324, y: 0.167, w: 0.352, h: 0.664 },
+      bee_fly_2: { x: 0.324, y: 0.182, w: 0.352, h: 0.633 },
+      bee_fly_3: { x: 0.325, y: 0.229, w: 0.349, h: 0.542 },
+      flower_red: { x: 0.321, y: 0.211, w: 0.358, h: 0.576 },
+      flower_yellow: { x: 0.320, y: 0.211, w: 0.359, h: 0.578 },
+      flower_white: { x: 0.325, y: 0.219, w: 0.348, h: 0.562 },
+      flower_pollinated: { x: 0.297, y: 0.159, w: 0.405, h: 0.680 },
+      beehive: { x: 0.349, y: 0.195, w: 0.300, h: 0.607 },
+      grass: { x: 0.320, y: 0.172, w: 0.361, h: 0.656 },
+      rock: { x: 0.364, y: 0.326, w: 0.273, h: 0.349 },
+      bush: { x: 0.317, y: 0.258, w: 0.365, h: 0.482 },
+      pollen_particle: { x: 0.445, y: 0.401, w: 0.111, h: 0.198 },
+      sparkle: { x: 0.389, y: 0.315, w: 0.220, h: 0.367 },
+      glow: { x: 0.295, y: 0.125, w: 0.409, h: 0.747 }
+    };
+
+    function buildHintFrameMap() {
+      const map = {};
+      for (const [name, base] of Object.entries(SPRITES)) {
+        const cellX = Math.round(base.col * assets.cellWidth);
+        const cellY = Math.round(base.row * assets.cellHeight);
+        const cellW = Math.round(assets.cellWidth);
+        const cellH = Math.round(assets.cellHeight);
+        const hint = SPRITE_TRIM_HINTS[name];
+        if (!hint) {
+          map[name] = { sx: cellX, sy: cellY, sw: cellW, sh: cellH };
+          continue;
+        }
+        const insetPad = 2;
+        const sx = cellX + Math.round(hint.x * cellW) - insetPad;
+        const sy = cellY + Math.round(hint.y * cellH) - insetPad;
+        const sw = Math.round(hint.w * cellW) + insetPad * 2;
+        const sh = Math.round(hint.h * cellH) + insetPad * 2;
+        map[name] = {
+          sx: Math.max(cellX, sx),
+          sy: Math.max(cellY, sy),
+          sw: Math.min(cellX + cellW, sx + sw) - Math.max(cellX, sx),
+          sh: Math.min(cellY + cellH, sy + sh) - Math.max(cellY, sy)
+        };
+      }
+      return map;
+    }
+
+    function createCleanPollinatedSpriteCanvas() {
+      if (!assets.ready) return null;
+      const frame = assets.frameMap?.flower_pollinated;
+      if (!frame) return null;
+      assets.pollinatedCleanSuccess = false;
+
+      const canvasRef = document.createElement("canvas");
+      canvasRef.width = Math.max(1, Math.round(frame.sw));
+      canvasRef.height = Math.max(1, Math.round(frame.sh));
+      const cctx = canvasRef.getContext("2d", { willReadFrequently: true });
+      cctx.drawImage(
+        spriteSheet,
+        frame.sx,
+        frame.sy,
+        frame.sw,
+        frame.sh,
+        0,
+        0,
+        canvasRef.width,
+        canvasRef.height
+      );
+
+      try {
+        const imageData = cctx.getImageData(0, 0, canvasRef.width, canvasRef.height);
+        const data = imageData.data;
+        const w = canvasRef.width;
+        const h = canvasRef.height;
+        const border = [];
+        const pushBorder = (x, y) => {
+          const i = (y * w + x) * 4;
+          border.push([data[i], data[i + 1], data[i + 2]]);
+        };
+        for (let x = 0; x < w; x++) {
+          pushBorder(x, 0);
+          pushBorder(x, h - 1);
+        }
+        for (let y = 0; y < h; y++) {
+          pushBorder(0, y);
+          pushBorder(w - 1, y);
+        }
+        const bgA = border[Math.floor(border.length * 0.2)] || [170, 170, 170];
+        const bgB = border[Math.floor(border.length * 0.8)] || [205, 205, 205];
+        const dist3 = (r, g, b, c) => Math.hypot(r - c[0], g - c[1], b - c[2]);
+        const isLikelyChecker = (r, g, b) => {
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const chroma = max - min;
+          const brightness = (r + g + b) / 3;
+          const bgDist = Math.min(dist3(r, g, b, bgA), dist3(r, g, b, bgB));
+          return bgDist < 60 && chroma < 42 && brightness > 52 && brightness < 248;
+        };
+
+        // Remove only edge-connected checker pixels so petal highlights are preserved.
+        const visited = new Uint8Array(w * h);
+        const queue = [];
+        const enqueue = (x, y) => {
+          if (x < 0 || y < 0 || x >= w || y >= h) return;
+          const idx = y * w + x;
+          if (visited[idx]) return;
+          const di = idx * 4;
+          if (data[di + 3] < 10) return;
+          if (!isLikelyChecker(data[di], data[di + 1], data[di + 2])) return;
+          visited[idx] = 1;
+          queue.push(idx);
+        };
+
+        for (let x = 0; x < w; x++) {
+          enqueue(x, 0);
+          enqueue(x, h - 1);
+        }
+        for (let y = 0; y < h; y++) {
+          enqueue(0, y);
+          enqueue(w - 1, y);
+        }
+
+        for (let q = 0; q < queue.length; q++) {
+          const idx = queue[q];
+          const di = idx * 4;
+          data[di + 3] = 0;
+          const x = idx % w;
+          const y = Math.floor(idx / w);
+          enqueue(x + 1, y);
+          enqueue(x - 1, y);
+          enqueue(x, y + 1);
+          enqueue(x, y - 1);
+        }
+
+        // Clean tiny checker specks left near transparent edges.
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+            const di = idx * 4;
+            if (data[di + 3] < 10) continue;
+            if (!isLikelyChecker(data[di], data[di + 1], data[di + 2])) continue;
+            let transparentNeighbors = 0;
+            const ns = [idx - 1, idx + 1, idx - w, idx + w, idx - w - 1, idx - w + 1, idx + w - 1, idx + w + 1];
+            for (const n of ns) {
+              if (data[n * 4 + 3] < 10) transparentNeighbors++;
+            }
+            if (transparentNeighbors >= 6) {
+              data[di + 3] = 0;
+            }
+          }
+        }
+
+        // Extra anti-fringe pass for semi-transparent checker remnants.
+        for (let i = 0; i < data.length; i += 4) {
+          const alpha = data[i + 3];
+          if (alpha <= 0 || alpha >= 230) continue;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (isLikelyChecker(r, g, b)) {
+            data[i + 3] = 0;
+          }
+        }
+
+        cctx.putImageData(imageData, 0, 0);
+        assets.pollinatedCleanSuccess = true;
+      } catch (err) {
+        console.warn("Pollinated flower clean pass skipped.", err);
+        assets.pollinatedCleanSuccess = false;
+      }
+
+      return canvasRef;
+    }
+
+    function buildAutoFrameMap() {
+      if (!assets.ready) return {};
+
+      const offscreen = document.createElement("canvas");
+      offscreen.width = spriteSheet.width;
+      offscreen.height = spriteSheet.height;
+      const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
+      offCtx.drawImage(spriteSheet, 0, 0);
+
+      const map = {};
+      for (const [name, frame] of Object.entries(SPRITES)) {
+        const cellX = Math.round(frame.col * assets.cellWidth);
+        const cellY = Math.round(frame.row * assets.cellHeight);
+        const cellW = Math.round(assets.cellWidth);
+        const cellH = Math.round(assets.cellHeight);
+
+        const imageData = offCtx.getImageData(cellX, cellY, cellW, cellH);
+        const localBounds = detectSpriteBounds(imageData, cellW, cellH);
+        if (!localBounds) {
+          map[name] = { sx: cellX, sy: cellY, sw: cellW, sh: cellH };
+          continue;
+        }
+
+        map[name] = {
+          sx: cellX + localBounds.x,
+          sy: cellY + localBounds.y,
+          sw: localBounds.w,
+          sh: localBounds.h
+        };
+      }
+
+      return map;
+    }
+
+    function buildExtrasFrameMap() {
+      if (!extrasAssets.ready) return {};
+
+      const offscreen = document.createElement("canvas");
+      offscreen.width = extrasSheet.width;
+      offscreen.height = extrasSheet.height;
+      const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
+      offCtx.drawImage(extrasSheet, 0, 0);
+
+      const map = {};
+      for (const [name, frame] of Object.entries(EXTRA_SPRITES)) {
+        const cellX = Math.round(frame.col * extrasAssets.cellWidth);
+        const cellY = Math.round(frame.row * extrasAssets.cellHeight);
+        const cellW = Math.round(extrasAssets.cellWidth);
+        const cellH = Math.round(extrasAssets.cellHeight);
+        const imageData = offCtx.getImageData(cellX, cellY, cellW, cellH).data;
+
+        let minX = cellW;
+        let minY = cellH;
+        let maxX = -1;
+        let maxY = -1;
+        for (let y = 0; y < cellH; y++) {
+          for (let x = 0; x < cellW; x++) {
+            const i = (y * cellW + x) * 4;
+            const alpha = imageData[i + 3];
+            if (alpha < 12) continue;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+
+        if (maxX < minX || maxY < minY) {
+          map[name] = { sx: cellX, sy: cellY, sw: cellW, sh: cellH };
+          continue;
+        }
+
+        const pad = 2;
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(cellW - 1, maxX + pad);
+        maxY = Math.min(cellH - 1, maxY + pad);
+        map[name] = {
+          sx: cellX + minX,
+          sy: cellY + minY,
+          sw: maxX - minX + 1,
+          sh: maxY - minY + 1
+        };
+      }
+
+      return map;
+    }
+
+    function buildBirdRenderSheet() {
+      if (!birdAssets.ready) return null;
+
+      const cleanCanvas = document.createElement("canvas");
+      cleanCanvas.width = birdSheet.width;
+      cleanCanvas.height = birdSheet.height;
+      const cleanCtx = cleanCanvas.getContext("2d", { willReadFrequently: true });
+      cleanCtx.drawImage(birdSheet, 0, 0);
+
+      const qColor = (r, g, b, q = 8) => `${Math.floor(r / q)}_${Math.floor(g / q)}_${Math.floor(b / q)}`;
+      const colorDistance = (r, g, b, c) => Math.hypot(r - c[0], g - c[1], b - c[2]);
+
+      for (const frame of Object.values(BIRD_SPRITES)) {
+        const cellX = Math.round(frame.col * birdAssets.cellWidth);
+        const cellY = Math.round(frame.row * birdAssets.cellHeight);
+        const cellW = Math.round(birdAssets.cellWidth);
+        const cellH = Math.round(birdAssets.cellHeight);
+        const topCrop = Math.round(cellH * (frame.row === 3 ? 0.68 : 0.56));
+
+        const imageData = cleanCtx.getImageData(cellX, cellY, cellW, cellH);
+        const data = imageData.data;
+
+        const borderCounts = new Map();
+        const borderSamples = new Map();
+        const pushBorder = (x, y) => {
+          const i = (y * cellW + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const key = qColor(r, g, b);
+          borderCounts.set(key, (borderCounts.get(key) || 0) + 1);
+          if (!borderSamples.has(key)) borderSamples.set(key, [0, 0, 0, 0]);
+          const sample = borderSamples.get(key);
+          sample[0] += r;
+          sample[1] += g;
+          sample[2] += b;
+          sample[3] += 1;
+        };
+
+        for (let x = 0; x < cellW; x++) {
+          pushBorder(x, 0);
+          pushBorder(x, Math.max(0, topCrop - 1));
+        }
+        for (let y = 0; y < topCrop; y++) {
+          pushBorder(0, y);
+          pushBorder(cellW - 1, y);
+        }
+
+        const sortedKeys = [...borderCounts.entries()].sort((a, b) => b[1] - a[1]).map((entry) => entry[0]);
+        const bgKeys = sortedKeys.slice(0, 2);
+        const bgColors = bgKeys.map((key) => {
+          const sample = borderSamples.get(key);
+          if (!sample || sample[3] === 0) return [168, 168, 168];
+          return [sample[0] / sample[3], sample[1] / sample[3], sample[2] / sample[3]];
+        });
+        while (bgColors.length < 2) bgColors.push([196, 196, 196]);
+
+        for (let y = 0; y < cellH; y++) {
+          for (let x = 0; x < cellW; x++) {
+            const i = (y * cellW + x) * 4;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const a = data[i + 3];
+            if (a < 1) continue;
+
+            if (y >= topCrop) {
+              data[i + 3] = 0;
+              continue;
+            }
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const chroma = max - min;
+            const brightness = (r + g + b) / 3;
+            const bgDist = Math.min(
+              colorDistance(r, g, b, bgColors[0]),
+              colorDistance(r, g, b, bgColors[1])
+            );
+            const looksChecker = bgDist < 38 && chroma < 28 && brightness > 75 && brightness < 246;
+            if (looksChecker) data[i + 3] = 0;
+          }
+        }
+
+        // Remove tiny detached islands from threshold noise while preserving real sprite pieces.
+        const w = cellW;
+        const h = topCrop;
+        const visited = new Uint8Array(w * h);
+        const minArea = frame.row === 3 ? 20 : 34;
+        const offsets = [1, -1, w, -w, w + 1, w - 1, -w + 1, -w - 1];
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = y * w + x;
+            if (visited[idx]) continue;
+            const a = data[idx * 4 + 3];
+            if (a < 12) continue;
+            visited[idx] = 1;
+            const queue = [idx];
+            const comp = [idx];
+            for (let q = 0; q < queue.length; q++) {
+              const cur = queue[q];
+              const cx = cur % w;
+              const cy = Math.floor(cur / w);
+              for (const off of offsets) {
+                const next = cur + off;
+                if (next < 0 || next >= w * h) continue;
+                const nx = next % w;
+                const ny = Math.floor(next / w);
+                if (Math.abs(nx - cx) > 1 || Math.abs(ny - cy) > 1) continue;
+                if (visited[next]) continue;
+                if (data[next * 4 + 3] < 12) continue;
+                visited[next] = 1;
+                queue.push(next);
+                comp.push(next);
+              }
+            }
+
+            if (comp.length < minArea) {
+              for (const p of comp) data[p * 4 + 3] = 0;
+            }
+          }
+        }
+
+        cleanCtx.putImageData(imageData, cellX, cellY);
+      }
+
+      return cleanCanvas;
+    }
+
+    function buildBirdFrameMap(source = birdSheet) {
+      if (!birdAssets.ready) return {};
+
+      const offscreen = document.createElement("canvas");
+      offscreen.width = source.width;
+      offscreen.height = source.height;
+      const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
+      offCtx.drawImage(source, 0, 0);
+
+      const map = {};
+      for (const [name, frame] of Object.entries(BIRD_SPRITES)) {
+        const cellX = Math.round(frame.col * birdAssets.cellWidth);
+        const cellY = Math.round(frame.row * birdAssets.cellHeight);
+        const cellW = Math.round(birdAssets.cellWidth);
+        const cellH = Math.round(birdAssets.cellHeight);
+
+        const imageData = offCtx.getImageData(cellX, cellY, cellW, cellH).data;
+        let minX = cellW;
+        let minY = cellH;
+        let maxX = -1;
+        let maxY = -1;
+        for (let y = 0; y < cellH; y++) {
+          for (let x = 0; x < cellW; x++) {
+            const i = (y * cellW + x) * 4;
+            if (imageData[i + 3] < 12) continue;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+
+        if (maxX < minX || maxY < minY) {
+          const insetX = Math.round(cellW * 0.04);
+          const insetTop = Math.round(cellH * 0.05);
+          const trimmedBottom = Math.round(cellH * (frame.row === 3 ? 0.7 : 0.57));
+          map[name] = {
+            sx: cellX + insetX,
+            sy: cellY + insetTop,
+            sw: Math.max(1, cellW - insetX * 2),
+            sh: Math.max(1, trimmedBottom - insetTop)
+          };
+          continue;
+        }
+
+        const pad = 2;
+        minX = Math.max(0, minX - pad);
+        minY = Math.max(0, minY - pad);
+        maxX = Math.min(cellW - 1, maxX + pad);
+        maxY = Math.min(cellH - 1, maxY + pad);
+        map[name] = {
+          sx: cellX + minX,
+          sy: cellY + minY,
+          sw: maxX - minX + 1,
+          sh: maxY - minY + 1
+        };
+      }
+      return map;
+    }
+
+    function detectSpriteBounds(imageData, width, height) {
+      const data = imageData.data;
+      let minX = width;
+      let minY = height;
+      let maxX = -1;
+      let maxY = -1;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const i = (y * width + x) * 4;
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (!isLikelySpritePixel(r, g, b, a, y, height)) continue;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+
+      if (maxX < minX || maxY < minY) {
+        return null;
+      }
+
+      const pad = Math.max(2, Math.round(Math.min(width, height) * 0.045));
+      minX = Math.max(0, minX - pad);
+      minY = Math.max(0, minY - pad);
+      maxX = Math.min(width - 1, maxX + pad);
+      maxY = Math.min(height - 1, maxY + pad);
+
+      const w = maxX - minX + 1;
+      const h = maxY - minY + 1;
+      if (w < width * 0.12 || h < height * 0.12) {
+        return null;
+      }
+
+      return { x: minX, y: minY, w, h };
+    }
+
+    function isLikelySpritePixel(r, g, b, a, y, height) {
+      if (a < 16) return false;
+
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const chroma = max - min;
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      const brightness = (r + g + b) / 3;
+
+      if (y > height * 0.66 && brightness < 95 && chroma < 35) return false;
+
+      return (saturation > 0.13 && chroma > 18 && brightness > 38) || brightness > 235;
+    }
+
+    function drawSprite(name, x, y, width, height, options = {}) {
+      const alpha = options.alpha ?? 1;
+      const rotation = options.rotation ?? 0;
+      const flipX = options.flipX ?? false;
+      const filter = options.filter ?? "none";
+
+      ctx.save();
+      ctx.translate(x, y);
+      if (rotation !== 0) ctx.rotate(rotation);
+      if (flipX) ctx.scale(-1, 1);
+      ctx.globalAlpha = alpha;
+      if (filter !== "none" && "filter" in ctx) {
+        ctx.filter = filter;
+      }
+
+      // The glow cell in source art may include baked checker pixels in some exports.
+      // Use a procedural gradient glow for guaranteed clean transparency.
+      if (name === "glow" && CONFIG.USE_PROCEDURAL_GLOW) {
+        drawFallbackSprite(name, -width / 2, -height / 2, width, height);
+        ctx.restore();
+        return;
+      }
+
+      if (assets.ready && SPRITES[name]) {
+        const frame = assets.frameMap[name] || (() => {
+          const base = SPRITES[name];
+          return {
+            sx: base.col * assets.cellWidth,
+            sy: base.row * assets.cellHeight,
+            sw: assets.cellWidth,
+            sh: assets.cellHeight
+          };
+        })();
+        ctx.drawImage(
+          spriteSheet,
+          frame.sx,
+          frame.sy,
+          frame.sw,
+          frame.sh,
+          -width / 2,
+          -height / 2,
+          width,
+          height
+        );
+      } else {
+        drawFallbackSprite(name, -width / 2, -height / 2, width, height);
+      }
+      ctx.restore();
+    }
+
+    function drawExtraSprite(name, x, y, width, height, options = {}) {
+      const alpha = options.alpha ?? 1;
+      const rotation = options.rotation ?? 0;
+      const flipX = options.flipX ?? false;
+
+      ctx.save();
+      ctx.translate(x, y);
+      if (rotation !== 0) ctx.rotate(rotation);
+      if (flipX) ctx.scale(-1, 1);
+      ctx.globalAlpha = alpha;
+
+      if (extrasAssets.ready && EXTRA_SPRITES[name]) {
+        const frame = extrasAssets.frameMap[name] || (() => {
+          const base = EXTRA_SPRITES[name];
+          return {
+            sx: base.col * extrasAssets.cellWidth,
+            sy: base.row * extrasAssets.cellHeight,
+            sw: extrasAssets.cellWidth,
+            sh: extrasAssets.cellHeight
+          };
+        })();
+        ctx.drawImage(
+          extrasSheet,
+          frame.sx,
+          frame.sy,
+          frame.sw,
+          frame.sh,
+          -width / 2,
+          -height / 2,
+          width,
+          height
+        );
+      } else {
+        drawExtraFallbackSprite(name, -width / 2, -height / 2, width, height);
+      }
+      ctx.restore();
+    }
+
+    function drawBirdSprite(name, x, y, width, height, options = {}) {
+      const alpha = options.alpha ?? 1;
+      const rotation = options.rotation ?? 0;
+      const flipX = options.flipX ?? false;
+
+      ctx.save();
+      ctx.translate(x, y);
+      if (rotation !== 0) ctx.rotate(rotation);
+      if (flipX) ctx.scale(-1, 1);
+      ctx.globalAlpha = alpha;
+
+      if (birdAssets.ready && BIRD_SPRITES[name]) {
+        const source = birdAssets.renderSource || birdSheet;
+        const frame = birdAssets.frameMap[name] || (() => {
+          const base = BIRD_SPRITES[name];
+          return {
+            sx: base.col * birdAssets.cellWidth,
+            sy: base.row * birdAssets.cellHeight,
+            sw: birdAssets.cellWidth,
+            sh: birdAssets.cellHeight
+          };
+        })();
+        ctx.drawImage(
+          source,
+          frame.sx,
+          frame.sy,
+          frame.sw,
+          frame.sh,
+          -width / 2,
+          -height / 2,
+          width,
+          height
+        );
+      } else {
+        drawBirdFallbackSprite(name, -width / 2, -height / 2, width, height);
+      }
+      ctx.restore();
+    }
+
+    function drawFallbackSprite(name, x, y, width, height) {
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+
+      if (name.startsWith("bee")) {
+        ctx.fillStyle = "#f8bf3a";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, width * 0.36, height * 0.24, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#6d4118";
+        ctx.lineWidth = Math.max(2, width * 0.07);
+        for (let i = -1; i <= 1; i++) {
+          const sx = cx + i * width * 0.17;
+          ctx.beginPath();
+          ctx.moveTo(sx, cy - height * 0.22);
+          ctx.lineTo(sx, cy + height * 0.22);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(210,240,255,0.8)";
+        ctx.beginPath();
+        ctx.ellipse(cx - width * 0.08, cy - height * 0.26, width * 0.15, height * 0.14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cx + width * 0.12, cy - height * 0.26, width * 0.15, height * 0.14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name.startsWith("flower")) {
+        const colorMap = {
+          flower_red: "#ef6965",
+          flower_yellow: "#ffdd5f",
+          flower_white: "#f6f7ff",
+          flower_pollinated: "#ff8db2"
+        };
+        const petal = colorMap[name] || "#f0f0f0";
+        for (let i = 0; i < 6; i++) {
+          const a = (Math.PI * 2 * i) / 6;
+          ctx.fillStyle = petal;
+          ctx.beginPath();
+          ctx.ellipse(
+            cx + Math.cos(a) * width * 0.2,
+            cy + Math.sin(a) * height * 0.2,
+            width * 0.18,
+            height * 0.14,
+            a,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+        ctx.fillStyle = "#f6c23f";
+        ctx.beginPath();
+        ctx.arc(cx, cy, width * 0.11, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "rock") {
+        ctx.fillStyle = "#bca58f";
+        ctx.beginPath();
+        ctx.moveTo(cx - width * 0.34, cy + height * 0.18);
+        ctx.lineTo(cx - width * 0.2, cy - height * 0.2);
+        ctx.lineTo(cx + width * 0.22, cy - height * 0.22);
+        ctx.lineTo(cx + width * 0.34, cy + height * 0.1);
+        ctx.closePath();
+        ctx.fill();
+        return;
+      }
+
+      if (name === "bush") {
+        ctx.fillStyle = "#65a53f";
+        ctx.beginPath();
+        ctx.arc(cx - width * 0.16, cy, width * 0.18, 0, Math.PI * 2);
+        ctx.arc(cx + width * 0.06, cy - height * 0.05, width * 0.2, 0, Math.PI * 2);
+        ctx.arc(cx + width * 0.22, cy + height * 0.06, width * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "beehive") {
+        ctx.fillStyle = "#e8b647";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, width * 0.24, height * 0.28, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#684321";
+        ctx.beginPath();
+        ctx.arc(cx, cy + height * 0.05, width * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "glow") {
+        const g = ctx.createRadialGradient(cx, cy, 1, cx, cy, Math.max(width, height) / 2);
+        g.addColorStop(0, "rgba(255, 245, 180, 0.9)");
+        g.addColorStop(1, "rgba(255, 245, 180, 0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(width, height) / 2, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "sparkle") {
+        ctx.strokeStyle = "rgba(255,255,210,0.95)";
+        ctx.lineWidth = Math.max(1.5, width * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(cx - width * 0.2, cy);
+        ctx.lineTo(cx + width * 0.2, cy);
+        ctx.moveTo(cx, cy - height * 0.2);
+        ctx.lineTo(cx, cy + height * 0.2);
+        ctx.stroke();
+        return;
+      }
+
+      if (name === "pollen_particle") {
+        ctx.fillStyle = "#f2cc52";
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(1.5, width * 0.18), 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "grass") {
+        ctx.fillStyle = "#95cd6f";
+        ctx.fillRect(x, y, width, height);
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.strokeRect(x, y, width, height);
+      }
+    }
+
+    function drawExtraFallbackSprite(name, x, y, width, height) {
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      if (name.startsWith("butterfly")) {
+        ctx.fillStyle = name.includes("pink") ? "#f5a6ca" : "#8acff3";
+        ctx.beginPath();
+        ctx.ellipse(cx - width * 0.14, cy - height * 0.08, width * 0.2, height * 0.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + width * 0.14, cy - height * 0.08, width * 0.2, height * 0.2, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx - width * 0.12, cy + height * 0.1, width * 0.15, height * 0.15, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + width * 0.12, cy + height * 0.1, width * 0.15, height * 0.15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#526f82";
+        ctx.fillRect(cx - width * 0.04, cy - height * 0.14, width * 0.08, height * 0.34);
+        return;
+      }
+
+      if (name.startsWith("seedling")) {
+        ctx.fillStyle = "#8b6138";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + height * 0.24, width * 0.26, height * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#7bc64f";
+        ctx.beginPath();
+        ctx.ellipse(cx - width * 0.11, cy + height * 0.02, width * 0.13, height * 0.09, -0.6, 0, Math.PI * 2);
+        ctx.ellipse(cx + width * 0.11, cy - height * 0.02, width * 0.13, height * 0.09, 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "clover_patch") {
+        ctx.fillStyle = "#6fb843";
+        const leaves = [
+          { ox: -0.18, oy: 0.02, r: 0.12 },
+          { ox: -0.02, oy: -0.08, r: 0.13 },
+          { ox: 0.14, oy: -0.01, r: 0.12 },
+          { ox: 0.03, oy: 0.1, r: 0.11 },
+          { ox: -0.1, oy: 0.12, r: 0.1 }
+        ];
+        for (const leaf of leaves) {
+          ctx.beginPath();
+          ctx.arc(cx + leaf.ox * width, cy + leaf.oy * height, leaf.r * width, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        return;
+      }
+
+      if (name === "star_badge") {
+        ctx.fillStyle = "#ffd95e";
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const a = -Math.PI / 2 + i * ((Math.PI * 2) / 5);
+          const outerX = cx + Math.cos(a) * width * 0.28;
+          const outerY = cy + Math.sin(a) * height * 0.28;
+          const innerX = cx + Math.cos(a + Math.PI / 5) * width * 0.14;
+          const innerY = cy + Math.sin(a + Math.PI / 5) * height * 0.14;
+          if (i === 0) ctx.moveTo(outerX, outerY);
+          else ctx.lineTo(outerX, outerY);
+          ctx.lineTo(innerX, innerY);
+        }
+        ctx.closePath();
+        ctx.fill();
+        return;
+      }
+
+      if (name === "combo_burst") {
+        ctx.strokeStyle = "#f6a54b";
+        ctx.lineWidth = Math.max(2, width * 0.08);
+        ctx.beginPath();
+        ctx.moveTo(cx - width * 0.25, cy);
+        ctx.lineTo(cx + width * 0.25, cy);
+        ctx.moveTo(cx, cy - height * 0.25);
+        ctx.lineTo(cx, cy + height * 0.25);
+        ctx.stroke();
+        return;
+      }
+
+      if (name === "mission_scroll") {
+        ctx.fillStyle = "#f3d7a6";
+        ctx.strokeStyle = "#9f7042";
+        ctx.lineWidth = Math.max(1.5, width * 0.04);
+        ctx.beginPath();
+        roundedRectPath(ctx, x + width * 0.16, y + height * 0.14, width * 0.68, height * 0.72, width * 0.12);
+        ctx.fill();
+        ctx.stroke();
+        return;
+      }
+
+      if (name === "honey_drop") {
+        ctx.fillStyle = "#f5b534";
+        ctx.beginPath();
+        ctx.moveTo(cx, y + height * 0.12);
+        ctx.quadraticCurveTo(x + width * 0.84, y + height * 0.46, cx, y + height * 0.88);
+        ctx.quadraticCurveTo(x + width * 0.16, y + height * 0.46, cx, y + height * 0.12);
+        ctx.fill();
+      }
+    }
+
+    function drawBirdFallbackSprite(name, x, y, width, height) {
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+
+      if (name === "bird_warning_icon") {
+        ctx.fillStyle = "#fff";
+        ctx.strokeStyle = "#d74734";
+        ctx.lineWidth = Math.max(2, width * 0.06);
+        ctx.beginPath();
+        ctx.moveTo(cx, y + height * 0.08);
+        ctx.lineTo(x + width * 0.92, y + height * 0.92);
+        ctx.lineTo(x + width * 0.08, y + height * 0.92);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        return;
+      }
+
+      if (name.startsWith("bird_shadow")) {
+        ctx.fillStyle = "rgba(26,26,26,0.35)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, width * 0.36, height * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+
+      if (name === "feathers_burst_fx") {
+        ctx.strokeStyle = "rgba(140,102,72,0.85)";
+        ctx.lineWidth = Math.max(2, width * 0.05);
+        for (let i = 0; i < 9; i++) {
+          const a = (Math.PI * 2 * i) / 9;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(cx + Math.cos(a) * width * 0.35, cy + Math.sin(a) * height * 0.35);
+          ctx.stroke();
+        }
+        return;
+      }
+
+      let body = "#5e8fc7";
+      if (name.includes("hunter")) body = "#4b4f6f";
+      if (name.includes("raptor")) body = "#9f6f4d";
+
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, width * 0.28, height * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx - width * 0.18, cy - height * 0.12, width * 0.22, height * 0.12, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx + width * 0.2, cy - height * 0.06, width * 0.17, height * 0.1, 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#f6d66c";
+      ctx.beginPath();
+      ctx.moveTo(cx - width * 0.33, cy - height * 0.02);
+      ctx.lineTo(cx - width * 0.46, cy + height * 0.02);
+      ctx.lineTo(cx - width * 0.34, cy + height * 0.08);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    const DEFAULT_DECOR_LAYOUT = {
+      hive: { x: 110, y: 90, sprite: "beehive", size: 90 },
+      rocks: [
+        { x: 190, y: 492, sprite: "rock", size: 58 },
+        { x: 826, y: 492, sprite: "rock", size: 60 },
+        { x: 520, y: 86, sprite: "rock", size: 46 }
+      ],
+      bushes: [
+        { x: 76, y: 312, sprite: "bush", size: 76 },
+        { x: 886, y: 312, sprite: "bush", size: 76 },
+        { x: 484, y: 560, sprite: "bush", size: 70 }
+      ]
+    };
+
+    function cloneDecorLayout(layout = DEFAULT_DECOR_LAYOUT) {
+      return {
+        hive: { ...layout.hive },
+        rocks: layout.rocks.map((rock) => ({ ...rock })),
+        bushes: layout.bushes.map((bush) => ({ ...bush }))
+      };
+    }
+
+    // =========================
+    // Game state
+    // =========================
+    const state = {
+      time: 0,
+      round: 1,
+      gameMode: safeReadMode(),
+      flowerPalette: null,
+      flowerSpriteCache: {},
+      flowerFilterMap: {},
+      flowerUseFilterFallback: false,
+      gameOver: false,
+      gameOverReason: null,
+      flowers: [],
+      birds: [],
+      activeBirdCount: 0,
+      decor: cloneDecorLayout(),
+      player: {
+        x: 130,
+        y: 110,
+        vx: 0,
+        vy: 0,
+        radius: 22,
+        facingLeft: false,
+        carryingPollen: false,
+        sourceFlowerId: null,
+        animationTime: 0,
+        bobTime: 0,
+        hidden: false,
+        hideZone: null,
+        hideBlend: 0
+      },
+      pollinatedCount: 0,
+      rewardStars: 0,
+      comboCount: 0,
+      comboTimer: 0,
+      bestCombo: 0,
+      lastPollinationTime: -999,
+      effects: [],
+      butterflies: [],
+      growthPatches: [],
+      popups: [],
+      prompt: {
+        visible: false,
+        x: 0,
+        y: 0,
+        text: "Press E / Space"
+      },
+      statusText: ""
+    };
+
+    function modeLabel(modeId = state.gameMode) {
+      return MODE_CONFIG[modeId]?.label || MODE_CONFIG.hard.label;
+    }
+
+    function targetBirdCountForRoundHard(round) {
+      if (round <= 1) return 0;
+      if (round <= 4) return 1;
+      return 2;
+    }
+
+    function pickBirdTypeForRoundHard(round) {
+      const roll = Math.random();
+      if (round === 2) return "scout";
+      if (round === 3) return roll < 0.78 ? "scout" : "hunter";
+      if (round === 4) return "hunter";
+      if (roll < 0.2) return "scout";
+      if (roll < 0.66) return "hunter";
+      return "raptor";
+    }
+
+    function targetBirdCountForRound(round) {
+      if (state.gameMode === "relaxed") return 0;
+      if (state.gameMode === "normal" || state.gameMode === "easy") {
+        return round <= 1 ? 0 : 1;
+      }
+      return targetBirdCountForRoundHard(round);
+    }
+
+    function pickBirdTypeForRound(round) {
+      if (state.gameMode === "easy") return "scout";
+      if (state.gameMode === "normal") return pickBirdTypeForRoundHard(round);
+      return pickBirdTypeForRoundHard(round);
+    }
+
+    function randomBirdSpawnPoint() {
+      const m = CONFIG.WORLD_MARGIN + 40;
+      const side = Math.floor(Math.random() * 4);
+      if (side === 0) return { x: m, y: 90 + Math.random() * (CONFIG.WORLD_HEIGHT - 160) };
+      if (side === 1) return { x: CONFIG.WORLD_WIDTH - m, y: 90 + Math.random() * (CONFIG.WORLD_HEIGHT - 160) };
+      if (side === 2) return { x: m + Math.random() * (CONFIG.WORLD_WIDTH - 2 * m), y: 90 };
+      return { x: m + Math.random() * (CONFIG.WORLD_WIDTH - 2 * m), y: CONFIG.WORLD_HEIGHT - 46 };
+    }
+
+    function createBird(type, id) {
+      let spawn = randomBirdSpawnPoint();
+      for (let tries = 0; tries < 12; tries++) {
+        if (Math.hypot(spawn.x - state.player.x, spawn.y - state.player.y) > 240) break;
+        spawn = randomBirdSpawnPoint();
+      }
+
+      return {
+        id,
+        type,
+        x: spawn.x,
+        y: spawn.y,
+        vx: 0,
+        vy: 0,
+        facingLeft: false,
+        animationTime: Math.random() * 4,
+        bobTime: Math.random() * Math.PI * 2,
+        radius: CONFIG.BIRD_COLLISION_RADIUS,
+        speed: type === "scout"
+          ? CONFIG.BIRD_SCOUT_SPEED
+          : type === "hunter"
+            ? CONFIG.BIRD_HUNTER_SPEED
+            : CONFIG.BIRD_RAPTOR_SPEED,
+        behaviorState: type === "scout" ? "wander" : "track",
+        behaviorTimer: type === "scout"
+          ? CONFIG.BIRD_WANDER_MIN + Math.random() * (CONFIG.BIRD_WANDER_MAX - CONFIG.BIRD_WANDER_MIN)
+          : 0.8 + Math.random() * 1.3,
+        targetX: spawn.x,
+        targetY: spawn.y,
+        dashTargetX: spawn.x,
+        dashTargetY: spawn.y,
+        dashDx: 0,
+        dashDy: 0
+      };
+    }
+
+    function spawnBirdsForRound(round) {
+      const count = targetBirdCountForRound(round);
+      const birds = [];
+      for (let i = 0; i < count; i++) {
+        let type = pickBirdTypeForRound(round);
+        if (state.gameMode === "hard" && round >= 5 && i === 0 && type === "scout") {
+          type = Math.random() < 0.52 ? "hunter" : "raptor";
+        }
+        birds.push(createBird(type, i));
+      }
+      return birds;
+    }
+
+    function shuffled(list) {
+      const copy = [...list];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function findOpenPoint(occupied, radius, options = {}) {
+      const minX = options.minX ?? (CONFIG.WORLD_MARGIN + radius);
+      const maxX = options.maxX ?? (CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - radius);
+      const minY = options.minY ?? (CONFIG.GARDEN_TOP_SAFE_Y + radius);
+      const maxY = options.maxY ?? (CONFIG.WORLD_HEIGHT - radius - 24);
+      const maxTries = options.maxTries ?? 260;
+
+      for (let tries = 0; tries < maxTries; tries++) {
+        const x = minX + Math.random() * Math.max(1, maxX - minX);
+        const y = minY + Math.random() * Math.max(1, maxY - minY);
+        let valid = true;
+        for (const item of occupied) {
+          const required = radius + item.r;
+          if (Math.hypot(x - item.x, y - item.y) < required) {
+            valid = false;
+            break;
+          }
+        }
+        if (valid) return { x, y };
+      }
+      return null;
+    }
+
+    function createRoundDecorLayout() {
+      const base = cloneDecorLayout(DEFAULT_DECOR_LAYOUT);
+      const hive = { ...base.hive };
+
+      const occupied = [
+        {
+          x: hive.x,
+          y: hive.y + 8,
+          r: Math.max(CONFIG.HIDE_HIVE_RADIUS + 22, hive.size * 0.42)
+        }
+      ];
+
+      const minX = CONFIG.WORLD_MARGIN + 62;
+      const maxX = CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 62;
+      const minY = CONFIG.GARDEN_TOP_SAFE_Y + 26;
+      const maxY = CONFIG.WORLD_HEIGHT - 46;
+
+      const bushes = base.bushes.map((preset) => {
+        const size = Math.round(preset.size + randomBetween(-6, 7));
+        const radius = size * 0.46 + 16;
+        const point = findOpenPoint(occupied, radius, { minX, maxX, minY, maxY, maxTries: 280 });
+        const bush = point
+          ? { x: point.x, y: point.y, sprite: "bush", size }
+          : { ...preset };
+        occupied.push({ x: bush.x, y: bush.y + 5, r: radius });
+        return bush;
+      });
+
+      const rocks = base.rocks.map((preset) => {
+        const size = Math.round(preset.size + randomBetween(-8, 7));
+        const radius = size * 0.42 + 12;
+        const point = findOpenPoint(occupied, radius, { minX, maxX, minY, maxY, maxTries: 260 });
+        const rock = point
+          ? { x: point.x, y: point.y, sprite: "rock", size }
+          : { ...preset };
+        occupied.push({ x: rock.x, y: rock.y + 3, r: radius });
+        return rock;
+      });
+
+      return {
+        decor: { hive, rocks, bushes },
+        occupied
+      };
+    }
+
+    function createFlowers(count, occupiedDecor = []) {
+      const fallbackAnchors = shuffled([
+        [250, 140], [390, 120], [560, 150], [700, 140],
+        [810, 230], [700, 320], [560, 360], [390, 350],
+        [260, 320], [150, 230], [500, 250], [640, 250]
+      ]);
+
+      const sourceCount = Math.max(4, Math.ceil(count * 0.5));
+      const sourceIds = new Set(shuffled([...Array(count).keys()]).slice(0, sourceCount));
+      const typeDeck = shuffled(Array.from({ length: count }, (_, i) => FLOWER_TYPES[i % FLOWER_TYPES.length]));
+      const flowers = [];
+      const occupied = occupiedDecor.map((item) => ({ ...item }));
+
+      const flowerPlacementRadius = CONFIG.FLOWER_MIN_SPACING * 0.5;
+      const minX = CONFIG.WORLD_MARGIN + 68;
+      const maxX = CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 68;
+      const minY = CONFIG.GARDEN_TOP_SAFE_Y + 10;
+      const maxY = CONFIG.WORLD_HEIGHT - 72;
+
+      for (let i = 0; i < count; i++) {
+        const point = findOpenPoint(occupied, flowerPlacementRadius, { minX, maxX, minY, maxY, maxTries: 320 });
+
+        let x = point?.x;
+        let y = point?.y;
+        if (x == null || y == null) {
+          const anchor = fallbackAnchors[i % fallbackAnchors.length];
+          x = Math.max(minX, Math.min(maxX, anchor[0] + randomBetween(-20, 20)));
+          y = Math.max(minY, Math.min(maxY, anchor[1] + randomBetween(-20, 20)));
+        }
+
+        occupied.push({ x, y, r: flowerPlacementRadius });
+        flowers.push({
+          id: i,
+          x,
+          y,
+          type: typeDeck[i],
+          hasPollenSource: sourceIds.has(i),
+          pollinated: false,
+          radius: CONFIG.FLOWER_RADIUS
+        });
+      }
+
+      return flowers;
+    }
+
+    function createButterflies(count) {
+      const butterflies = [];
+      for (let i = 0; i < count; i++) {
+        const isPink = i % 2 === 1;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 26 + Math.random() * 22;
+        butterflies.push({
+          x: 160 + Math.random() * (CONFIG.WORLD_WIDTH - 320),
+          y: 120 + Math.random() * (CONFIG.WORLD_HEIGHT - 220),
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          flutterTime: Math.random() * 4,
+          typeA: isPink ? "butterfly_pink_1" : "butterfly_blue_1",
+          typeB: isPink ? "butterfly_pink_2" : "butterfly_blue_2"
+        });
+      }
+      return butterflies;
+    }
+
+    function showOverlay(title, message, buttonLabel = "Restart Round") {
+      overlayTitleEl.textContent = title;
+      overlayMessageEl.textContent = message;
+      restartBtn.textContent = buttonLabel;
+      winOverlayEl.style.display = "flex";
+    }
+
+    function hideOverlay() {
+      winOverlayEl.style.display = "none";
+    }
+
+    function startRound(roundNumber) {
+      state.round = roundNumber;
+      state.gameOver = false;
+      state.gameOverReason = null;
+      const layout = createRoundDecorLayout();
+      state.decor = layout.decor;
+      state.flowerPalette = chooseFlowerPalette(state.flowerPalette?.id || null, roundNumber);
+      state.flowerFilterMap = buildFlowerFilterMap(state.flowerPalette);
+      refreshFlowerSpriteCache();
+      state.flowers = createFlowers(CONFIG.NUMBER_OF_FLOWERS, layout.occupied);
+      state.pollinatedCount = 0;
+      state.effects = [];
+      state.popups = [];
+      state.prompt.visible = false;
+      state.player.x = 130;
+      state.player.y = 110;
+      state.player.vx = 0;
+      state.player.vy = 0;
+      state.player.carryingPollen = false;
+      state.player.sourceFlowerId = null;
+      state.player.animationTime = 0;
+      state.player.bobTime = 0;
+      state.player.hidden = false;
+      state.player.hideZone = null;
+      state.player.hideBlend = 0;
+      state.comboCount = 0;
+      state.comboTimer = 0;
+      state.lastPollinationTime = -999;
+      state.birds = spawnBirdsForRound(roundNumber);
+      state.activeBirdCount = state.birds.length;
+      const modeName = modeLabel();
+      const paletteName = state.flowerPalette?.name || "Garden";
+      if (state.gameMode === "relaxed") {
+        state.statusText = `Relaxed Mode · ${paletteName} palette · Round ${roundNumber}: Focus on flowers and exploration.`;
+      } else if (roundNumber === 1) {
+        state.statusText = `${modeName} Mode · ${paletteName} palette · Round 1: Fly to a flower and press E or Space.`;
+      } else {
+        state.statusText = `${modeName} Mode · ${paletteName} palette · Round ${roundNumber}: Watch out for birds while pollinating!`;
+      }
+      hideOverlay();
+      updateHud();
+    }
+
+    function applyGameMode(modeId) {
+      state.gameMode = MODE_CONFIG[modeId] ? modeId : "hard";
+      modeSelectEl.value = state.gameMode;
+      safeSaveMode(state.gameMode);
+      resetGame();
+    }
+
+    function resetGame() {
+      state.time = 0;
+      state.round = 1;
+      state.rewardStars = 0;
+      state.bestCombo = 0;
+      state.butterflies = createButterflies(CONFIG.BUTTERFLY_COUNT);
+      state.growthPatches = [];
+      keysDown.clear();
+      interactPressed = false;
+      startRound(1);
+      audio.nextChirpTime = 1.4 + Math.random() * 1.5;
+    }
+
+    // =========================
+    // Input
+    // =========================
+    const keysDown = new Set();
+    let interactPressed = false;
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      const isSpace = event.code === "Space" || event.key === " " || event.key === "Spacebar";
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "e", "m", "h"].includes(key) || isSpace) {
+        event.preventDefault();
+      }
+
+      unlockAudio();
+
+      if ((key === "e" || isSpace) && !event.repeat) {
+        interactPressed = true;
+      }
+      if (key === "m" && !event.repeat) {
+        toggleAudioEnabled();
+      }
+      if (key === "h" && !event.repeat) {
+        toggleInstructions();
+      }
+
+      keysDown.add(key);
+    });
+
+    window.addEventListener("keyup", (event) => {
+      if (event.code === "Space" || event.key === " " || event.key === "Spacebar") {
+        event.preventDefault();
+      }
+      keysDown.delete(event.key.toLowerCase());
+    });
+
+    window.addEventListener("blur", () => {
+      keysDown.clear();
+      interactPressed = false;
+    });
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+
+    restartBtn.addEventListener("click", () => {
+      if (state.gameOver) {
+        startRound(state.round);
+      } else {
+        resetGame();
+      }
+    });
+    instructionsToggleEl.addEventListener("click", toggleInstructions);
+    modeSelectEl.addEventListener("change", () => {
+      if (modeSelectEl.value !== state.gameMode) {
+        applyGameMode(modeSelectEl.value);
+      }
+    });
+
+    // =========================
+    // Helpers
+    // =========================
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    }
+
+    function normalize(x, y) {
+      const mag = Math.hypot(x, y);
+      if (mag === 0) return { x: 0, y: 0 };
+      return { x: x / mag, y: y / mag };
+    }
+
+    function roundedRectPath(context, x, y, width, height, radius) {
+      const r = Math.min(radius, width * 0.5, height * 0.5);
+      if (typeof context.roundRect === "function") {
+        context.roundRect(x, y, width, height, r);
+        return;
+      }
+      context.moveTo(x + r, y);
+      context.lineTo(x + width - r, y);
+      context.arcTo(x + width, y, x + width, y + r, r);
+      context.lineTo(x + width, y + height - r);
+      context.arcTo(x + width, y + height, x + width - r, y + height, r);
+      context.lineTo(x + r, y + height);
+      context.arcTo(x, y + height, x, y + height - r, r);
+      context.lineTo(x, y + r);
+      context.arcTo(x, y, x + r, y, r);
+    }
+
+    function getHideZoneForPlayer() {
+      const hive = state.decor.hive;
+      if (Math.hypot(state.player.x - hive.x, state.player.y - hive.y) <= CONFIG.HIDE_HIVE_RADIUS) {
+        return { type: "hive", x: hive.x, y: hive.y };
+      }
+
+      for (const bush of state.decor.bushes) {
+        if (Math.hypot(state.player.x - bush.x, state.player.y - bush.y) <= CONFIG.HIDE_BUSH_RADIUS) {
+          return { type: "bush", x: bush.x, y: bush.y };
+        }
+      }
+      return null;
+    }
+
+    function getHideRenderTarget() {
+      const zone = state.player.hideZone;
+      if (!zone) return { x: state.player.x, y: state.player.y };
+      if (zone.type === "hive") return { x: zone.x, y: zone.y + 8 };
+      return { x: zone.x, y: zone.y + 10 };
+    }
+
+    function updateHideState(dt) {
+      const zone = getHideZoneForPlayer();
+      state.player.hidden = Boolean(zone);
+      state.player.hideZone = zone;
+      const targetBlend = zone ? 1 : 0;
+      const speed = zone ? 8.2 : 10.5;
+      state.player.hideBlend += (targetBlend - state.player.hideBlend) * Math.min(1, speed * dt);
+      if (Math.abs(targetBlend - state.player.hideBlend) < 0.001) {
+        state.player.hideBlend = targetBlend;
+      }
+    }
+
+    // =========================
+    // Audio (enriching classroom soundscape)
+    // =========================
+    const audio = {
+      enabled: true,
+      unlocked: false,
+      ctx: null,
+      master: null,
+      ambientGain: null,
+      ambientDrone: null,
+      windNoiseSource: null,
+      windNoiseGain: null,
+      nextChirpTime: 0,
+      chirpScale: [523.25, 587.33, 659.25, 783.99, 880.0]
+    };
+
+    function createNoiseBuffer(context, seconds = 2) {
+      const frameCount = Math.max(1, Math.floor(context.sampleRate * seconds));
+      const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < frameCount; i++) {
+        data[i] = (Math.random() * 2 - 1) * 0.7;
+      }
+      return buffer;
+    }
+
+    function ensureAudioContext() {
+      if (audio.ctx) return audio.ctx;
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+
+      const ctxRef = new AudioCtx();
+      const master = ctxRef.createGain();
+      master.gain.value = 0;
+      master.connect(ctxRef.destination);
+
+      const ambientGain = ctxRef.createGain();
+      ambientGain.gain.value = 0;
+      ambientGain.connect(master);
+
+      // Warm drone base.
+      const drone = ctxRef.createOscillator();
+      drone.type = "sine";
+      drone.frequency.value = 196;
+      const droneGain = ctxRef.createGain();
+      droneGain.gain.value = 0.028;
+      drone.connect(droneGain);
+      droneGain.connect(ambientGain);
+      drone.start();
+
+      // Soft wind noise layer.
+      const noiseFilter = ctxRef.createBiquadFilter();
+      noiseFilter.type = "lowpass";
+      noiseFilter.frequency.value = 1800;
+      noiseFilter.Q.value = 0.7;
+      const noiseGain = ctxRef.createGain();
+      noiseGain.gain.value = 0.015;
+      const noiseSource = ctxRef.createBufferSource();
+      noiseSource.buffer = createNoiseBuffer(ctxRef, 2.4);
+      noiseSource.loop = true;
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ambientGain);
+      noiseSource.start();
+
+      audio.ctx = ctxRef;
+      audio.master = master;
+      audio.ambientGain = ambientGain;
+      audio.ambientDrone = drone;
+      audio.windNoiseSource = noiseSource;
+      audio.windNoiseGain = noiseGain;
+      return ctxRef;
+    }
+
+    function updateSoundHud() {
+      if (!soundStatusEl) return;
+      soundStatusEl.textContent = audio.enabled ? "On" : "Muted";
+      soundStatusEl.style.color = audio.enabled ? "#2d8e3b" : "#8a4a31";
+    }
+
+    function unlockAudio() {
+      const ctxRef = ensureAudioContext();
+      if (!ctxRef) return;
+      if (ctxRef.state === "suspended") {
+        ctxRef.resume().catch(() => {});
+      }
+      audio.unlocked = true;
+      const now = ctxRef.currentTime;
+      const target = audio.enabled ? 0.36 : 0;
+      audio.master.gain.cancelScheduledValues(now);
+      audio.master.gain.setTargetAtTime(target, now, 0.08);
+      updateSoundHud();
+    }
+
+    function toggleAudioEnabled() {
+      audio.enabled = !audio.enabled;
+      const ctxRef = ensureAudioContext();
+      if (ctxRef && audio.master) {
+        const now = ctxRef.currentTime;
+        audio.master.gain.cancelScheduledValues(now);
+        audio.master.gain.setTargetAtTime(audio.enabled ? 0.36 : 0, now, 0.06);
+      }
+      updateSoundHud();
+    }
+
+    function playTones(sequence, options = {}) {
+      const ctxRef = ensureAudioContext();
+      if (!ctxRef || !audio.enabled) return;
+      unlockAudio();
+      const startAt = Math.max(ctxRef.currentTime + 0.005, options.startAt || ctxRef.currentTime + 0.005);
+      const type = options.type || "sine";
+      const gainMul = options.gain || 0.12;
+
+      let cursor = startAt;
+      for (const tone of sequence) {
+        const freq = tone.freq;
+        const length = tone.length;
+        const noteGain = tone.gain ?? 1;
+        const osc = ctxRef.createOscillator();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, cursor);
+        const gain = ctxRef.createGain();
+        gain.gain.setValueAtTime(0.0001, cursor);
+        gain.gain.exponentialRampToValueAtTime(gainMul * noteGain, cursor + Math.min(0.03, length * 0.35));
+        gain.gain.exponentialRampToValueAtTime(0.0001, cursor + length);
+        osc.connect(gain);
+        gain.connect(audio.master);
+        osc.start(cursor);
+        osc.stop(cursor + length + 0.03);
+        cursor += tone.gap ?? length;
+      }
+    }
+
+    function playCollectSound() {
+      playTones(
+        [
+          { freq: 659.25, length: 0.09, gap: 0.07 },
+          { freq: 783.99, length: 0.1, gap: 0.08 },
+          { freq: 987.77, length: 0.14, gap: 0.12 }
+        ],
+        { type: "triangle", gain: 0.095 }
+      );
+    }
+
+    function playPollinateSound() {
+      playTones(
+        [
+          { freq: 523.25, length: 0.12, gap: 0.08 },
+          { freq: 659.25, length: 0.12, gap: 0.08 },
+          { freq: 783.99, length: 0.16, gap: 0.12 },
+          { freq: 1046.5, length: 0.22, gap: 0.2 }
+        ],
+        { type: "sine", gain: 0.1 }
+      );
+    }
+
+    function playComboSound(combo) {
+      const high = 1046.5 + Math.min(260, combo * 55);
+      playTones(
+        [
+          { freq: 783.99, length: 0.1, gap: 0.07 },
+          { freq: 987.77, length: 0.1, gap: 0.07 },
+          { freq: high, length: 0.2, gap: 0.16 }
+        ],
+        { type: "triangle", gain: 0.12 }
+      );
+    }
+
+    function playWinFanfare() {
+      const ctxRef = ensureAudioContext();
+      if (!ctxRef || !audio.enabled) return;
+      playTones(
+        [
+          { freq: 523.25, length: 0.16, gap: 0.12 },
+          { freq: 659.25, length: 0.16, gap: 0.12 },
+          { freq: 783.99, length: 0.2, gap: 0.14 },
+          { freq: 1046.5, length: 0.3, gap: 0.25 }
+        ],
+        { type: "triangle", gain: 0.14 }
+      );
+      playTones(
+        [
+          { freq: 392.0, length: 0.36, gap: 0.3 },
+          { freq: 523.25, length: 0.32, gap: 0.28 }
+        ],
+        { type: "sine", gain: 0.07, startAt: ctxRef.currentTime + 0.05 }
+      );
+    }
+
+    function playFailSound() {
+      playTones(
+        [
+          { freq: 392.0, length: 0.14, gap: 0.12 },
+          { freq: 329.63, length: 0.16, gap: 0.12 },
+          { freq: 261.63, length: 0.24, gap: 0.22 }
+        ],
+        { type: "triangle", gain: 0.11 }
+      );
+    }
+
+    function playAmbientChirp() {
+      if (!audio.enabled || !audio.unlocked) return;
+      const note = audio.chirpScale[Math.floor(Math.random() * audio.chirpScale.length)];
+      playTones(
+        [
+          { freq: note, length: 0.09, gap: 0.06 },
+          { freq: note * 1.25, length: 0.08, gap: 0.08 }
+        ],
+        { type: "sine", gain: 0.05 }
+      );
+    }
+
+    function updateAudio(dt) {
+      const ctxRef = audio.ctx;
+      if (!ctxRef || !audio.master || !audio.ambientGain || !audio.ambientDrone) return;
+
+      const movement = clamp(Math.hypot(state.player.vx, state.player.vy) / CONFIG.PLAYER_SPEED, 0, 1);
+      const now = ctxRef.currentTime;
+      const ambientTarget = audio.enabled ? 0.08 + movement * 0.11 : 0;
+      audio.ambientGain.gain.setTargetAtTime(ambientTarget, now, 0.18);
+      audio.ambientDrone.frequency.setTargetAtTime(188 + movement * 70, now, 0.2);
+      if (audio.windNoiseGain) {
+        audio.windNoiseGain.gain.setTargetAtTime((audio.enabled ? 0.012 : 0) + movement * 0.012, now, 0.25);
+      }
+
+      if (!state.gameOver && audio.enabled) {
+        if (state.time >= audio.nextChirpTime) {
+          playAmbientChirp();
+          audio.nextChirpTime = state.time + 3.8 + Math.random() * 2.8;
+        }
+      }
+    }
+
+    function updateHud() {
+      pollinatedCountEl.textContent = `${state.pollinatedCount} / ${CONFIG.WIN_GOAL}`;
+      pollenStatusEl.textContent = state.player.carryingPollen ? "Carrying Pollen" : "Empty";
+      pollenStatusEl.style.color = state.player.carryingPollen ? "#2d8e3b" : "#6a5d3f";
+      roundStatusEl.textContent = `${state.round} (${modeLabel()})`;
+      dangerStatusEl.textContent = `${state.activeBirdCount} ${state.activeBirdCount === 1 ? "Bird" : "Birds"}`;
+      dangerStatusEl.style.color = state.activeBirdCount > 0 ? "#9d3f2a" : "#3f6c34";
+      rewardStarsEl.textContent = `${state.rewardStars}`;
+      comboStatusEl.textContent = state.comboCount > 1 ? `x${state.comboCount}` : "Ready";
+      comboStatusEl.style.color = state.comboCount > 1 ? "#b36a17" : "#5f6b43";
+      updateSoundHud();
+    }
+
+    function pushEffect(effect) {
+      if (state.effects.length >= CONFIG.EFFECT_POOL_MAX) {
+        state.effects.shift();
+      }
+      state.effects.push(effect);
+    }
+
+    // =========================
+    // Effects
+    // =========================
+    function spawnPollenBurst(x, y) {
+      for (let i = 0; i < 12; i++) {
+        const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.2;
+        const speed = 28 + Math.random() * 66;
+        pushEffect({
+          kind: "pollen",
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0.62,
+          maxLife: 0.62,
+          size: 11 + Math.random() * 5
+        });
+      }
+    }
+
+    function spawnPollinationSparkle(x, y) {
+      pushEffect({
+        kind: "glow",
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        life: 0.75,
+        maxLife: 0.75,
+        size: 88
+      });
+
+      for (let i = 0; i < 10; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 36 + Math.random() * 90;
+        pushEffect({
+          kind: "sparkle",
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 0.7,
+          maxLife: 0.7,
+          size: 22 + Math.random() * 10,
+          spin: (Math.random() - 0.5) * 2.6
+        });
+      }
+    }
+
+    function spawnComboRewardBurst(x, y, combo, reward) {
+      state.popups.push({
+        x,
+        y: y - 30,
+        life: 1.5,
+        maxLife: 1.5,
+        text: `Combo x${combo}! +${reward} stars`
+      });
+
+      const total = 4 + reward;
+      for (let i = 0; i < total; i++) {
+        const angle = (Math.PI * 2 * i) / total + Math.random() * 0.25;
+        const speed = 45 + Math.random() * 85;
+        pushEffect({
+          kind: "badge",
+          sprite: i % 2 === 0 ? "star_badge" : "honey_drop",
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 26,
+          life: 1.0,
+          maxLife: 1.0,
+          size: 22 + Math.random() * 6,
+          spin: (Math.random() - 0.5) * 2.0
+        });
+      }
+    }
+
+    function addGrowthPatch(flower) {
+      for (let i = 0; i < 2; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 22 + Math.random() * 18;
+        state.growthPatches.push({
+          x: flower.x + Math.cos(angle) * radius,
+          y: flower.y + 26 + Math.sin(angle) * radius * 0.45,
+          age: 0
+        });
+      }
+    }
+
+    function handlePollinationRewards(flower) {
+      const elapsed = state.time - state.lastPollinationTime;
+      if (elapsed <= CONFIG.COMBO_WINDOW_SECONDS) {
+        state.comboCount += 1;
+      } else {
+        state.comboCount = 1;
+      }
+      state.lastPollinationTime = state.time;
+      state.comboTimer = CONFIG.COMBO_WINDOW_SECONDS;
+      state.bestCombo = Math.max(state.bestCombo, state.comboCount);
+
+      let reward = 1;
+      if (state.comboCount >= 2) {
+        reward = state.comboCount;
+        spawnComboRewardBurst(flower.x, flower.y - 18, state.comboCount, reward);
+        state.statusText = `Combo x${state.comboCount}! Amazing pollination teamwork!`;
+        playComboSound(state.comboCount);
+      } else {
+        state.statusText = "Nice work! That flower is pollinated.";
+      }
+
+      state.rewardStars += reward;
+      addGrowthPatch(flower);
+    }
+
+    function updateEffects(dt) {
+      for (let i = state.effects.length - 1; i >= 0; i--) {
+        const fx = state.effects[i];
+        fx.life -= dt;
+        if (fx.life <= 0) {
+          state.effects.splice(i, 1);
+          continue;
+        }
+
+        fx.x += fx.vx * dt;
+        fx.y += fx.vy * dt;
+
+        if (fx.kind === "pollen") {
+          fx.vx *= 0.93;
+          fx.vy *= 0.93;
+        } else if (fx.kind === "sparkle") {
+          fx.vx *= 0.9;
+          fx.vy *= 0.9;
+        } else if (fx.kind === "badge") {
+          fx.vy += 95 * dt;
+          fx.vx *= 0.96;
+          fx.vy *= 0.96;
+        }
+      }
+    }
+
+    function updateButterflies(dt) {
+      for (const butterfly of state.butterflies) {
+        butterfly.flutterTime += dt * 7;
+
+        const driftX = Math.sin(state.time * 0.9 + butterfly.y * 0.01) * 16;
+        const driftY = Math.cos(state.time * 1.1 + butterfly.x * 0.01) * 12;
+        butterfly.vx += driftX * dt;
+        butterfly.vy += driftY * dt;
+
+        const dx = butterfly.x - state.player.x;
+        const dy = butterfly.y - state.player.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 85 && dist > 0.01) {
+          butterfly.vx += (dx / dist) * 170 * dt;
+          butterfly.vy += (dy / dist) * 170 * dt;
+        }
+
+        const speed = Math.hypot(butterfly.vx, butterfly.vy);
+        const maxSpeed = 88;
+        if (speed > maxSpeed) {
+          butterfly.vx = (butterfly.vx / speed) * maxSpeed;
+          butterfly.vy = (butterfly.vy / speed) * maxSpeed;
+        }
+
+        butterfly.x += butterfly.vx * dt;
+        butterfly.y += butterfly.vy * dt;
+
+        const minX = CONFIG.WORLD_MARGIN + 18;
+        const maxX = CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 18;
+        const minY = 86;
+        const maxY = CONFIG.WORLD_HEIGHT - 68;
+        if (butterfly.x < minX || butterfly.x > maxX) butterfly.vx *= -1;
+        if (butterfly.y < minY || butterfly.y > maxY) butterfly.vy *= -1;
+        butterfly.x = clamp(butterfly.x, minX, maxX);
+        butterfly.y = clamp(butterfly.y, minY, maxY);
+      }
+    }
+
+    function updateGrowthPatches(dt) {
+      for (const patch of state.growthPatches) {
+        patch.age += dt;
+      }
+    }
+
+    function updatePopups(dt) {
+      for (let i = state.popups.length - 1; i >= 0; i--) {
+        const popup = state.popups[i];
+        popup.life -= dt;
+        popup.y -= dt * 20;
+        if (popup.life <= 0) {
+          state.popups.splice(i, 1);
+        }
+      }
+    }
+
+    function randRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function steerEntityTowards(entity, targetX, targetY, speed, dt, accel = CONFIG.BIRD_ACCEL) {
+      const dx = targetX - entity.x;
+      const dy = targetY - entity.y;
+      const dir = normalize(dx, dy);
+      const desiredVx = dir.x * speed;
+      const desiredVy = dir.y * speed;
+      const turn = clamp(accel * dt, 0, 1);
+      entity.vx += (desiredVx - entity.vx) * turn;
+      entity.vy += (desiredVy - entity.vy) * turn;
+    }
+
+    function keepBirdInBounds(bird) {
+      const minX = CONFIG.WORLD_MARGIN + 12;
+      const maxX = CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 12;
+      const minY = 76;
+      const maxY = CONFIG.WORLD_HEIGHT - 40;
+      if (bird.x < minX || bird.x > maxX) bird.vx *= -0.68;
+      if (bird.y < minY || bird.y > maxY) bird.vy *= -0.68;
+      bird.x = clamp(bird.x, minX, maxX);
+      bird.y = clamp(bird.y, minY, maxY);
+    }
+
+    function updateScoutBird(bird, dt) {
+      bird.behaviorTimer -= dt;
+      if (bird.behaviorState === "wander" && bird.behaviorTimer <= 0) {
+        bird.behaviorState = "chase";
+        bird.behaviorTimer = CONFIG.BIRD_CHASE_BURST;
+      } else if (bird.behaviorState === "chase" && bird.behaviorTimer <= 0) {
+        bird.behaviorState = "wander";
+        bird.behaviorTimer = CONFIG.BIRD_CHASE_COOLDOWN + Math.random() * 0.7;
+        bird.targetX = randRange(CONFIG.WORLD_MARGIN + 70, CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 70);
+        bird.targetY = randRange(95, CONFIG.WORLD_HEIGHT - 80);
+      }
+
+      if (bird.behaviorState === "wander") {
+        const distToTarget = Math.hypot(bird.targetX - bird.x, bird.targetY - bird.y);
+        if (distToTarget < 26) {
+          bird.targetX = randRange(CONFIG.WORLD_MARGIN + 70, CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 70);
+          bird.targetY = randRange(95, CONFIG.WORLD_HEIGHT - 80);
+        }
+        steerEntityTowards(bird, bird.targetX, bird.targetY, bird.speed * 0.85, dt, CONFIG.BIRD_ACCEL * 0.72);
+      } else {
+        const predictX = state.player.x + state.player.vx * 0.14;
+        const predictY = state.player.y + state.player.vy * 0.14;
+        steerEntityTowards(bird, predictX, predictY, bird.speed, dt, CONFIG.BIRD_ACCEL * 0.95);
+      }
+    }
+
+    function updateHunterBird(bird, dt) {
+      const predictX = state.player.x + state.player.vx * CONFIG.BIRD_PREDICTION_TIME;
+      const predictY = state.player.y + state.player.vy * CONFIG.BIRD_PREDICTION_TIME;
+      const swayX = Math.sin(state.time * 2.2 + bird.id) * 12;
+      const swayY = Math.cos(state.time * 1.7 + bird.id * 2) * 9;
+      steerEntityTowards(
+        bird,
+        predictX + swayX,
+        predictY + swayY,
+        bird.speed,
+        dt,
+        CONFIG.BIRD_ACCEL * 1.08
+      );
+    }
+
+    function beginRaptorWarning(bird) {
+      bird.behaviorState = "warning";
+      bird.behaviorTimer = CONFIG.BIRD_RAPTOR_WARNING_TIME;
+      bird.dashTargetX = clamp(
+        state.player.x + state.player.vx * 0.7,
+        CONFIG.WORLD_MARGIN + 25,
+        CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 25
+      );
+      bird.dashTargetY = clamp(
+        state.player.y + state.player.vy * 0.7,
+        82,
+        CONFIG.WORLD_HEIGHT - 34
+      );
+      const dir = normalize(bird.dashTargetX - bird.x, bird.dashTargetY - bird.y);
+      bird.dashDx = dir.x;
+      bird.dashDy = dir.y;
+    }
+
+    function updateRaptorBird(bird, dt) {
+      bird.behaviorTimer -= dt;
+
+      if (bird.behaviorState === "track") {
+        if (bird.behaviorTimer <= 0) {
+          beginRaptorWarning(bird);
+        } else {
+          const orbit = 120 + Math.sin(state.time * 0.8 + bird.id) * 24;
+          const orbitAngle = state.time * 0.95 + bird.id * 1.5;
+          const tx = state.player.x + Math.cos(orbitAngle) * orbit;
+          const ty = state.player.y + Math.sin(orbitAngle) * orbit * 0.55;
+          steerEntityTowards(bird, tx, ty, bird.speed * 0.85, dt, CONFIG.BIRD_ACCEL * 0.8);
+        }
+        return;
+      }
+
+      if (bird.behaviorState === "warning") {
+        bird.vx *= Math.exp(-3.2 * dt);
+        bird.vy *= Math.exp(-3.2 * dt);
+        if (bird.behaviorTimer <= 0) {
+          bird.behaviorState = "dash";
+          bird.behaviorTimer = CONFIG.BIRD_RAPTOR_DASH_TIME;
+          bird.vx = bird.dashDx * CONFIG.BIRD_RAPTOR_DASH_SPEED;
+          bird.vy = bird.dashDy * CONFIG.BIRD_RAPTOR_DASH_SPEED;
+        }
+        return;
+      }
+
+      if (bird.behaviorState === "dash") {
+        bird.vx *= Math.exp(-1.5 * dt);
+        bird.vy *= Math.exp(-1.5 * dt);
+        if (bird.behaviorTimer <= 0) {
+          bird.behaviorState = "cooldown";
+          bird.behaviorTimer = CONFIG.BIRD_RAPTOR_COOLDOWN;
+        }
+        return;
+      }
+
+      if (bird.behaviorState === "cooldown") {
+        const tx = state.player.x + state.player.vx * 0.16;
+        const ty = state.player.y + state.player.vy * 0.16;
+        steerEntityTowards(bird, tx, ty, bird.speed * 0.76, dt, CONFIG.BIRD_ACCEL * 0.84);
+        if (bird.behaviorTimer <= 0) {
+          bird.behaviorState = "track";
+          bird.behaviorTimer = 0.8 + Math.random() * 0.8;
+        }
+      }
+    }
+
+    function spawnFeatherBurst(x, y) {
+      pushEffect({
+        kind: "featherBurst",
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        life: 0.72,
+        maxLife: 0.72,
+        size: 84
+      });
+    }
+
+    function setGameOverByBird(bird) {
+      if (state.gameOver) return;
+      state.gameOver = true;
+      state.gameOverReason = "birdCaught";
+      state.player.vx = 0;
+      state.player.vy = 0;
+      state.statusText = `${bird.type[0].toUpperCase()}${bird.type.slice(1)} bird caught the bee. Try again!`;
+      spawnFeatherBurst(state.player.x, state.player.y - 6);
+      playFailSound();
+      showOverlay(
+        "Oh no!",
+        "Oh no! A bird caught the bee. Try again.",
+        "Restart Round"
+      );
+      updateHud();
+    }
+
+    function updateBirds(dt) {
+      if (state.birds.length === 0) return;
+      const playerHidden = state.player.hidden;
+
+      for (const bird of state.birds) {
+        bird.animationTime += dt * (bird.behaviorState === "dash" ? 15 : 10);
+        bird.bobTime += dt * 3.4;
+
+        if (playerHidden) {
+          if (bird.type === "raptor" && (bird.behaviorState === "warning" || bird.behaviorState === "dash")) {
+            bird.behaviorState = "cooldown";
+            bird.behaviorTimer = 0.95;
+          }
+          bird.behaviorTimer -= dt;
+          const distToTarget = Math.hypot(bird.targetX - bird.x, bird.targetY - bird.y);
+          if (bird.behaviorTimer <= 0 || distToTarget < 30) {
+            bird.targetX = randRange(CONFIG.WORLD_MARGIN + 70, CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN - 70);
+            bird.targetY = randRange(95, CONFIG.WORLD_HEIGHT - 80);
+            bird.behaviorTimer = 0.9 + Math.random() * 1.4;
+          }
+          steerEntityTowards(bird, bird.targetX, bird.targetY, bird.speed * 0.82, dt, CONFIG.BIRD_ACCEL * 0.78);
+        } else {
+          if (bird.type === "scout") {
+            updateScoutBird(bird, dt);
+          } else if (bird.type === "hunter") {
+            updateHunterBird(bird, dt);
+          } else {
+            updateRaptorBird(bird, dt);
+          }
+        }
+
+        bird.x += bird.vx * dt;
+        bird.y += bird.vy * dt;
+        keepBirdInBounds(bird);
+
+        const dirX = bird.vx;
+        if (Math.abs(dirX) > 3) bird.facingLeft = dirX < 0;
+
+        if (!playerHidden) {
+          const catchRadius = bird.radius + state.player.radius * 0.58;
+          if (Math.hypot(bird.x - state.player.x, bird.y - state.player.y) <= catchRadius) {
+            setGameOverByBird(bird);
+          }
+        }
+      }
+    }
+
+    function finishRoundAndAdvance() {
+      const nextRound = state.round + 1;
+      state.statusText = `Round ${state.round} complete! Preparing Round ${nextRound}...`;
+      startRound(nextRound);
+    }
+
+    // =========================
+    // Interaction logic
+    // =========================
+    function canCollectFrom(flower) {
+      return !state.player.carryingPollen && flower.hasPollenSource && !flower.pollinated;
+    }
+
+    function canPollinate(flower) {
+      return state.player.carryingPollen && !flower.pollinated && flower.id !== state.player.sourceFlowerId;
+    }
+
+    function findNearestInteractableFlower() {
+      let chosen = null;
+      let bestDist = Infinity;
+
+      for (const flower of state.flowers) {
+        const d = distance(state.player, flower);
+        if (d > CONFIG.INTERACTION_RADIUS) continue;
+
+        const valid = canCollectFrom(flower) || canPollinate(flower);
+        if (!valid) continue;
+
+        if (d < bestDist) {
+          bestDist = d;
+          chosen = flower;
+        }
+      }
+      return chosen;
+    }
+
+    function tryInteraction() {
+      const flower = findNearestInteractableFlower();
+      if (!flower) {
+        state.statusText = "Move closer to a flower to interact.";
+        return;
+      }
+
+      if (canCollectFrom(flower)) {
+        state.player.carryingPollen = true;
+        state.player.sourceFlowerId = flower.id;
+        state.statusText = "Pollen collected. Bring it to a different flower.";
+        spawnPollenBurst(flower.x, flower.y - 10);
+        playCollectSound();
+        updateHud();
+        return;
+      }
+
+      if (canPollinate(flower)) {
+        flower.pollinated = true;
+        state.player.carryingPollen = false;
+        state.player.sourceFlowerId = null;
+        state.pollinatedCount += 1;
+        spawnPollinationSparkle(flower.x, flower.y - 12);
+        playPollinateSound();
+        handlePollinationRewards(flower);
+        updateHud();
+
+        if (state.pollinatedCount >= CONFIG.WIN_GOAL) {
+          playWinFanfare();
+          finishRoundAndAdvance();
+        }
+      }
+    }
+
+    // =========================
+    // Update loop
+    // =========================
+    function updatePlayer(dt) {
+      const up = keysDown.has("arrowup") || keysDown.has("w");
+      const down = keysDown.has("arrowdown") || keysDown.has("s");
+      const left = keysDown.has("arrowleft") || keysDown.has("a");
+      const right = keysDown.has("arrowright") || keysDown.has("d");
+
+      const dx = (right ? 1 : 0) - (left ? 1 : 0);
+      const dy = (down ? 1 : 0) - (up ? 1 : 0);
+      const dir = normalize(dx, dy);
+      const moving = dir.x !== 0 || dir.y !== 0;
+
+      if (moving) {
+        state.player.vx += dir.x * CONFIG.PLAYER_ACCEL * dt;
+        state.player.vy += dir.y * CONFIG.PLAYER_ACCEL * dt;
+
+        const speed = Math.hypot(state.player.vx, state.player.vy);
+        if (speed > CONFIG.PLAYER_SPEED) {
+          const ratio = CONFIG.PLAYER_SPEED / speed;
+          state.player.vx *= ratio;
+          state.player.vy *= ratio;
+        }
+
+        state.player.facingLeft = state.player.vx < 0;
+        state.player.animationTime += dt * 11;
+      } else {
+        const drag = Math.exp(-CONFIG.PLAYER_DRAG * dt);
+        state.player.vx *= drag;
+        state.player.vy *= drag;
+      }
+
+      state.player.x += state.player.vx * dt;
+      state.player.y += state.player.vy * dt;
+
+      state.player.x = clamp(state.player.x, CONFIG.WORLD_MARGIN, CONFIG.WORLD_WIDTH - CONFIG.WORLD_MARGIN);
+      state.player.y = clamp(state.player.y, CONFIG.WORLD_MARGIN, CONFIG.WORLD_HEIGHT - CONFIG.WORLD_MARGIN);
+
+      state.player.bobTime += dt * 7;
+      updateHideState(dt);
+    }
+
+    function updatePrompt() {
+      const flower = findNearestInteractableFlower();
+      if (!flower) {
+        state.prompt.visible = false;
+        return;
+      }
+
+      state.prompt.visible = true;
+      state.prompt.x = flower.x;
+      state.prompt.y = flower.y - 40;
+      state.prompt.text = "Press E / Space";
+    }
+
+    function update(dt) {
+      state.time += dt;
+
+      if (!state.gameOver) {
+        updatePlayer(dt);
+        updateBirds(dt);
+        if (!state.gameOver) {
+          updateButterflies(dt);
+          if (interactPressed) {
+            tryInteraction();
+          }
+          updatePrompt();
+
+          if (state.comboTimer > 0) {
+            state.comboTimer -= dt;
+            if (state.comboTimer <= 0) {
+              state.comboTimer = 0;
+              state.comboCount = 0;
+              updateHud();
+            }
+          }
+        } else {
+          state.prompt.visible = false;
+        }
+      } else {
+        updateBirds(dt * 0.45);
+        updateButterflies(dt * 0.55);
+      }
+
+      updateGrowthPatches(dt);
+      updatePopups(dt);
+      updateEffects(dt);
+      updateAudio(dt);
+      interactPressed = false;
+    }
+
+    // =========================
+    // Render loop
+    // =========================
+    function drawBackground() {
+      // The grass tile sprite has soft transparent edges.
+      // Fill with a green lawn base first so no blue gaps show through.
+      const lawn = ctx.createLinearGradient(0, 0, 0, CONFIG.WORLD_HEIGHT);
+      lawn.addColorStop(0, "#c8e7b0");
+      lawn.addColorStop(1, "#b0d98f");
+      ctx.fillStyle = lawn;
+      ctx.fillRect(0, 0, CONFIG.WORLD_WIDTH, CONFIG.WORLD_HEIGHT);
+
+      const tileSize = 70;
+      for (let y = 0; y < CONFIG.WORLD_HEIGHT; y += tileSize) {
+        for (let x = 0; x < CONFIG.WORLD_WIDTH; x += tileSize) {
+          drawSprite("grass", x + tileSize / 2, y + tileSize / 2, tileSize + 1, tileSize + 1, { alpha: 0.9 });
+        }
+      }
+
+      ctx.strokeStyle = "rgba(88, 132, 58, 0.3)";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(2, 2, CONFIG.WORLD_WIDTH - 4, CONFIG.WORLD_HEIGHT - 4);
+    }
+
+    function drawDecor() {
+      const hive = state.decor.hive;
+      drawSprite(hive.sprite, hive.x, hive.y, hive.size, hive.size);
+
+      for (const rock of state.decor.rocks) {
+        drawSprite(rock.sprite, rock.x, rock.y, rock.size, rock.size);
+      }
+
+      for (const bush of state.decor.bushes) {
+        drawSprite(bush.sprite, bush.x, bush.y, bush.size, bush.size);
+      }
+    }
+
+    function growthSpriteByAge(age) {
+      if (age < 2.3) return "seedling_stage_1";
+      if (age < 4.8) return "seedling_stage_2";
+      if (age < 7.3) return "seedling_stage_3";
+      return "clover_patch";
+    }
+
+    function drawGrowthPatches() {
+      for (const patch of state.growthPatches) {
+        const spriteName = growthSpriteByAge(patch.age);
+        const scale = spriteName === "clover_patch" ? 48 : 42;
+        const bob = Math.sin(state.time * 2.6 + patch.x * 0.04) * 1.4;
+        drawExtraSprite(spriteName, patch.x, patch.y + bob, scale, scale);
+      }
+    }
+
+    function drawButterflies() {
+      for (const butterfly of state.butterflies) {
+        const flutterA = Math.sin(butterfly.flutterTime) > 0;
+        const sprite = flutterA ? butterfly.typeA : butterfly.typeB;
+        const flipX = butterfly.vx < -4;
+        const tilt = clamp(butterfly.vx * 0.003, -0.25, 0.25);
+        drawExtraSprite(sprite, butterfly.x, butterfly.y, 44, 44, { flipX, rotation: tilt, alpha: 0.92 });
+      }
+    }
+
+    function drawRoundFlowerSprite(name, x, y, width, height) {
+      if (name === "flower_pollinated" && assets.cleanPollinatedCanvas && assets.pollinatedCleanSuccess) {
+        ctx.save();
+        ctx.drawImage(
+          assets.cleanPollinatedCanvas,
+          0,
+          0,
+          assets.cleanPollinatedCanvas.width,
+          assets.cleanPollinatedCanvas.height,
+          x - width / 2,
+          y - height / 2,
+          width,
+          height
+        );
+        ctx.restore();
+        return;
+      }
+
+      if (name === "flower_pollinated") {
+        // Reliable no-artifact fallback if cleanup couldn't run in the current browser context.
+        drawFallbackSprite("flower_pollinated", x - width / 2, y - height / 2, width, height);
+        return;
+      }
+
+      const cached = state.flowerSpriteCache?.[name];
+      if (!cached) {
+        const filter = state.flowerUseFilterFallback ? (state.flowerFilterMap?.[name] || "none") : "none";
+        drawSprite(name, x, y, width, height, { filter });
+        return;
+      }
+      ctx.drawImage(cached, 0, 0, cached.width, cached.height, x - width / 2, y - height / 2, width, height);
+    }
+
+    function drawFlowers() {
+      for (const flower of state.flowers) {
+        const pulse = 1 + Math.sin(state.time * 2.5 + flower.id) * 0.03;
+
+        if (flower.hasPollenSource && !flower.pollinated) {
+          drawSprite("glow", flower.x, flower.y + 3, 68 * pulse, 68 * pulse, { alpha: 0.2 });
+        }
+
+        // Keep flower identity/color when pollinated; add celebratory glow instead of swapping sprite.
+        drawRoundFlowerSprite(flower.type, flower.x, flower.y, 66 * pulse, 66 * pulse);
+
+        if (flower.pollinated) {
+          const glowPulse = 1 + Math.sin(state.time * 4.3 + flower.id * 0.9) * 0.08;
+          drawSprite("glow", flower.x, flower.y + 3, 88 * glowPulse, 88 * glowPulse, { alpha: 0.42 });
+          drawSprite("sparkle", flower.x + 20, flower.y - 18, 15, 15, { alpha: 0.55 });
+          drawSprite("sparkle", flower.x - 16, flower.y + 16, 12, 12, { alpha: 0.38 });
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 238, 165, 0.72)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(flower.x, flower.y + 2, 29 * glowPulse, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (flower.hasPollenSource && !flower.pollinated) {
+          ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+          ctx.strokeStyle = "rgba(35, 65, 32, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          roundedRectPath(ctx, flower.x - 22, flower.y + 24, 44, 16, 7);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = "#3c6d2f";
+          ctx.font = "bold 10px Trebuchet MS, Verdana, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("POLLEN", flower.x, flower.y + 36);
+        }
+      }
+    }
+
+    function drawBee() {
+      const moving = Math.hypot(state.player.vx, state.player.vy) > 10;
+      const flyFrames = ["bee_fly_1", "bee_fly_2", "bee_fly_3"];
+      const frame = moving ? flyFrames[Math.floor(state.player.animationTime) % flyFrames.length] : "bee_idle";
+
+      const hideBlend = clamp(state.player.hideBlend || 0, 0, 1);
+      const hideTarget = getHideRenderTarget();
+      const renderX = state.player.x + (hideTarget.x - state.player.x) * hideBlend;
+      const renderYBase = state.player.y + (hideTarget.y - state.player.y) * hideBlend;
+      const bobOffset = Math.sin(state.player.bobTime) * (3.5 * (1 - hideBlend * 0.82));
+      const tilt = clamp(state.player.vx * 0.0025, -0.35, 0.35) * (1 - hideBlend * 0.35);
+      const beeScale = 1 - hideBlend * 0.5;
+      const beeSize = 70 * beeScale;
+      drawSprite(
+        frame,
+        renderX,
+        renderYBase + bobOffset,
+        beeSize,
+        beeSize,
+        {
+          rotation: tilt,
+          flipX: state.player.facingLeft
+        }
+      );
+
+      if (state.player.carryingPollen) {
+        for (let i = 0; i < 3; i++) {
+          const angle = state.time * 4 + i * 2.09;
+          const orbitX = 13 * beeScale;
+          const orbitY = 9 * beeScale;
+          const px = renderX + Math.cos(angle) * orbitX;
+          const py = renderYBase + bobOffset + Math.sin(angle) * orbitY;
+          drawSprite("pollen_particle", px, py, 11 * beeScale, 11 * beeScale, { alpha: 0.88 });
+        }
+      }
+
+      if (state.player.hidden) {
+        ctx.save();
+        const labelX = renderX;
+        const labelY = renderYBase - 38;
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = "rgba(63,98,42,0.55)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        roundedRectPath(ctx, labelX - 40, labelY - 13, 80, 24, 11);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#2f5d26";
+        ctx.font = "bold 13px Trebuchet MS, Verdana, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Hidden", labelX, labelY - 1);
+        ctx.restore();
+      }
+    }
+
+    function birdPrefix(type) {
+      if (type === "hunter") return "bird_hunter";
+      if (type === "raptor") return "bird_raptor";
+      return "bird_scout";
+    }
+
+    function drawBirds() {
+      for (const bird of state.birds) {
+        const bobOffset = Math.sin(bird.bobTime) * 2.4;
+        const isRaptor = bird.type === "raptor";
+        const shadowSprite = isRaptor || bird.behaviorState === "dash" ? "bird_shadow_large" : "bird_shadow_small";
+        const shadowScale = isRaptor ? 56 : 44;
+        const shadowAlpha = bird.behaviorState === "warning" ? 0.68 : 0.45;
+        drawBirdSprite(shadowSprite, bird.x, bird.y + 24, shadowScale, shadowScale, { alpha: shadowAlpha });
+
+        if (bird.type === "raptor" && bird.behaviorState === "warning") {
+          const pulse = 1 + Math.sin(state.time * 11) * 0.08;
+          drawBirdSprite("bird_shadow_large", bird.dashTargetX, bird.dashTargetY + 20, 70 * pulse, 70 * pulse, {
+            alpha: 0.48
+          });
+          drawBirdSprite("bird_warning_icon", bird.dashTargetX, bird.dashTargetY - 56, 42 * pulse, 42 * pulse, {
+            alpha: 0.92
+          });
+        }
+
+        const prefix = birdPrefix(bird.type);
+        let sprite = `${prefix}_idle`;
+        const flying = Math.hypot(bird.vx, bird.vy) > 24;
+        if (bird.behaviorState === "dash") {
+          sprite = `${prefix}_dive`;
+        } else if (flying) {
+          sprite = Math.floor(bird.animationTime) % 2 === 0 ? `${prefix}_fly_1` : `${prefix}_fly_2`;
+        }
+
+        const size = bird.type === "raptor" ? 96 : bird.type === "hunter" ? 90 : 82;
+        const tilt = clamp(bird.vx * 0.0022, -0.45, 0.45);
+        drawBirdSprite(sprite, bird.x, bird.y + bobOffset, size, size, {
+          rotation: tilt,
+          flipX: bird.facingLeft
+        });
+      }
+    }
+
+    function drawEffects() {
+      for (const fx of state.effects) {
+        const alpha = clamp(fx.life / fx.maxLife, 0, 1);
+        if (fx.kind === "pollen") {
+          drawSprite("pollen_particle", fx.x, fx.y, fx.size, fx.size, { alpha });
+        } else if (fx.kind === "sparkle") {
+          drawSprite("sparkle", fx.x, fx.y, fx.size, fx.size, { alpha, rotation: (fx.maxLife - fx.life) * (fx.spin || 0) });
+        } else if (fx.kind === "glow") {
+          const scale = 1 + (1 - alpha) * 0.25;
+          drawSprite("glow", fx.x, fx.y, fx.size * scale, fx.size * scale, { alpha: alpha * 0.95 });
+        } else if (fx.kind === "badge") {
+          drawExtraSprite(fx.sprite, fx.x, fx.y, fx.size, fx.size, {
+            alpha,
+            rotation: (fx.maxLife - fx.life) * (fx.spin || 0)
+          });
+        } else if (fx.kind === "featherBurst") {
+          const scale = 1 + (1 - alpha) * 0.2;
+          drawBirdSprite("feathers_burst_fx", fx.x, fx.y, fx.size * scale, fx.size * scale, {
+            alpha: alpha * 0.95
+          });
+        }
+      }
+    }
+
+    function drawPopups() {
+      for (const popup of state.popups) {
+        const alpha = clamp(popup.life / popup.maxLife, 0, 1);
+        drawExtraSprite("combo_burst", popup.x, popup.y, 30, 30, { alpha: alpha * 0.95 });
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "#fff7cd";
+        ctx.strokeStyle = "rgba(78,58,18,0.55)";
+        ctx.lineWidth = 3;
+        ctx.font = "bold 16px Trebuchet MS, Verdana, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeText(popup.text, popup.x + 70, popup.y);
+        ctx.fillText(popup.text, popup.x + 70, popup.y);
+        ctx.restore();
+      }
+    }
+
+    function drawTopRewards() {
+      const panelWidth = 290;
+      const panelHeight = 36;
+      const panelX = CONFIG.WORLD_WIDTH * 0.5 - panelWidth * 0.5;
+      const panelY = 56;
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,245,0.88)";
+      ctx.strokeStyle = "rgba(87,131,53,0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      roundedRectPath(ctx, panelX, panelY, panelWidth, panelHeight, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      drawExtraSprite("mission_scroll", panelX + 20, panelY + 18, 24, 24, { alpha: 0.9 });
+      ctx.fillStyle = "#3d602f";
+      ctx.font = "bold 13px Trebuchet MS, Verdana, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const comboLabel = state.comboCount > 1 ? `Combo x${state.comboCount}` : "Build combos by pollinating quickly!";
+      ctx.fillText(comboLabel, panelX + 36, panelY + 18);
+
+      drawExtraSprite("star_badge", panelX + panelWidth - 62, panelY + 18, 22, 22);
+      ctx.fillStyle = "#976114";
+      ctx.textAlign = "left";
+      ctx.fillText(`${state.rewardStars}`, panelX + panelWidth - 47, panelY + 18);
+      ctx.restore();
+    }
+
+    function drawPrompt() {
+      if (!state.prompt.visible || state.gameOver) return;
+
+      ctx.save();
+      const x = state.prompt.x;
+      const y = state.prompt.y;
+      ctx.fillStyle = "rgba(255,255,255,0.95)";
+      ctx.strokeStyle = "rgba(63,98,42,0.5)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      roundedRectPath(ctx, x - 35, y - 14, 70, 28, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#315f25";
+      ctx.font = "bold 14px Trebuchet MS, Verdana, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(state.prompt.text, x, y + 1);
+      ctx.restore();
+    }
+
+    function drawStatusHint() {
+      const hidingText = state.player.hidden
+        ? (state.player.hideZone?.type === "hive" ? "You are hidden in the hive." : "You are hidden in the bush.")
+        : null;
+      const text = hidingText || state.statusText;
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.strokeStyle = "rgba(72,115,50,0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      roundedRectPath(ctx, 14, CONFIG.WORLD_HEIGHT - 44, 380, 30, 12);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#355d2e";
+      ctx.font = "bold 14px Trebuchet MS, Verdana, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 24, CONFIG.WORLD_HEIGHT - 29);
+      ctx.restore();
+    }
+
+    function render() {
+      drawBackground();
+      drawGrowthPatches();
+      drawDecor();
+      drawButterflies();
+      drawFlowers();
+      drawEffects();
+      drawBee();
+      drawBirds();
+      drawPopups();
+      drawPrompt();
+      drawStatusHint();
+      drawTopRewards();
+    }
+
+    // =========================
+    // Main game loop
+    // =========================
+    let lastTimestamp = performance.now();
+
+    function gameLoop(timestamp) {
+      const dt = Math.min(0.033, (timestamp - lastTimestamp) / 1000);
+      lastTimestamp = timestamp;
+
+      update(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // =========================
+    // Debug/testing hooks
+    // =========================
+    function renderGameToText() {
+      const nearest = findNearestInteractableFlower();
+      const payload = {
+        coordinateSystem: "origin top-left; +x right; +y down",
+        mode: state.gameOver ? "failed" : "playing",
+        gameMode: {
+          id: state.gameMode,
+          label: modeLabel()
+        },
+        flowerPalette: {
+          id: state.flowerPalette?.id || null,
+          name: state.flowerPalette?.name || null,
+          colors: state.flowerPalette?.colors || null,
+          colorMode: CONFIG.FLOWER_COLOR_MODE,
+          renderPath: state.flowerUseFilterFallback ? "filter" : "pixel-cache"
+        },
+        round: state.round,
+        activeBirdCount: state.activeBirdCount,
+        gameOverReason: state.gameOverReason,
+        player: {
+          x: Number(state.player.x.toFixed(1)),
+          y: Number(state.player.y.toFixed(1)),
+          vx: Number(state.player.vx.toFixed(2)),
+          vy: Number(state.player.vy.toFixed(2)),
+          hidden: state.player.hidden,
+          hideZone: state.player.hideZone ? state.player.hideZone.type : null,
+          hideBlend: Number((state.player.hideBlend || 0).toFixed(2)),
+          carryingPollen: state.player.carryingPollen,
+          sourceFlowerId: state.player.sourceFlowerId
+        },
+        objective: {
+          pollinated: state.pollinatedCount,
+          goal: CONFIG.WIN_GOAL
+        },
+        rewards: {
+          stars: state.rewardStars,
+          comboCount: state.comboCount,
+          comboTimer: Number(state.comboTimer.toFixed(2)),
+          bestCombo: state.bestCombo
+        },
+        ambience: {
+          butterflies: state.butterflies.length,
+          growthPatches: state.growthPatches.length
+        },
+        assets: {
+          mainReady: assets.ready,
+          extrasReady: extrasAssets.ready,
+          birdsReady: birdAssets.ready
+        },
+        audio: {
+          enabled: audio.enabled,
+          unlocked: audio.unlocked
+        },
+        birds: state.birds.map((bird) => ({
+          id: bird.id,
+          type: bird.type,
+          state: bird.behaviorState,
+          x: Number(bird.x.toFixed(1)),
+          y: Number(bird.y.toFixed(1)),
+          vx: Number(bird.vx.toFixed(2)),
+          vy: Number(bird.vy.toFixed(2))
+        })),
+        decor: {
+          hive: { x: state.decor.hive.x, y: state.decor.hive.y },
+          rocks: state.decor.rocks.map((r) => ({ x: Number(r.x.toFixed(1)), y: Number(r.y.toFixed(1)) })),
+          bushes: state.decor.bushes.map((b) => ({ x: Number(b.x.toFixed(1)), y: Number(b.y.toFixed(1)) }))
+        },
+        nearestInteractableFlowerId: nearest ? nearest.id : null,
+        flowers: state.flowers.map((f) => ({
+          id: f.id,
+          x: f.x,
+          y: f.y,
+          type: f.type,
+          hasPollenSource: f.hasPollenSource,
+          pollinated: f.pollinated
+        }))
+      };
+
+      return JSON.stringify(payload);
+    }
+
+    function advanceTime(ms) {
+      const step = 1000 / 60;
+      const frames = Math.max(1, Math.round(ms / step));
+      for (let i = 0; i < frames; i++) {
+        update(1 / 60);
+      }
+      render();
+    }
+
+    window.render_game_to_text = renderGameToText;
+    window.advanceTime = advanceTime;
+
+    // =========================
+    // Start game
+    // =========================
+    resetGame();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

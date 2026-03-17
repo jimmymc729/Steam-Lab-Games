@@ -1,0 +1,209 @@
+Original prompt: Update /Users/jamesmcnicholas/Documents/Steam Lab Games/pollinator patrol/pollinator-patrol.html to add AI birds as predators with round-based progression, including bird sprite sheet integration, distinct scout/hunter/raptor behaviors, round rules, fail state, HUD updates, and render_game_to_text extensions while preserving pollination gameplay.
+
+- Started bird-system integration pass.
+- Confirmed current game includes pollination + rewards + extras + audio but no bird AI yet.
+- Next: patch bird assets/state/AI/round progression + verify with render_game_to_text.
+
+## Bird predator integration completed
+- Added new config path: `BIRD_SHEET_PATH: ./pollinator-birds-spritesheet.png`.
+- Added bird HUD cards: Round + Danger.
+- Added bird asset loader and bird sprite map for 4x4 bird sheet.
+- Added round state and progression:
+  - Round 1 => 0 birds
+  - Round 2-4 => 1 bird
+  - Round 5+ => 2 birds
+  - Type progression: scout -> mixed scout/hunter -> hunter -> mixed hunter/raptor (+ scout variety)
+- Added bird AI behaviors:
+  - Scout: wander/chase bursts
+  - Hunter: direct predictive tracking
+  - Raptor: warning telegraph + dash + cooldown
+- Added fail condition when bird collides with bee:
+  - overlay text: "Oh no! A bird caught the bee. Try again."
+  - restart button restarts current round
+  - fail sound cue (`playFailSound`) when audio enabled
+- Pollination loop preserved; completing objective now advances to next round and resets field state.
+- Added bird rendering with warning icon, shadows, and feather burst effect.
+- Extended `render_game_to_text` with: `round`, `birds`, `activeBirdCount`, `gameOverReason`.
+
+## Asset prep note
+- Created `pollinator-birds-spritesheet.png` from uploaded bird source image.
+- Added conservative bird frame slicing (upper-cell trim) in code to avoid source-sheet lower text/banding artifacts.
+
+## Validation status
+- Could not run Playwright client in this environment because `node`/`npx` are unavailable.
+- Performed static code scan and feature wiring checks via grep/sed.
+
+## TODO / suggestions
+- If bird sprites still look clipped on-device, tune `buildBirdFrameMap()` trim percentages or provide a fully transparent birds sheet without labels/checker artifacts.
+- Once Node is available, run the develop-web-game Playwright loop to verify acceptance criteria live.
+- Added JXA mocked-runtime checks:
+  - round1 => activeBirdCount 0
+  - round2 => activeBirdCount 1 (scout)
+  - round5 => activeBirdCount 2 (sample included hunter+raptor)
+  - round5 after simulated time => mode failed, gameOverReason birdCaught
+  - finishRoundAndAdvance() => round increments to 2 and bird spawn updates accordingly
+- Re-ran mocked runtime checks after final patch:
+  - r1 => 0 birds
+  - r2 => 1 bird
+  - r5 => 2 birds
+  - r5 after 30s simulated time => fail state with `gameOverReason: birdCaught`
+- Follow-up visual fix: added runtime bird-sheet cleanup to key out checkerboard backgrounds and rebuilt bird frame bounds from cleaned alpha. This removes white/checker boxes around bird sprites from non-transparent source sheets.
+- Final sprite-box fix:
+  - Generated improved transparent bird sheet (`pollinator-birds-spritesheet-clean.png`) using edge-connected checkerboard removal + hole preservation.
+  - Updated game to use clean bird sheet path.
+  - Disabled runtime bird-sheet recoloring in onload path (now uses clean sheet directly), while keeping safe fallback on frame extraction errors.
+- Added stealth hide mechanic:
+  - Bee can hide in hive or bushes.
+  - New constants: `HIDE_HIVE_RADIUS`, `HIDE_BUSH_RADIUS`.
+  - Player state now tracks `hidden` and `hideZone`.
+  - While hidden, birds switch to search/patrol movement and cannot catch the bee.
+  - Added visible "Hidden" bubble and status hint text when concealed.
+  - Added instruction line explaining hiding.
+  - Extended `render_game_to_text.player` with `hidden` + `hideZone`.
+- Hide visual update per user request:
+  - Removed transparent-hide style.
+  - Bee now shrinks into hide object using animated `hideBlend` and render target offsets.
+  - Bee draws behind decor while hidden so it appears inside hive/bush.
+  - Added `hideBlend` to debug output.
+- Layout optimization pass to reduce wasted screen space:
+  - Body now top-aligned with tighter outer padding.
+  - Game wrap width now scales larger with viewport (`min(1320px, 99vw, calc((100vh - 72px) * 1.6))`).
+  - Reduced title/hud spacing and compacted card/title paddings.
+  - Added canvas max-height tied to viewport.
+  - Added short-height media rule to hide path note and further compact spacing.
+- Instructions panel space optimization:
+  - Converted instructions to collapsible panel (collapsed by default).
+  - Added toggle button text (`H: Open` / `H: Close`) and keyboard shortcut `H`.
+  - Kept full instructions available on demand while minimizing persistent footprint.
+- Final polish + difficulty modes pass:
+  - Added mode picker in title bar (`Hard`, `Normal`, `Easy`, `Relaxed`) with localStorage persistence.
+  - Hard mode unchanged.
+  - Normal mode: 1 bird at a time.
+  - Easy mode: 1 bird at a time, bluejay scouts only.
+  - Relaxed mode: no birds.
+  - Round HUD now shows `round (mode)`.
+  - Updated instructions with mode hint.
+  - Added `gameMode` metadata to `render_game_to_text`.
+  - Simplified title subtext to `Classroom Edition` for cleaner final look.
+- Mocked runtime validation:
+  - hard round5 => 2 birds
+  - normal round5 => 1 bird
+  - easy round5 => 1 scout bird
+  - relaxed round5 => 0 birds
+- Added randomized round flower palettes:
+  - Introduced `FLOWER_PALETTES` set and per-round random palette selection (avoids repeating immediate previous palette).
+  - Flower data now stores tint fields (`tintColor`, `centerTint`, `tintAlpha`).
+  - Flower rendering now applies a lightweight petal+center tint overlay for non-pollinated flowers.
+  - Round status text now includes current palette name.
+  - Added `flowerPalette` to `render_game_to_text`.
+- Mocked runtime check confirmed palette changes across rounds.
+- Upgraded round flower styling from subtle tint to full sprite recoloring:
+  - Replaced fixed palette list with procedural palette generator (high variation per round).
+  - Added cached per-round flower sprite recolor pipeline (`createFlowerSpriteCacheForPalette`) that remaps petal/center colors at pixel level.
+  - `drawFlowers` now renders recolored cached sprites directly (no overlay tint).
+  - Added expanded palette metadata (`colors`) to `render_game_to_text`.
+- Mocked runtime check across rounds confirmed continuously varying palette IDs/colors.
+- Regression fix attempt for "crashes after round 1":
+  - Added `refreshFlowerSpriteCache()` wrapper with try/catch so round transitions cannot crash if canvas pixel readback is blocked.
+  - Added `flowerRecoloringEnabled` fail-safe flag: if recolor throws once, game falls back to base flower sprites and continues.
+  - Updated both sprite onload refresh and `startRound()` to use safe cache refresh path.
+- Validation:
+  - JS parse check passes via JXA (`new Function(script)` => OK).
+  - Could not run Playwright loop locally because `node`/`npx` are unavailable in this environment.
+- Flower palette variation expansion:
+  - Added themed palette presets with high-contrast styles (including explicit blue/purple families: `Blueberry Twilight`, `Royal Bloom`, plus additional themes).
+  - Added per-round random variation on each theme color via HSL jitter (`varyHexColor`) to avoid repeats.
+  - Updated generation strategy to hybrid mode: ~78% curated theme rounds, ~22% procedural wildcard rounds.
+  - Increased palette retry loop for uniqueness (`chooseFlowerPalette` tries 16x).
+- Syntax validation: JS parse check OK.
+- Palette visibility fix:
+  - Replaced pixel-readback flower recolor with stronger compositing-based recolor (`source-atop` + `multiply` + `screen`) for clear visual shifts.
+  - Added center repaint pass to keep distinct center color per round.
+  - This avoids fragile `getImageData` dependency in stricter local-file environments and should make palette changes obvious.
+- Syntax validation: JS parse check OK.
+- Reworked flower recolor quality after user feedback:
+  - Removed compositing tint approach that introduced square artifacts.
+  - Restored per-pixel recoloring with border-based checker-remnant removal + outline preservation.
+  - Keeps strong palette variation while preserving sprite shading and avoiding blocky boxes.
+- Syntax validation: JS parse check OK.
+- Flower color rendering overhaul after "doesn't look good" feedback:
+  - Added `CONFIG.FLOWER_COLOR_MODE` with default `"filter"` for cleaner recolor without square artifacts.
+  - Added per-sprite flower filter map generation from palette (`buildFlowerFilterMap` / `buildFlowerFilterForTarget`).
+  - `drawSprite` now accepts an optional canvas filter.
+  - `drawRoundFlowerSprite` now uses filter-based recolor fallback path by default (preserves sprite shading and avoids blocky tint boxes).
+  - Kept pixel-cache recolor path available via config (`FLOWER_COLOR_MODE: "pixel"`) for future A/B tuning.
+  - Extended `render_game_to_text.flowerPalette` with `colorMode` and `renderPath`.
+- Syntax validation: JS parse check OK.
+- Fixed checker artifact on pollinated flowers:
+  - Added one-time `createCleanPollinatedSpriteCanvas()` pass after main sprite load.
+  - The cleaner samples border checker colors and removes likely checker pixels from `flower_pollinated` alpha.
+  - `drawRoundFlowerSprite` now uses cleaned pollinated canvas path first, then normal cached/filter paths.
+- Syntax validation: JS parse check OK.
+- Flower color quality tuning (less washed/glowy):
+  - Switched default flower recolor path to `FLOWER_COLOR_MODE: "pixel"`.
+  - Added `normalizeFlowerPalette` to clamp saturation/lightness ranges per flower type for better readability.
+  - Softened filter fallback parameters (lower saturation/brightness/contrast multipliers) so fallback also looks natural.
+  - Reduced per-pixel recolor mix strength to preserve native sprite shading.
+- Syntax validation: JS parse check OK.
+- Additional anti-glow tuning pass:
+  - Added `blendHexToward` and used it in `normalizeFlowerPalette` to gently pull extreme colors toward natural tones.
+  - Tightened saturation/lightness clamps for all flower categories.
+  - Reduced procedural palette generation saturation/lightness ranges.
+  - Reduced per-pixel recolor blend strength (`mix`) and shade multipliers to preserve original petal texture and avoid neon bloom.
+- Syntax validation: JS parse check OK.
+- Pollinated clarity + checker-edge fix pass:
+  - Pollinated flowers now bypass recolor/filter and render from a dedicated cleaned pollinated canvas only.
+  - Added robust edge-connected checker cleanup for pollinated sprite (flood from borders + tiny speck cleanup).
+  - If cleanup cannot run (browser restrictions), pollinated flowers now use vector fallback (no checker artifacts).
+  - Added clear pollinated indicator: subtle glow + green check badge so completed flowers are unmistakable.
+  - Filter map now forces `flower_pollinated: "none"`.
+- Syntax validation: JS parse check OK.
+- User disliked prior pollinated marker treatment; simplified visuals.
+- Pollinated clarity update:
+  - Removed green check badge overlay.
+  - Pollinated flowers now use subtle glow + small sparkle only.
+- Pollinated checker artifact hardening:
+  - Increased edge-connected checker detection tolerance.
+  - Added anti-fringe pass to remove semi-transparent checker remnants around edges.
+- Syntax validation: JS parse check OK.
+- Pollinated style update per user request:
+  - Pollinated flowers no longer swap to `flower_pollinated` sprite.
+  - Pollinated flowers now keep their original flower type/color and gain a stronger animated glow treatment.
+  - Added pollinated-state visual stack: larger glow circle + sparkle accents + subtle warm halo ring.
+- Syntax validation: JS parse check OK.
+- Removed persistent checker artifacts around pollinated glow:
+  - Added `CONFIG.USE_PROCEDURAL_GLOW: true`.
+  - `drawSprite` now routes `glow` to procedural fallback gradient instead of spritesheet cell.
+  - This avoids baked checker artifacts in glow sprite exports while preserving visual effect.
+- Syntax validation: JS parse check OK.
+- Added random per-round garden layout generation:
+  - New spacing/safe-zone constants: `GARDEN_TOP_SAFE_Y`, `FLOWER_MIN_SPACING`, `FLOWER_DECOR_CLEARANCE`, `DECOR_MIN_SPACING`.
+  - Added random placement helpers: `shuffled`, `findOpenPoint`.
+  - Added `createRoundDecorLayout()` to randomize bush/rock positions each round with overlap prevention and default fallbacks.
+  - Updated `createFlowers(count, occupiedDecor)` to place flowers randomly each round while respecting decor/hive spacing.
+  - `startRound()` now regenerates decor + flowers every round (`state.decor = layout.decor`, then `createFlowers(..., layout.occupied)`).
+  - Extended `render_game_to_text` payload with decor positions (`hive`, `rocks`, `bushes`).
+- Syntax validation: JS parse check OK.
+- Header/top-strip visual polish pass ("jazz up" request):
+  - Upgraded `.title-bar` with layered gradients, soft decorative accent blobs, and a multicolor top ribbon.
+  - Enhanced title typography and added accent underline.
+  - Restyled `Classroom Edition` as a compact badge pill with icon dot.
+  - Restyled mode picker as a richer chip with accent bead, improved control states, and clearer visual hierarchy.
+  - Kept footprint/layout behavior intact for classroom screens.
+- Syntax validation: JS parse check OK.
+- Applied minimalist header refinement pass:
+  - Reduced decorative density (~30%): removed extra accent blob layer and rainbow multi-color strip.
+  - Unified accent direction to warm-gold + green.
+  - Tightened typography hierarchy: slightly smaller title, lighter subtitle treatment, cleaner underline.
+  - Simplified mode chip: flatter background, thinner border, smaller icon dot, reduced shadow.
+  - Added subtle separation polish: increased wrap gap and added bottom divider line in header.
+- Syntax validation: JS parse check OK.
+- Final polish pass requested by user:
+  - Pollen source labels now only appear when bee is near the source flower (reduced visual clutter).
+  - Removed redundant floating "Hidden" bubble above bee; bottom status hint remains.
+  - Slimmed HUD cards (reduced inset, gap, card padding, and font sizes) to reclaim game space.
+  - Improved flower readability against grass:
+    - added subtle ground shadow under flowers
+    - added faint outline for white flowers
+  - Tightened mode selector visual weight (smaller chip, icon, text, and lighter shadow).
+- Syntax validation: JS parse check OK.

@@ -70,11 +70,25 @@
     "tags": ["math", "fact fluency", "arcade", "touch", "single-player"]
   },
   {
+    "slug": "pollinator-patrol",
+    "title": "Pollinator Patrol",
+    "path": "/pollinator%20patrol/pollinator-patrol.html",
+    "status": "live",
+    "tags": ["science", "pollination", "nature", "ecology", "single-player"]
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
     "status": "live",
     "tags": ["engineering", "physics", "chain-reaction", "sandbox", "single-player"]
+  },
+  {
+    "slug": "biome-world-lab",
+    "title": "Biome World Lab",
+    "path": "/biome-world-lab.html",
+    "status": "live",
+    "tags": ["science", "climate", "geography", "simulation", "single-player"]
   },
   {
     "slug": "ant-colony",

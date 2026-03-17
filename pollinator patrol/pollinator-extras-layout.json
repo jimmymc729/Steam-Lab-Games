@@ -1,0 +1,10 @@
+{
+  "grid": { "cols": 4, "rows": 4, "cell_size": 256 },
+  "sheet": "pollinator-extras-spritesheet.png",
+  "cells": [
+    ["butterfly_blue_1", "butterfly_blue_2", "butterfly_pink_1", "butterfly_pink_2"],
+    ["ladybug_idle", "dragonfly_idle", "star_badge", "honey_drop"],
+    ["seedling_stage_1", "seedling_stage_2", "seedling_stage_3", "clover_patch"],
+    ["wind_swirl", "mission_scroll", "combo_burst", "empty"]
+  ]
+}

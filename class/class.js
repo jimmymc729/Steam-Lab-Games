@@ -24,6 +24,7 @@
     { slug: "balloon-pop-quantities", title: "Balloon Pop Quantities", path: "/balloon-pop-quantities.html", status: "live" },
     { slug: "greater-gator", title: "Greater Gator", path: "/greater-gator.html", status: "live" },
     { slug: "math-cannon", title: "Math Cannon", path: "/math-cannon.html", status: "live" },
+    { slug: "pollinator-patrol", title: "Pollinator Patrol", path: "/pollinator%20patrol/pollinator-patrol.html", status: "live" },
     { slug: "rube-goldberg-machine", title: "Rube Goldberg Machine Builder", path: "/rube-goldberg%20copy.html", status: "live" },
     { slug: "ant-colony", title: "Ant Colony Lab", path: "/games/ant-colony-lab/", status: "coming_soon" },
     { slug: "moonjet-cavern", title: "Moonjet Cavern", path: "/games/moonjet-cavern/", status: "coming_soon" },
