@@ -15,28 +15,38 @@
     <header class="launch-head">
       <a class="back-link" href="../index.html">Back to Portal</a>
       <p id="modeBadge" class="mode-badge">CLASS LAUNCH</p>
-      <h1 id="gameTitle">STEAM Lab Experiment</h1>
-      <p id="joinPrompt" class="join-prompt">Scan or type the link on your device.</p>
     </header>
 
-    <section class="qr-panel" aria-label="Class QR Code">
-      <div class="qr-shell">
-        <div id="qrCode" class="qr-code" aria-label="QR Code"></div>
-      </div>
-      <p class="typed-label">Direct Link</p>
-      <p class="typed-link-wrap">
-        <a id="typedLink" class="typed-link" href="#" target="_blank" rel="noopener"></a>
-      </p>
-      <div class="controls">
-        <button id="copyBtn" class="btn primary" type="button">Copy Link (C)</button>
-        <a id="openBtn" class="btn secondary" href="#" target="_blank" rel="noopener">Open Game</a>
-        <button id="fullscreenBtn" class="btn secondary" type="button">Fullscreen (F)</button>
-      </div>
-      <p id="statusText" class="status" role="status" aria-live="polite"></p>
-    </section>
+    <div class="short-link-bar" aria-label="Student Link">
+      <span class="short-link-label">Type this link:</span>
+      <span id="shortLink" class="short-link-url"></span>
+    </div>
+
+    <div class="split-panel">
+      <section class="info-panel" aria-label="Experiment Info">
+        <div id="previewThumb" class="preview-thumb"></div>
+        <h1 id="gameTitle">STEAM Lab Experiment</h1>
+        <p id="gameDescription" class="game-description"></p>
+        <div id="gameTags" class="game-tags"></div>
+        <div class="controls">
+          <button id="copyBtn" class="btn primary" type="button">Copy Link</button>
+          <a id="openBtn" class="btn secondary" href="#" target="_blank" rel="noopener">Open Game</a>
+        </div>
+      </section>
+
+      <section class="qr-panel" aria-label="Class QR Code">
+        <p id="joinPrompt" class="join-prompt">Scan with your device</p>
+        <div class="qr-shell">
+          <div id="qrCode" class="qr-code" aria-label="QR Code"></div>
+        </div>
+        <button id="fullscreenBtn" class="btn secondary btn-sm" type="button">Fullscreen (F)</button>
+      </section>
+    </div>
+
+    <p id="statusText" class="status" role="status" aria-live="polite"></p>
 
     <footer class="shortcuts">
-      <span>Shortcuts: F = fullscreen, C = copy link, Esc = exit fullscreen</span>
+      <span>F = fullscreen &middot; C = copy link &middot; Esc = exit fullscreen</span>
     </footer>
   </main>
 

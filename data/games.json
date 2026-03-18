@@ -4,132 +4,170 @@
     "title": "Pixel Print Studio",
     "path": "/pixel-print-classroom.html",
     "status": "live",
-    "tags": ["tool", "art", "pixel", "single-player"]
+    "tags": ["tool", "art", "pixel", "single-player"],
+    "description": "Design sprites and printable pixel art sheets for class.",
+    "theme": "science"
   },
   {
     "slug": "spin-art-studio",
     "title": "Spin Art Studio",
     "path": "/spin-art-studio.html",
     "status": "live",
-    "tags": ["art", "science", "motion", "single-player"]
+    "tags": ["art", "science", "motion", "single-player"],
+    "description": "Create colorful spin patterns while exploring motion, symmetry, and design.",
+    "theme": "sim"
   },
   {
     "slug": "spiro-spark-studio",
     "title": "Spiro Spark Studio",
     "path": "/spirograph-studio.html",
     "status": "live",
-    "tags": ["math", "art", "geometry", "simulation", "single-player"]
+    "tags": ["math", "art", "geometry", "simulation", "single-player"],
+    "description": "Create colorful geometric spiral art while exploring ratios, symmetry, and design.",
+    "theme": "break"
   },
   {
     "slug": "buoyancy-sandbox",
     "title": "Buoyancy Sandbox",
     "path": "/buoyancy-sandbox.html",
     "status": "live",
-    "tags": ["science", "engineering", "physics", "simulation", "single-player"]
+    "tags": ["science", "engineering", "physics", "simulation", "single-player"],
+    "description": "Explore density, mass, and buoyancy by dropping objects into water and adjusting their properties.",
+    "theme": "engineering"
   },
   {
     "slug": "maze-generator",
     "title": "Random Maze Generator",
     "path": "/maze-generator.html",
     "status": "live",
-    "tags": ["math", "logic", "single-player", "puzzle"]
+    "tags": ["math", "logic", "single-player", "puzzle"],
+    "description": "Generate a fresh maze every run and navigate to the goal using only arrow keys.",
+    "theme": "break"
   },
   {
     "slug": "quake-lab",
     "title": "Quake Lab",
     "path": "/quake-lab/index.html",
     "status": "live",
-    "tags": ["science", "engineering", "physics", "simulation", "single-player"]
+    "tags": ["science", "engineering", "physics", "simulation", "single-player"],
+    "description": "Build beam towers and stress-test them with different earthquake intensities.",
+    "theme": "engineering"
   },
   {
     "slug": "sky-math-academy",
     "title": "Sky Math Academy",
     "path": "/math-flight-simulator/",
     "status": "live",
-    "tags": ["math", "arcade", "flight", "education", "single-player"]
+    "tags": ["math", "arcade", "flight", "education", "single-player"],
+    "description": "Fly through the correct answer cards to solve equations and build a score streak.",
+    "theme": "logic"
   },
   {
     "slug": "balloon-pop-quantities",
     "title": "Balloon Pop Quantities",
     "path": "/balloon-pop-quantities.html",
     "status": "live",
-    "tags": ["math", "quantities", "counting", "touch", "single-player"]
+    "tags": ["math", "quantities", "counting", "touch", "single-player"],
+    "description": "Pop the matching quantity balloons to practice counting with colorful, fast-paced rounds.",
+    "theme": "break"
   },
   {
     "slug": "greater-gator",
     "title": "Greater Gator",
     "path": "/greater-gator.html",
     "status": "live",
-    "tags": ["math", "comparison", "touch", "single-player"]
+    "tags": ["math", "comparison", "touch", "single-player"],
+    "description": "Choose <, >, or = to compare numbers while the swamp gator chomps the bigger value.",
+    "theme": "logic"
   },
   {
     "slug": "math-cannon",
     "title": "Math Cannon",
     "path": "/math-cannon.html",
     "status": "live",
-    "tags": ["math", "fact fluency", "arcade", "touch", "single-player"]
+    "tags": ["math", "fact fluency", "arcade", "touch", "single-player"],
+    "description": "Fire your pirate ship cannon at the correct answer targets and build fast fact-fluency streaks.",
+    "theme": "break"
   },
   {
     "slug": "pollinator-patrol",
     "title": "Pollinator Patrol",
     "path": "/pollinator%20patrol/pollinator-patrol.html",
     "status": "live",
-    "tags": ["science", "pollination", "nature", "ecology", "single-player"]
+    "tags": ["science", "pollination", "nature", "ecology", "single-player"],
+    "description": "Guide your bee through flower fields, avoid birds, and keep pollinating through each round.",
+    "theme": "science"
   },
   {
     "slug": "ten-frame-builder",
     "title": "Ten Frame Builder",
     "path": "/ten-frame-builder/index.html",
     "status": "live",
-    "tags": ["math", "number sense", "ten frame", "classroom", "single-player"]
+    "tags": ["math", "number sense", "ten frame", "classroom", "single-player"],
+    "description": "Build quantities on interactive ten frames with free play, addition, compare, and flash rounds.",
+    "theme": "logic"
   },
   {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
     "status": "live",
-    "tags": ["engineering", "physics", "chain-reaction", "sandbox", "single-player"]
+    "tags": ["engineering", "physics", "chain-reaction", "sandbox", "single-player"],
+    "description": "Chain ramps, dominoes, and gadgets to create a machine that solves simple tasks.",
+    "theme": "engineering"
   },
   {
     "slug": "biome-world-lab",
     "title": "Biome World Lab",
     "path": "/biome-world-lab.html",
     "status": "live",
-    "tags": ["science", "climate", "geography", "simulation", "single-player"]
+    "tags": ["science", "climate", "geography", "simulation", "single-player"],
+    "description": "Explore Earth's biomes by adjusting temperature and rainfall to see how ecosystems change.",
+    "theme": "science"
   },
   {
     "slug": "ant-colony",
     "title": "Ant Colony Lab",
     "path": "/games/ant-colony-lab/",
     "status": "coming_soon",
-    "tags": ["science", "simulation", "systems"]
+    "tags": ["science", "simulation", "systems"],
+    "description": "Watch ant colonies grow, forage, and adapt in a real-time simulation.",
+    "theme": "science"
   },
   {
     "slug": "moonjet-cavern",
     "title": "Moonjet Cavern",
     "path": "/games/moonjet-cavern/",
     "status": "coming_soon",
-    "tags": ["arcade", "logic", "reflex"]
+    "tags": ["arcade", "logic", "reflex"],
+    "description": "Pilot an astronaut through rocky caverns in this gravity-based arcade challenge.",
+    "theme": "sim"
   },
   {
     "slug": "bridge-builder",
     "title": "Bridge Builder",
     "path": "/games/bridge-builder/",
     "status": "coming_soon",
-    "tags": ["engineering", "physics", "design"]
+    "tags": ["engineering", "physics", "design"],
+    "description": "Design and test bridges that must support weight without collapsing.",
+    "theme": "engineering"
   },
   {
     "slug": "ecosystem-simulator",
     "title": "Ecosystem Simulator",
     "path": "/games/ecosystem-simulator/",
     "status": "coming_soon",
-    "tags": ["science", "simulation", "biology"]
+    "tags": ["science", "simulation", "biology"],
+    "description": "Balance predator and prey populations in a dynamic ecosystem model.",
+    "theme": "science"
   },
   {
     "slug": "pattern-pulse",
     "title": "Pattern Pulse",
     "path": "/games/pattern-pulse/",
     "status": "coming_soon",
-    "tags": ["brain-break", "memory", "arcade"]
+    "tags": ["brain-break", "memory", "arcade"],
+    "description": "Match and extend visual patterns in fast-paced memory rounds.",
+    "theme": "break"
   }
 ]
