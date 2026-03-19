@@ -122,28 +122,29 @@
     });
   }
 
+  async function fetchPortalThumbSvg(slug) {
+    var sources = ["../index.html", "/index.html"];
+    for (var i = 0; i < sources.length; i++) {
+      try {
+        var response = await fetch(sources[i], { cache: "no-store" });
+        if (!response.ok) continue;
+        var html = await response.text();
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var card = doc.getElementById(slug) || doc.querySelector('[data-lab="' + slug + '"]');
+        if (!card) continue;
+        var thumbSvg = card.querySelector(".thumb svg");
+        if (thumbSvg) return thumbSvg.outerHTML;
+      } catch (err) {
+        // Try next source.
+      }
+    }
+    return "";
+  }
+
   function renderPreviewThumb(game) {
     if (!previewThumb) return;
     var slug = (game && game.slug) || "";
-
-    // Use individual SVG files from /thumbs/ directory (works on file:// and http://)
-    if (slug) {
-      var img = document.createElement("img");
-      img.alt = (game && game.title) || "Experiment preview";
-      img.src = "../thumbs/" + slug + ".svg";
-      img.style.width = "100%";
-      img.style.height = "auto";
-      img.style.display = "block";
-      img.onerror = function () {
-        // Fall back to a colored placeholder if SVG file is missing
-        showPlaceholder(game);
-      };
-      previewThumb.innerHTML = "";
-      previewThumb.appendChild(img);
-      return;
-    }
-
-    showPlaceholder(game);
 
     function showPlaceholder(g) {
       var themeColors = {
@@ -165,6 +166,33 @@
           '<text x="150" y="118" text-anchor="middle" font-family="Nunito Sans, sans-serif" font-size="13" font-weight="700" fill="' + colors.accent + '" opacity="0.7">STEAM Lab Games</text>' +
         '</svg>';
     }
+
+    if (!slug) {
+      showPlaceholder(game);
+      return;
+    }
+
+    fetchPortalThumbSvg(slug).then(function (svgMarkup) {
+      if (svgMarkup) {
+        previewThumb.innerHTML = svgMarkup;
+        return;
+      }
+
+      // Fallback to /thumbs/ if present
+      var img = document.createElement("img");
+      img.alt = (game && game.title) || "Experiment preview";
+      img.src = "../thumbs/" + slug + ".svg";
+      img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.display = "block";
+      img.onerror = function () {
+        showPlaceholder(game);
+      };
+      previewThumb.innerHTML = "";
+      previewThumb.appendChild(img);
+    }).catch(function () {
+      showPlaceholder(game);
+    });
   }
 
   function renderTags(tags) {
