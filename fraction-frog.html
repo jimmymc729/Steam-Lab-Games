@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Fraction Frog</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: #1565C0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<script>
+/* ═══════════════════════════════════════
+   FRACTION FROG — Complete Educational Game
+   With sound effects, combo system, polish & delight
+   ═══════════════════════════════════════ */
+
+// ─── Canvas Setup ───
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W, H, scale;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  scale = Math.min(W / 800, H / 900, 1.4);
+  if (gameState === 'playing' || gameState === 'feedback') {
+    layoutPads();
+    layoutFrogHome();
+    layoutFlyJar();
+    if (!animating) { frogX = frogHomeX; frogY = frogHomeY; }
+  }
+}
+window.addEventListener('resize', resize);
+
+// ─── Constants ───
+const TOTAL_ROUNDS = 10;
+const CHOICES = 3;
+const POINTS = 10;
+const FRACTION_POOL = [
+  { n: 1, d: 2, label: '1/2' },
+  { n: 1, d: 3, label: '1/3' },
+  { n: 2, d: 3, label: '2/3' },
+  { n: 1, d: 4, label: '1/4' },
+  { n: 3, d: 4, label: '3/4' },
+];
+const SUCCESS_MSGS = [
+  'Nice jump!', 'Great job!', 'You got it!', 'Awesome!',
+  'Ribbit!', 'Perfect!', 'Way to go!', 'Super!', 'Spot on!', 'Amazing!'
+];
+const COMBO_MSGS = [
+  '', '', 'Double hop!', 'Triple hop!', 'Mega hop!',
+  'ULTRA HOP!', 'LEGENDARY!', 'UNSTOPPABLE!', 'FROG MASTER!', 'INCREDIBLE!', 'PERFECTION!'
+];
+
+// ─── Game State ───
+let gameState = 'start';
+let score = 0;
+let round = 0;
+let rounds = [];
+let currentRound = null;
+
+// Pad layout
+let pads = [];
+let padEntrance = 0; // 0..1 entrance animation progress
+let padEntranceStart = 0;
+const PAD_ENTRANCE_DUR = 400;
+
+// Frog
+let frogX, frogY, frogHomeX, frogHomeY;
+let frogExpression = 'idle';
+let animating = false;
+let animStartX, animStartY, animEndX, animEndY;
+let animStartTime = 0;
+const ANIM_DURATION = 500;
+
+// Feedback
+let feedbackMsg = '';
+let feedbackType = '';
+let feedbackAlpha = 0;
+let feedbackStartTime = 0;
+
+// Wrong pad shake
+let shakePadIdx = -1;
+let shakeStartTime = 0;
+
+// Effects
+let ripples = [];
+let sparkles = [];
+let scorePops = []; // floating +10 text
+let confetti = [];  // end screen celebration
+
+// Combo / Streak
+let streak = 0;
+let bestStreak = 0;
+let comboMsg = '';
+let comboAlpha = 0;
+let comboStartTime = 0;
+
+// Frog idle animation
+let blinkTimer = 0;
+let nextBlink = 2000 + Math.random() * 3000;
+let isBlinking = false;
+
+// Hover state
+let hoverPadIdx = -1;
+
+// Ambient
+let time = 0;
+
+// Audio context (lazy init on first user interaction)
+let audioCtx = null;
+
+// ─── Fly Jar System ───
+let flyCount = 0;
+let totalFliesEarned = 0;
+let correctSinceFly = 0; // correct answers toward next fly (resets at 3)
+const CORRECT_PER_FLY = 3;
+let flyJarX, flyJarY, flyJarW, flyJarH;
+let flyJarBounce = 0;
+let flyJarWiggle = 0;
+let flyAnims = []; // array of active fly animations, each with own state machine
+let tongueTarget = null; // the fly currently being caught by the tongue
+let tongueProgress = 0;
+let pendingJarTap = false;
+let gulpScale = 1;
+let gulpScaleStart = 0;
+const FLY_FEED_MSGS = ['Yum!', 'Tasty!', 'Delicious!', 'Ribbit!', 'Mmm!', 'Nom nom!'];
+const FLY_FEAST_MSGS = ['FEAST!', 'SO HUNGRY!', 'NOM NOM NOM!', 'DELICIOUS!', 'FROG BUFFET!'];
+
+// ─── Initial resize ───
+resize();
+
+// ═══════════════════════════════════════
+// SOUND EFFECTS — Web Audio API Synthesis
+// ═══════════════════════════════════════
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) { /* audio not supported */ }
+}
+
+function playTone(freq, duration, type, vol, ramp) {
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  if (ramp) osc.frequency.exponentialRampToValueAtTime(ramp, audioCtx.currentTime + duration);
+  gain.gain.setValueAtTime(vol || 0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playNoise(duration, vol) {
+  if (!audioCtx) return;
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2000, audioCtx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + duration);
+  gain.gain.setValueAtTime(vol || 0.08, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  source.start();
+  source.stop(audioCtx.currentTime + duration);
+}
+
+function sndJump() {
+  // Quick upward sweep — boing!
+  playTone(200, 0.25, 'sine', 0.15, 600);
+  playTone(250, 0.2, 'triangle', 0.08, 500);
+}
+
+function sndSplash() {
+  // Water splash
+  playNoise(0.3, 0.12);
+  playTone(150, 0.15, 'sine', 0.06, 80);
+}
+
+function sndCorrect() {
+  // Happy ascending chime
+  const t = audioCtx.currentTime;
+  const notes = [523, 659, 784]; // C5, E5, G5
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.2, 'sine', 0.12), i * 80);
+  });
+}
+
+function sndCombo(level) {
+  // Extra sparkly ascending for combo
+  const t = audioCtx.currentTime;
+  const base = 523 + level * 50;
+  [base, base * 1.25, base * 1.5, base * 2].forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.15, 'sine', 0.1), i * 60);
+  });
+}
+
+function sndWrong() {
+  // Gentle low buzz — not harsh
+  playTone(180, 0.2, 'triangle', 0.1, 120);
+  setTimeout(() => playTone(150, 0.15, 'triangle', 0.08, 100), 100);
+}
+
+function sndStart() {
+  // Cheerful start jingle
+  const notes = [392, 440, 523, 659, 784]; // G4 A4 C5 E5 G5
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.18, 'sine', 0.1), i * 90);
+  });
+}
+
+function sndEnd() {
+  // Triumphant fanfare
+  const notes = [523, 523, 659, 784, 659, 784, 1047]; // C5 C5 E5 G5 E5 G5 C6
+  const durs = [0.12, 0.12, 0.12, 0.15, 0.12, 0.15, 0.35];
+  let delay = 0;
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, durs[i], 'sine', 0.12), delay);
+    delay += durs[i] * 700;
+  });
+}
+
+function sndClick() {
+  playTone(800, 0.06, 'sine', 0.08, 600);
+}
+
+// ─── Fly Jar Sounds ───
+function sndFlyBuzz() {
+  if (!audioCtx) return;
+  // Create a buzzing sound that persists during flight
+  try {
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    const gain = audioCtx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(220, audioCtx.currentTime);
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(225, audioCtx.currentTime);
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(40, audioCtx.currentTime);
+    lfoGain.gain.setValueAtTime(50, audioCtx.currentTime);
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc1.frequency);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime + 1.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc1.start(); osc2.start(); lfo.start();
+    osc1.stop(audioCtx.currentTime + 1.5);
+    osc2.stop(audioCtx.currentTime + 1.5);
+    lfo.stop(audioCtx.currentTime + 1.5);
+  } catch(e) {}
+}
+
+function sndTongueSnap() {
+  playNoise(0.08, 0.15);
+  playTone(800, 0.1, 'sine', 0.12, 200);
+}
+
+function sndGulp() {
+  playTone(300, 0.15, 'sine', 0.12, 100);
+  setTimeout(() => playTone(250, 0.1, 'sine', 0.08, 80), 80);
+  setTimeout(() => {
+    playTone(600, 0.12, 'sine', 0.08, 800);
+    playTone(750, 0.1, 'sine', 0.06, 900);
+  }, 200);
+}
+
+function sndFlyEarned() {
+  if (!audioCtx) return;
+  const notes = [659, 784, 988, 1175]; // E5, G5, B5, D6 — ascending chime
+  notes.forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.15, 'sine', 0.08), i * 70);
+  });
+}
+
+function sndEmptyJar() {
+  playTone(200, 0.1, 'triangle', 0.06, 150);
+  setTimeout(() => playTone(160, 0.08, 'triangle', 0.04, 120), 80);
+}
+
+// ─── Utility ───
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOut(t) { return t < 0.5 ? 2*t*t : -1 + (4-2*t)*t; }
+function easeOutBack(t) { const c = 1.7; return 1 + (--t) * t * ((c + 1) * t + c); }
+function easeOutElastic(t) {
+  if (t === 0 || t === 1) return t;
+  return Math.pow(2, -10 * t) * Math.sin((t - 0.075) * (2 * Math.PI) / 0.3) + 1;
+}
+
+// ─── Generate All Rounds ───
+function generateRounds() {
+  rounds = [];
+  for (let i = 0; i < TOTAL_ROUNDS; i++) {
+    const correctIdx = Math.floor(Math.random() * FRACTION_POOL.length);
+    const correct = FRACTION_POOL[correctIdx];
+    const wrongPool = FRACTION_POOL.filter((_, j) => j !== correctIdx);
+    shuffle(wrongPool);
+    const choices = shuffle([correct, wrongPool[0], wrongPool[1]]);
+    const correctChoice = choices.indexOf(correct);
+    // Randomly assign display type per pad: pie or rect
+    const displayTypes = choices.map(() => Math.random() < 0.4 ? 'rect' : 'pie');
+    rounds.push({ target: correct, choices, correctChoice, displayTypes });
+  }
+}
+
+// ─── Layout (responsive — works on mobile portrait too) ───
+function layoutPads() {
+  const barH = Math.max(44, 52 * scale);
+  const promptH = Math.max(48, 60 * scale) + 24;
+  const topArea = barH + promptH;
+  const playH = H - topArea;
+
+  const padSize = Math.min(160 * scale, W * 0.26, playH * 0.28);
+  const centerY = topArea + playH * 0.35;
+  // Cap spacing so all 3 pads fit with margin on each side
+  const maxTotalWidth = W - padSize - 40; // leave room for pad halves + margin
+  const spacing = Math.min(maxTotalWidth / 2, padSize * 1.5);
+  const cx = W / 2;
+
+  pads = [];
+  for (let i = 0; i < CHOICES; i++) {
+    const offsetX = (i - 1) * spacing;
+    const yOff = (i === 1) ? -padSize * 0.15 : padSize * 0.08;
+    pads.push({
+      x: cx + offsetX,
+      y: centerY + yOff,
+      w: padSize,
+      h: padSize * 0.6,
+      fraction: currentRound ? currentRound.choices[i] : null
+    });
+  }
+}
+
+function layoutFrogHome() {
+  const barH = Math.max(44, 52 * scale);
+  const promptH = Math.max(48, 60 * scale) + 24;
+  const topArea = barH + promptH;
+  const playH = H - topArea;
+  frogHomeX = W / 2;
+  frogHomeY = topArea + playH * 0.78;
+}
+
+function layoutFlyJar() {
+  flyJarW = Math.max(36, 44 * scale);
+  flyJarH = flyJarW * 1.4;
+  const barH = Math.max(44, 52 * scale);
+  flyJarX = 20 + flyJarW / 2;
+  flyJarY = barH + 16 + flyJarH / 2;
+}
+
+// ─── Start Round ───
+function startRound() {
+  // Generate a fresh round on the fly
+  const correctIdx = Math.floor(Math.random() * FRACTION_POOL.length);
+  const correct = FRACTION_POOL[correctIdx];
+  const wrongPool = FRACTION_POOL.filter((_, j) => j !== correctIdx);
+  shuffle(wrongPool);
+  const choices = shuffle([correct, wrongPool[0], wrongPool[1]]);
+  const correctChoice = choices.indexOf(correct);
+  const displayTypes = choices.map(() => Math.random() < 0.4 ? 'rect' : 'pie');
+  currentRound = { target: correct, choices, correctChoice, displayTypes };
+  layoutPads();
+  for (let i = 0; i < pads.length; i++) pads[i].fraction = currentRound.choices[i];
+  layoutFrogHome();
+  layoutFlyJar();
+  frogX = frogHomeX;
+  frogY = frogHomeY;
+  frogExpression = 'idle';
+  shakePadIdx = -1;
+  feedbackAlpha = 0;
+  animating = false;
+  padEntranceStart = round === 0 ? performance.now() : performance.now() - 2000;
+  gameState = 'playing';
+}
+
+// ─── Input Handling ───
+function getPos(e) {
+  if (e.touches) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+function hitPad(px, py) {
+  for (let i = 0; i < pads.length; i++) {
+    const p = pads[i];
+    const dx = (px - p.x) / (p.w * 0.55);
+    const dy = (py - p.y) / (p.h * 0.65);
+    if (dx * dx + dy * dy <= 1) return i;
+  }
+  return -1;
+}
+
+function handleInput(e) {
+  e.preventDefault();
+  initAudio();
+  const pos = getPos(e);
+
+  if (gameState === 'start') {
+    if (hitButton(pos.x, pos.y, W/2, H * 0.62, 200 * scale, 56 * scale)) {
+      sndStart();
+      score = 0; round = 0; streak = 0; bestStreak = 0;
+      flyCount = 0; totalFliesEarned = 0; correctSinceFly = 0; flyAnims = []; tongueTarget = null; pendingJarTap = false;
+      startRound();
+    }
+    return;
+  }
+
+  if (gameState === 'end') {
+    if (hitButton(pos.x, pos.y, W/2, H * 0.66, 220 * scale, 56 * scale)) {
+      sndStart();
+      score = 0; round = 0; streak = 0; bestStreak = 0; confetti = [];
+      flyCount = 0; totalFliesEarned = 0; correctSinceFly = 0; flyAnims = []; tongueTarget = null; pendingJarTap = false;
+      startRound();
+    }
+    return;
+  }
+
+  // Fly jar tap — works during playing, animating, and feedback
+  if (gameState === 'playing' || gameState === 'animating' || gameState === 'feedback') {
+    if (hitFlyJar(pos.x, pos.y)) {
+      handleJarTap();
+      return;
+    }
+  }
+
+  if (gameState !== 'playing') return;
+
+  const padIdx = hitPad(pos.x, pos.y);
+  if (padIdx < 0) return;
+
+  if (padIdx === currentRound.correctChoice) {
+    // Correct!
+    gameState = 'animating';
+    animating = true;
+    const target = pads[padIdx];
+    animStartX = frogX;
+    animStartY = frogY;
+    animEndX = target.x;
+    animEndY = target.y - target.h * 0.15;
+    animStartTime = performance.now();
+    frogExpression = 'jump';
+    score += POINTS;
+    streak++;
+    if (streak > bestStreak) bestStreak = streak;
+    sndJump();
+  } else {
+    // Wrong
+    gameState = 'feedback';
+    shakePadIdx = padIdx;
+    shakeStartTime = performance.now();
+    frogExpression = 'sad';
+    streak = 0;
+    correctSinceFly = 0;
+    showFeedback('Try again!', 'wrong');
+    sndWrong();
+    setTimeout(() => {
+      if (gameState === 'feedback' && feedbackType === 'wrong') {
+        frogExpression = 'idle';
+        shakePadIdx = -1;
+        gameState = 'playing';
+      }
+    }, 700);
+  }
+}
+
+// Mouse move for hover effect
+function handleMove(e) {
+  if (gameState !== 'playing') { hoverPadIdx = -1; return; }
+  const pos = e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+  hoverPadIdx = hitPad(pos.x, pos.y);
+}
+
+function hitButton(px, py, bx, by, bw, bh) {
+  return Math.abs(px - bx) < bw/2 && Math.abs(py - by) < bh/2;
+}
+
+canvas.addEventListener('mousedown', handleInput);
+canvas.addEventListener('touchstart', handleInput, { passive: false });
+canvas.addEventListener('mousemove', handleMove);
+canvas.addEventListener('touchmove', handleMove, { passive: true });
+
+// ─── Feedback ───
+function showFeedback(msg, type) {
+  feedbackMsg = msg;
+  feedbackType = type;
+  feedbackAlpha = 1;
+  feedbackStartTime = performance.now();
+}
+
+// ─── Effects ───
+function addRipples(x, y) {
+  const now = performance.now();
+  for (let i = 0; i < 3; i++) {
+    ripples.push({ x, y, startTime: now + i * 120, duration: 700 });
+  }
+}
+
+function addSparkles(x, y) {
+  const now = performance.now();
+  const colors = ['#FFD600', '#FF6D00', '#00E676', '#40C4FF', '#FF4081', '#FFAB00'];
+  for (let i = 0; i < 12; i++) {
+    const angle = (Math.PI * 2 / 12) * i + Math.random() * 0.3;
+    sparkles.push({
+      x, y, angle,
+      dist: 30 + Math.random() * 60,
+      color: colors[i % colors.length],
+      startTime: now,
+      duration: 700
+    });
+  }
+}
+
+function addScorePop(x, y, text, color) {
+  scorePops.push({
+    x, y, text, color: color || '#FFD600',
+    startTime: performance.now(), duration: 900
+  });
+}
+
+function addConfetti() {
+  const now = performance.now();
+  const colors = ['#FF4081', '#FFD600', '#00E676', '#40C4FF', '#FF6D00', '#E040FB', '#76FF03'];
+  for (let i = 0; i < 80; i++) {
+    confetti.push({
+      x: W * Math.random(),
+      y: -20 - Math.random() * 200,
+      vx: (Math.random() - 0.5) * 3,
+      vy: 1 + Math.random() * 3,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.15,
+      w: 4 + Math.random() * 8,
+      h: 3 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      startTime: now + Math.random() * 500
+    });
+  }
+}
+
+// ═══════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════
+
+function drawBackground(t) {
+  // Sky
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.35);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(1, '#5BB5E0');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, W, H * 0.38);
+
+  // Sun glow
+  ctx.save();
+  const sunX = W * 0.85, sunY = H * 0.08;
+  const sunGrad = ctx.createRadialGradient(sunX, sunY, 5, sunX, sunY, 60 * scale);
+  sunGrad.addColorStop(0, 'rgba(255,255,200,0.6)');
+  sunGrad.addColorStop(0.5, 'rgba(255,255,150,0.15)');
+  sunGrad.addColorStop(1, 'rgba(255,255,100,0)');
+  ctx.fillStyle = sunGrad;
+  ctx.fillRect(sunX - 80, sunY - 80, 160, 160);
+  ctx.restore();
+
+  // Green bank
+  ctx.fillStyle = '#2E8B57';
+  ctx.fillRect(0, H * 0.33, W, H * 0.06);
+  ctx.fillStyle = '#256D46';
+  ctx.fillRect(0, H * 0.36, W, H * 0.03);
+
+  // Small flowers on bank
+  drawFlowers(t);
+
+  // Pond
+  const waterGrad = ctx.createLinearGradient(0, H * 0.36, 0, H);
+  waterGrad.addColorStop(0, '#2196F3');
+  waterGrad.addColorStop(0.3, '#1E88E5');
+  waterGrad.addColorStop(0.7, '#1565C0');
+  waterGrad.addColorStop(1, '#0D47A1');
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, H * 0.36, W, H * 0.64);
+
+  // Water highlight
+  ctx.strokeStyle = '#4FC3F7';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.365);
+  ctx.lineTo(W, H * 0.365);
+  ctx.stroke();
+
+  // Water shimmer
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  for (let i = 0; i < 8; i++) {
+    const sx = (W * 0.12 * i + t * 0.02) % (W + 100) - 50;
+    const sy = H * 0.5 + Math.sin(t * 0.001 + i) * 20;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 60, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // Clouds
+  drawCloud(t, 0.15, 0.06, 90, 30);
+  drawCloud(t, 0.55, 0.10, 70, 24);
+  drawCloud(t, 0.85, 0.04, 80, 28);
+
+  // Reeds
+  drawReed(t, W * 0.05, H * 0.34, 50);
+  drawReed(t, W * 0.08, H * 0.34, 38);
+  drawReed(t, W * 0.92, H * 0.34, 45);
+  drawReed(t, W * 0.96, H * 0.34, 35);
+
+  // Bubbles
+  drawBubbles(t);
+}
+
+function drawFlowers(t) {
+  const flowerPositions = [0.12, 0.25, 0.42, 0.58, 0.75, 0.88];
+  const colors = ['#FF80AB', '#FFAB40', '#B388FF', '#FF4081', '#FFD740', '#EA80FC'];
+  flowerPositions.forEach((xf, i) => {
+    const fx = W * xf;
+    const fy = H * 0.335 - 3;
+    const bob = Math.sin(t * 0.002 + i * 1.5) * 1.5;
+    const sz = 4 + (i % 3);
+    // Petals
+    ctx.fillStyle = colors[i];
+    for (let p = 0; p < 5; p++) {
+      const a = (p / 5) * Math.PI * 2 + t * 0.001;
+      ctx.beginPath();
+      ctx.arc(fx + Math.cos(a) * sz * 0.6, fy + bob + Math.sin(a) * sz * 0.6, sz * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // Center
+    ctx.fillStyle = '#FFE082';
+    ctx.beginPath();
+    ctx.arc(fx, fy + bob, sz * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawCloud(t, xFrac, yFrac, w, h) {
+  const speed = 0.008;
+  const x = ((xFrac * W + t * speed) % (W + w * 3)) - w;
+  const y = yFrac * H;
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath();
+  ctx.ellipse(x, y, w, h, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x - w * 0.3, y - h * 0.4, w * 0.5, h * 0.7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.25, y - h * 0.3, w * 0.4, h * 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawReed(t, x, baseY, height) {
+  const sway = Math.sin(t * 0.0015 + x * 0.01) * 4;
+  ctx.strokeStyle = '#2E7D32';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  ctx.quadraticCurveTo(x + sway, baseY - height * 0.6, x + sway * 1.5, baseY - height);
+  ctx.stroke();
+  ctx.fillStyle = '#388E3C';
+  ctx.beginPath();
+  ctx.ellipse(x + sway * 1.5, baseY - height - 5, 8, 5, sway * 0.05, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawBubbles(t) {
+  ctx.save();
+  for (let i = 0; i < 5; i++) {
+    const bx = W * (0.2 + 0.15 * i);
+    const period = 5000 + i * 1200;
+    const progress = ((t + i * 1700) % period) / period;
+    const by = H * 0.9 - progress * H * 0.25;
+    const r = 3 + i * 0.8;
+    ctx.globalAlpha = (1 - progress) * 0.3;
+    ctx.fillStyle = 'rgba(200,230,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(bx + Math.sin(t * 0.002 + i) * 8, by, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ─── Lily Pad ───
+function drawLilyPad(pad, idx, t) {
+  let px = pad.x;
+  let py = pad.y;
+
+  // Entrance animation — bounce in from below
+  const entranceElapsed = performance.now() - padEntranceStart;
+  const entranceDelay = idx * 100;
+  const entranceProg = Math.max(0, Math.min(1, (entranceElapsed - entranceDelay) / PAD_ENTRANCE_DUR));
+  const entranceEase = easeOutBack(entranceProg);
+  if (entranceProg < 1) {
+    py += (1 - entranceEase) * 80;
+    ctx.globalAlpha = entranceProg;
+  }
+
+  // Gentle bob
+  py += Math.sin(t * 0.0018 + idx * 2.2) * 3;
+
+  // Shake for wrong
+  if (shakePadIdx === idx) {
+    const elapsed = performance.now() - shakeStartTime;
+    if (elapsed < 500) {
+      const intensity = 6 * (1 - elapsed / 500);
+      px += Math.sin(elapsed * 0.05) * intensity;
+    }
+  }
+
+  const w = pad.w;
+  const h = pad.h;
+
+  ctx.save();
+
+  // Hover glow
+  if (hoverPadIdx === idx && gameState === 'playing') {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 0.006);
+    ctx.shadowColor = `rgba(255, 255, 100, ${0.4 + pulse * 0.3})`;
+    ctx.shadowBlur = 15 + pulse * 8;
+  }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(px + 3, py + 4, w * 0.52, h * 0.52, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Main pad
+  const padGrad = ctx.createRadialGradient(px - w * 0.15, py - h * 0.15, w * 0.05, px, py, w * 0.5);
+  padGrad.addColorStop(0, '#66BB6A');
+  padGrad.addColorStop(0.6, '#43A047');
+  padGrad.addColorStop(1, '#2E7D32');
+  ctx.fillStyle = padGrad;
+  ctx.beginPath();
+  ctx.ellipse(px, py, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Notch
+  ctx.fillStyle = '#1976D2';
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(px - w * 0.04, py - h * 0.5);
+  ctx.lineTo(px + w * 0.04, py - h * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Veins
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py - h * 0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + w * 0.3, py - h * 0.2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - w * 0.3, py + h * 0.15); ctx.stroke();
+
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.beginPath();
+  ctx.ellipse(px - w * 0.12, py - h * 0.12, w * 0.2, h * 0.15, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Fraction visual (pie or rectangle)
+  if (pad.fraction && currentRound) {
+    const dispType = currentRound.displayTypes ? currentRound.displayTypes[idx] : 'pie';
+    const r = Math.min(w, h) * 0.38;
+    if (dispType === 'rect') {
+      drawFractionRect(px, py, r, pad.fraction);
+    } else {
+      drawFractionPie(px, py, r, pad.fraction);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ─── Fraction Pie Chart ───
+function drawFractionPie(cx, cy, radius, fraction) {
+  const { n, d } = fraction;
+  const sliceAngle = (Math.PI * 2) / d;
+  const startOffset = -Math.PI / 2;
+
+  // White bg
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  for (let i = 0; i < d; i++) {
+    const a1 = startOffset + i * sliceAngle;
+    const a2 = startOffset + (i + 1) * sliceAngle;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius - 1, a1, a2);
+    ctx.closePath();
+    ctx.fillStyle = i < n ? '#FF8F00' : '#FFF8E1';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+}
+
+// ─── Fraction Rectangle Bar ───
+function drawFractionRect(cx, cy, radius, fraction) {
+  const { n, d } = fraction;
+  const totalW = radius * 2.0;
+  const totalH = radius * 0.85;
+  const x0 = cx - totalW / 2;
+  const y0 = cy - totalH / 2;
+  const cellW = totalW / d;
+
+  // White bg with rounded corners
+  ctx.save();
+  roundRect(x0 - 1, y0 - 1, totalW + 2, totalH + 2, 4);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.restore();
+
+  // Draw cells
+  for (let i = 0; i < d; i++) {
+    const cellX = x0 + i * cellW;
+    ctx.fillStyle = i < n ? '#FF8F00' : '#FFF8E1';
+    ctx.fillRect(cellX, y0, cellW, totalH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cellX, y0, cellW, totalH);
+  }
+
+  // Outer border
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 2.5;
+  roundRect(x0, y0, totalW, totalH, 4);
+  ctx.stroke();
+}
+
+// ─── Home Rock ───
+function drawHomeRock() {
+  const rockW = Math.min(100 * scale, W * 0.15);
+  const rockH = rockW * 0.45;
+  const rx = frogHomeX;
+  const ry = frogHomeY + rockH * 0.4;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(rx + 3, ry + 4, rockW * 0.55, rockH * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const rockGrad = ctx.createRadialGradient(rx - rockW * 0.2, ry - rockH * 0.3, 2, rx, ry, rockW * 0.5);
+  rockGrad.addColorStop(0, '#9E9E9E');
+  rockGrad.addColorStop(0.7, '#757575');
+  rockGrad.addColorStop(1, '#546E7A');
+  ctx.fillStyle = rockGrad;
+  ctx.beginPath();
+  ctx.ellipse(rx, ry, rockW * 0.5, rockH * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(rx - rockW * 0.1, ry - rockH * 0.15, rockW * 0.22, rockH * 0.18, -0.2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// ─── Frog ───
+function drawFrog(x, y, sz, expression) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = sz / 100;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(3*s, 15*s, 28*s, 10*s, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Back legs
+  ctx.fillStyle = '#388E3C';
+  ctx.beginPath(); ctx.ellipse(-22*s, 8*s, 14*s, 9*s, -0.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(22*s, 8*s, 14*s, 9*s, 0.5, 0, Math.PI*2); ctx.fill();
+
+  // Body
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath(); ctx.ellipse(0, 4*s, 26*s, 22*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Belly
+  ctx.fillStyle = '#A5D6A7';
+  ctx.beginPath(); ctx.ellipse(0, 10*s, 17*s, 13*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Belly pattern — cute spots
+  ctx.fillStyle = 'rgba(129,199,132,0.5)';
+  ctx.beginPath(); ctx.arc(-5*s, 8*s, 3*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6*s, 12*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+
+  // Front legs
+  ctx.fillStyle = '#43A047';
+  if (expression === 'jump') {
+    ctx.beginPath(); ctx.ellipse(-28*s, -4*s, 10*s, 6*s, -0.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(28*s, -4*s, 10*s, 6*s, 0.6, 0, Math.PI*2); ctx.fill();
+  } else if (expression === 'happy') {
+    ctx.beginPath(); ctx.ellipse(-30*s, -8*s, 10*s, 6*s, -0.9, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(30*s, -8*s, 10*s, 6*s, 0.9, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.ellipse(-24*s, 14*s, 9*s, 5*s, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(24*s, 14*s, 9*s, 5*s, 0.3, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Head
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath(); ctx.ellipse(0, -12*s, 22*s, 17*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Eye bumps
+  ctx.beginPath(); ctx.ellipse(-12*s, -26*s, 10*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(12*s, -26*s, 10*s, 10*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Eye whites
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(-12*s, -27*s, 7*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(12*s, -27*s, 7*s, 8*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Blink animation
+  const now = performance.now();
+  if (expression === 'idle') {
+    if (now - blinkTimer > nextBlink) {
+      isBlinking = true;
+      if (now - blinkTimer > nextBlink + 150) {
+        isBlinking = false;
+        blinkTimer = now;
+        nextBlink = 2000 + Math.random() * 4000;
+      }
+    }
+  }
+
+  // Pupils (squished if blinking, track fly during feeding)
+  const pupilR = expression === 'sad' ? 4.5 : 3.5;
+  const eyeH = (isBlinking && expression === 'idle') ? 0.5 : 1;
+  ctx.fillStyle = '#212121';
+  ctx.save();
+  ctx.scale(1, eyeH);
+  const eyeY = -27 * s / eyeH;
+  // Track nearest buzzing fly with pupils
+  let pupilOffX = 0, pupilOffY = 0;
+  if (flyAnims.length > 0) {
+    // Find nearest fly that's buzzing around
+    let nearestFly = null, nearestDist = Infinity;
+    for (const fa of flyAnims) {
+      if (fa.state === 'buzzing_out' || fa.state === 'flying_erratic' || fa.state === 'roaming') {
+        const dd = (fa.x - x) * (fa.x - x) + (fa.y - y) * (fa.y - y);
+        if (dd < nearestDist) { nearestDist = dd; nearestFly = fa; }
+      }
+    }
+    if (nearestFly) {
+      const dx = nearestFly.x - x;
+      const dy = nearestFly.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      pupilOffX = (dx / dist) * 2 * s;
+      pupilOffY = (dy / dist) * 1.5 * s / eyeH;
+    }
+  }
+  ctx.beginPath(); ctx.ellipse(-11*s + pupilOffX, eyeY + pupilOffY, pupilR*s, pupilR*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(13*s + pupilOffX, eyeY + pupilOffY, pupilR*s, pupilR*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Eye shine
+  if (!isBlinking || expression !== 'idle') {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.arc(-13*s, -29*s, 2*s, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11*s, -29*s, 2*s, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Cheeks (bigger when happy)
+  const cheekSize = expression === 'happy' ? 6 : 5;
+  ctx.fillStyle = expression === 'happy' ? 'rgba(255,138,128,0.45)' : 'rgba(255,138,128,0.3)';
+  ctx.beginPath(); ctx.ellipse(-18*s, -10*s, cheekSize*s, 3.5*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(18*s, -10*s, cheekSize*s, 3.5*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Crown for streak >= 5
+  if (streak >= 5) {
+    drawCrown(0, -38 * s, 14 * s);
+  }
+
+  // Mouth
+  ctx.strokeStyle = '#2E7D32';
+  ctx.lineWidth = 2*s;
+  ctx.lineCap = 'round';
+  if (expression === 'happy') {
+    ctx.beginPath(); ctx.arc(0, -8*s, 12*s, 0.15, Math.PI - 0.15); ctx.stroke();
+    // Tongue for extra delight
+    ctx.fillStyle = '#EF5350';
+    ctx.beginPath(); ctx.ellipse(0, -2*s, 4*s, 6*s, 0, 0, Math.PI); ctx.fill();
+  } else if (expression === 'sad') {
+    ctx.beginPath(); ctx.arc(0, 2*s, 8*s, Math.PI + 0.3, -0.3); ctx.stroke();
+  } else {
+    // Breathing animation — subtle scale
+    const breathe = 1 + Math.sin(time * 0.003) * 0.015;
+    ctx.beginPath(); ctx.arc(0, -6*s, 10*s * breathe, 0.2, Math.PI - 0.2); ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawCrown(x, y, sz) {
+  ctx.fillStyle = '#FFD600';
+  ctx.beginPath();
+  ctx.moveTo(x - sz, y);
+  ctx.lineTo(x - sz * 0.7, y - sz * 0.8);
+  ctx.lineTo(x - sz * 0.35, y - sz * 0.3);
+  ctx.lineTo(x, y - sz);
+  ctx.lineTo(x + sz * 0.35, y - sz * 0.3);
+  ctx.lineTo(x + sz * 0.7, y - sz * 0.8);
+  ctx.lineTo(x + sz, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#FFA000';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  // Gems
+  ctx.fillStyle = '#E91E63';
+  ctx.beginPath(); ctx.arc(x, y - sz * 0.5, sz * 0.12, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#2196F3';
+  ctx.beginPath(); ctx.arc(x - sz * 0.5, y - sz * 0.15, sz * 0.1, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + sz * 0.5, y - sz * 0.15, sz * 0.1, 0, Math.PI*2); ctx.fill();
+}
+
+// ─── Fly Jar System ───
+function hitFlyJar(px, py) {
+  return Math.abs(px - flyJarX) < flyJarW * 0.8 && Math.abs(py - flyJarY) < flyJarH * 0.8;
+}
+
+function handleJarTap() {
+  if (animating) {
+    pendingJarTap = true;
+    return;
+  }
+  if (flyCount <= 0) {
+    flyJarWiggle = performance.now();
+    sndEmptyJar();
+    return;
+  }
+  flyCount--;
+  spawnFlyAnim();
+}
+
+function spawnFlyAnim() {
+  const now = performance.now();
+  const fly = {
+    state: 'buzzing_out',
+    startTime: now,
+    x: flyJarX,
+    y: flyJarY,
+    waypoints: [],
+    caught: false // set true when tongue grabs this fly
+  };
+
+  // Pre-compute waypoints in the central play area (not near edges)
+  const barH = Math.max(44, 52 * scale);
+  const edgeInset = W * 0.2;
+  const topInset = barH + 80 * scale;
+  const numPts = 3 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < numPts; i++) {
+    fly.waypoints.push({
+      x: edgeInset + Math.random() * (W - edgeInset * 2),
+      y: topInset + Math.random() * (H - topInset - 80 * scale)
+    });
+  }
+
+  flyAnims.push(fly);
+  sndFlyBuzz();
+}
+
+function updateFlyAnimations(t) {
+  // Update each fly independently
+  for (let i = flyAnims.length - 1; i >= 0; i--) {
+    const fa = flyAnims[i];
+    const elapsed = t - fa.startTime;
+
+    switch (fa.state) {
+      case 'buzzing_out': {
+        const dur = 400;
+        const prog = Math.min(elapsed / dur, 1);
+        const ep = easeOutBack(prog);
+        fa.x = flyJarX + (fa.waypoints[0].x - flyJarX) * ep * 0.3;
+        fa.y = flyJarY - 50 * scale * ep + Math.sin(elapsed * 0.03 + i * 2) * 8;
+        if (prog >= 1) {
+          fa.state = 'flying_erratic';
+          fa.startTime = t;
+        }
+        break;
+      }
+      case 'flying_erratic': {
+        const totalDur = 800;
+        const prog = Math.min(elapsed / totalDur, 1);
+        const wpCount = fa.waypoints.length;
+        const wpProg = prog * wpCount;
+        const wpIdx = Math.min(Math.floor(wpProg), wpCount - 1);
+        const wpFrac = wpProg - wpIdx;
+
+        const prevX = wpIdx === 0 ? flyJarX : fa.waypoints[wpIdx - 1].x;
+        const prevY = wpIdx === 0 ? (flyJarY - 50 * scale) : fa.waypoints[wpIdx - 1].y;
+        const nextX = fa.waypoints[wpIdx].x;
+        const nextY = fa.waypoints[wpIdx].y;
+
+        const smoothFrac = easeInOut(Math.min(wpFrac * 1.3, 1));
+        fa.x = lerp(prevX, nextX, smoothFrac) + Math.sin(elapsed * 0.025 + i * 3) * 12;
+        fa.y = lerp(prevY, nextY, smoothFrac) + Math.cos(elapsed * 0.035 + i * 2) * 8;
+
+        if (prog >= 1) {
+          fa.state = 'roaming';
+          fa.startTime = t;
+          // Initialize velocity for free-roaming — gentle speed
+          fa.vx = (Math.random() - 0.5) * 1.5;
+          fa.vy = (Math.random() - 0.5) * 1.2;
+          fa.nextDirChange = 300 + Math.random() * 500;
+          fa.dirChangeTime = t;
+        }
+        break;
+      }
+      case 'roaming': {
+        // Free-roaming evasive behavior — gentle, visible flight
+        const roamBarH = Math.max(44, 52 * scale);
+        const centerX = W / 2;
+        const centerY = roamBarH + (H - roamBarH) * 0.4;
+
+        // Periodically nudge direction
+        if (t - fa.dirChangeTime > fa.nextDirChange) {
+          fa.vx += (Math.random() - 0.5) * 2;
+          fa.vy += (Math.random() - 0.5) * 1.5;
+          fa.nextDirChange = 400 + Math.random() * 800;
+          fa.dirChangeTime = t;
+        }
+
+        // Gentle pull toward center of play area — keeps flies visible
+        const dxCenter = centerX - fa.x;
+        const dyCenter = centerY - fa.y;
+        const distCenter = Math.sqrt(dxCenter * dxCenter + dyCenter * dyCenter) || 1;
+        const pullStrength = 0.03;
+        fa.vx += (dxCenter / distCenter) * pullStrength * Math.min(distCenter / 100, 1);
+        fa.vy += (dyCenter / distCenter) * pullStrength * Math.min(distCenter / 100, 1);
+
+        // Evade the frog — nudge away if getting close
+        const dxFrog = fa.x - frogX;
+        const dyFrog = fa.y - frogY;
+        const distFrog = Math.sqrt(dxFrog * dxFrog + dyFrog * dyFrog) || 1;
+        const evadeRadius = 100 * scale;
+        if (distFrog < evadeRadius) {
+          const evadeForce = (1 - distFrog / evadeRadius) * 1.2;
+          fa.vx += (dxFrog / distFrog) * evadeForce;
+          fa.vy += (dyFrog / distFrog) * evadeForce;
+        }
+
+        // Small jitter for liveliness
+        fa.vx += (Math.random() - 0.5) * 0.2;
+        fa.vy += (Math.random() - 0.5) * 0.15;
+
+        // Dampen more to keep slow
+        fa.vx *= 0.94;
+        fa.vy *= 0.94;
+
+        // Clamp speed — much slower
+        const speed = Math.sqrt(fa.vx * fa.vx + fa.vy * fa.vy);
+        if (speed > 2) { fa.vx *= 2 / speed; fa.vy *= 2 / speed; }
+
+        fa.x += fa.vx;
+        fa.y += fa.vy;
+
+        // Soft bounce off edges — generous margin keeps flies away from edges
+        const edgeMargin = W * 0.15;
+        const topMargin = roamBarH + 60 * scale;
+        const bottomMargin = 60 * scale;
+        if (fa.x < edgeMargin) { fa.vx += 0.3; }
+        if (fa.x > W - edgeMargin) { fa.vx -= 0.3; }
+        if (fa.y < topMargin) { fa.vy += 0.3; }
+        if (fa.y > H - bottomMargin) { fa.vy -= 0.3; }
+
+        // Hard clamp as safety net
+        fa.x = Math.max(30, Math.min(W - 30, fa.x));
+        fa.y = Math.max(roamBarH + 20, Math.min(H - 30, fa.y));
+
+        break;
+      }
+      case 'caught': {
+        // Being pulled into mouth by tongue — handled by tongue system
+        const dur = 300;
+        const prog = Math.min(elapsed / dur, 1);
+        fa.x = lerp(fa.catchX, frogX, prog);
+        fa.y = lerp(fa.catchY, frogY - 6 * scale, prog);
+        if (prog >= 1) {
+          // Gulp!
+          triggerGulpEffects(t);
+          flyAnims.splice(i, 1);
+          tongueTarget = null;
+          tongueProgress = 0;
+        }
+        break;
+      }
+    }
+  }
+
+  // Tongue catch system — if tongue is free, grab the nearest roaming fly
+  // Flies must roam for at least 800ms before they can be caught (let them fly around first)
+  if (!tongueTarget) {
+    let nearest = null, nearDist = Infinity;
+    for (const fa of flyAnims) {
+      if (fa.state === 'roaming' && (t - fa.startTime) > 2500) {
+        const dd = (fa.x - frogX) * (fa.x - frogX) + (fa.y - frogY) * (fa.y - frogY);
+        if (dd < nearDist) { nearDist = dd; nearest = fa; }
+      }
+    }
+    if (nearest) {
+      tongueTarget = nearest;
+      tongueProgress = 0;
+      nearest.state = 'tongue_shoot';
+      nearest.startTime = t;
+      nearest.catchX = nearest.x;
+      nearest.catchY = nearest.y;
+      sndTongueSnap();
+    }
+  }
+
+  // Tongue shoot phase — extend tongue toward target fly
+  if (tongueTarget && tongueTarget.state === 'tongue_shoot') {
+    const elapsed = t - tongueTarget.startTime;
+    const dur = 200; // faster tongue for rapid catches
+    const prog = Math.min(elapsed / dur, 1);
+    tongueProgress = easeOutBack(prog);
+    if (prog >= 1) {
+      tongueTarget.state = 'caught';
+      tongueTarget.startTime = t;
+      tongueTarget.catchX = tongueTarget.x;
+      tongueTarget.catchY = tongueTarget.y;
+      sndGulp();
+    }
+  }
+
+  // Gulp scale animation
+  if (gulpScaleStart > 0) {
+    const ge = t - gulpScaleStart;
+    if (ge < 300) {
+      if (ge < 120) {
+        gulpScale = 1 + 0.12 * easeOutElastic(ge / 120);
+      } else {
+        gulpScale = lerp(1.12, 1, (ge - 120) / 180);
+      }
+    } else {
+      gulpScale = 1;
+      gulpScaleStart = 0;
+    }
+  }
+}
+
+function triggerGulpEffects(t) {
+  gulpScaleStart = t;
+  gulpScale = 1.12;
+  addSparkles(frogX, frogY - 10 * scale);
+
+  // Count how many flies have been caught recently for escalating messages
+  const activeBuzzing = flyAnims.filter(f => f.state !== 'caught').length;
+  let msg;
+  if (activeBuzzing >= 2) {
+    msg = FLY_FEAST_MSGS[Math.floor(Math.random() * FLY_FEAST_MSGS.length)];
+  } else {
+    msg = FLY_FEED_MSGS[Math.floor(Math.random() * FLY_FEED_MSGS.length)];
+  }
+  addScorePop(frogX + (Math.random() - 0.5) * 30, frogY - 40 * scale - Math.random() * 20, msg, '#76FF03');
+
+  // Mini confetti — more confetti when multiple flies active
+  const confettiCount = activeBuzzing >= 2 ? 20 : 10;
+  const now = performance.now();
+  const colors = ['#FF4081', '#FFD600', '#00E676', '#40C4FF', '#FF6D00', '#E040FB'];
+  for (let i = 0; i < confettiCount; i++) {
+    confetti.push({
+      x: frogX + (Math.random() - 0.5) * 40,
+      y: frogY - 20 * scale,
+      vx: (Math.random() - 0.5) * 2.5,
+      vy: -1 - Math.random() * 2.5,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.15,
+      w: 3 + Math.random() * 5,
+      h: 2 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      startTime: now
+    });
+  }
+}
+
+function drawFly(x, y, sz, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = sz / 12;
+
+  // Wings (flapping)
+  const wingAngle = Math.sin(t * 0.05) * 0.5;
+  ctx.fillStyle = 'rgba(180,220,255,0.55)';
+  ctx.save();
+  ctx.rotate(-0.4 + wingAngle);
+  ctx.beginPath(); ctx.ellipse(-4*s, -3*s, 6*s, 3*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.rotate(0.4 - wingAngle);
+  ctx.beginPath(); ctx.ellipse(4*s, -3*s, 6*s, 3*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // Body
+  ctx.fillStyle = '#333';
+  ctx.beginPath(); ctx.ellipse(0, 0, 4*s, 3*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // Head
+  ctx.beginPath(); ctx.arc(0, -4*s, 2.5*s, 0, Math.PI*2); ctx.fill();
+
+  // Eyes (big googly)
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-1.5*s, -5.5*s, 1.8*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(1.5*s, -5.5*s, 1.8*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(-1.5*s, -5.5*s, 0.9*s, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(1.5*s, -5.5*s, 0.9*s, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawMiniFly(x, y, sz, t) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = sz / 8;
+  // Wings
+  const wingAngle = Math.sin(t * 0.04 + x) * 0.4;
+  ctx.fillStyle = 'rgba(180,220,255,0.4)';
+  ctx.beginPath(); ctx.ellipse(-2.5*s, -1.5*s - wingAngle*s, 3.5*s, 1.5*s, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(2.5*s, -1.5*s + wingAngle*s, 3.5*s, 1.5*s, 0.3, 0, Math.PI*2); ctx.fill();
+  // Body
+  ctx.fillStyle = '#444';
+  ctx.beginPath(); ctx.ellipse(0, 0, 2.5*s, 1.5*s, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawFlyJar(t) {
+  ctx.save();
+
+  // Bounce animation when fly earned
+  let jarScale = 1;
+  if (flyJarBounce > 0) {
+    const elapsed = t - flyJarBounce;
+    if (elapsed < 600) {
+      jarScale = 1 + 0.15 * easeOutElastic(elapsed / 600);
+    } else {
+      flyJarBounce = 0;
+    }
+  }
+
+  // Wiggle animation when empty jar tapped
+  let wiggleAngle = 0;
+  if (flyJarWiggle > 0) {
+    const elapsed = t - flyJarWiggle;
+    if (elapsed < 400) {
+      wiggleAngle = Math.sin(elapsed * 0.04) * 0.12 * (1 - elapsed / 400);
+    } else {
+      flyJarWiggle = 0;
+    }
+  }
+
+  ctx.translate(flyJarX, flyJarY);
+  ctx.scale(jarScale, jarScale);
+  ctx.rotate(wiggleAngle);
+
+  const w = flyJarW / 2;
+  const h = flyJarH / 2;
+
+  // Glow pulse when flies available
+  if (flyCount > 0) {
+    const pulse = 0.3 + 0.2 * Math.sin(t * 0.004);
+    const glow = ctx.createRadialGradient(0, 0, w * 0.5, 0, 0, w * 1.5);
+    glow.addColorStop(0, `rgba(180,255,100,${pulse})`);
+    glow.addColorStop(1, 'rgba(180,255,100,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+  }
+
+  // Jar body (tapered glass shape)
+  const jw = w * 0.85;
+  const topW = w * 0.65;
+  ctx.beginPath();
+  ctx.moveTo(-topW, -h * 0.55);
+  ctx.quadraticCurveTo(-jw, -h * 0.2, -jw, h * 0.4);
+  ctx.quadraticCurveTo(-jw, h * 0.7, -jw * 0.8, h * 0.7);
+  ctx.lineTo(jw * 0.8, h * 0.7);
+  ctx.quadraticCurveTo(jw, h * 0.7, jw, h * 0.4);
+  ctx.quadraticCurveTo(jw, -h * 0.2, topW, -h * 0.55);
+  ctx.closePath();
+
+  // Glass fill
+  const glassFill = ctx.createLinearGradient(-jw, 0, jw, 0);
+  glassFill.addColorStop(0, 'rgba(200,235,255,0.25)');
+  glassFill.addColorStop(0.3, 'rgba(220,240,255,0.15)');
+  glassFill.addColorStop(0.7, 'rgba(200,235,255,0.2)');
+  glassFill.addColorStop(1, 'rgba(180,225,250,0.3)');
+  ctx.fillStyle = glassFill;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(150,200,230,0.5)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Glass shine
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(-jw * 0.45, -h * 0.1, jw * 0.12, h * 0.35, -0.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Mini flies inside
+  const showCount = Math.min(flyCount, 5);
+  for (let i = 0; i < showCount; i++) {
+    const fx = (Math.sin(i * 2.3 + t * 0.002) * jw * 0.4);
+    const fy = h * 0.3 - i * (h * 0.2) + Math.sin(t * 0.003 + i * 1.7) * 3;
+    drawMiniFly(fx, fy, Math.max(8, 10 * scale), t);
+  }
+
+  // Cork lid
+  ctx.fillStyle = '#8D6E63';
+  roundRect(-topW - 2, -h * 0.7, (topW + 2) * 2, h * 0.18, 3);
+  ctx.fill();
+  ctx.fillStyle = '#A1887F';
+  roundRect(-topW + 1, -h * 0.68, (topW - 1) * 2, h * 0.06, 2);
+  ctx.fill();
+
+  // Count badge
+  if (flyCount > 0) {
+    const badgeR = Math.max(9, 11 * scale);
+    const bx = w * 0.7;
+    const by = -h * 0.6;
+    ctx.fillStyle = '#FF5722';
+    ctx.beginPath(); ctx.arc(bx, by, badgeR, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    const badgeFont = Math.max(9, 11 * scale);
+    ctx.font = `bold ${badgeFont}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(flyCount, bx, by + 1);
+  }
+
+  // Progress dots toward next fly (below jar)
+  const dotR = Math.max(3, 4 * scale);
+  const dotSpacing = dotR * 2.8;
+  const dotsY = h * 0.85 + dotR;
+  const totalDotsW = (CORRECT_PER_FLY - 1) * dotSpacing;
+  const dotsStartX = -totalDotsW / 2;
+  for (let i = 0; i < CORRECT_PER_FLY; i++) {
+    const dx = dotsStartX + i * dotSpacing;
+    const filled = i < correctSinceFly;
+    ctx.beginPath();
+    ctx.arc(dx, dotsY, dotR, 0, Math.PI * 2);
+    if (filled) {
+      ctx.fillStyle = '#76FF03';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    }
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawFlyAnimations(t) {
+  if (flyAnims.length === 0) return;
+  const flySz = Math.max(18, 24 * scale);
+
+  // Draw all active flies (buzzing, erratic, roaming)
+  for (const fa of flyAnims) {
+    if (fa.state === 'buzzing_out' || fa.state === 'flying_erratic' || fa.state === 'roaming') {
+      drawFly(fa.x, fa.y, flySz, t);
+    }
+  }
+
+  // Draw tongue if catching a fly
+  if (tongueTarget && (tongueTarget.state === 'tongue_shoot' || tongueTarget.state === 'caught')) {
+    const tsX = frogX;
+    const tsY = frogY - 6 * scale;
+    let teX, teY;
+    if (tongueTarget.state === 'tongue_shoot') {
+      teX = lerp(tsX, tongueTarget.x, tongueProgress);
+      teY = lerp(tsY, tongueTarget.y, tongueProgress);
+    } else {
+      // caught — tongue retracts as fly moves to mouth
+      const elapsed = performance.now() - tongueTarget.startTime;
+      const retractProg = Math.min(elapsed / 300, 1);
+      teX = lerp(tongueTarget.x, tsX, retractProg);
+      teY = lerp(tongueTarget.y, tsY, retractProg);
+    }
+
+    ctx.save();
+    ctx.strokeStyle = '#EF5350';
+    ctx.lineWidth = Math.max(4, 6 * scale);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(tsX, tsY);
+    const midX = (tsX + teX) / 2;
+    const midY = (tsY + teY) / 2 - 10 * scale;
+    ctx.quadraticCurveTo(midX, midY, teX, teY);
+    ctx.stroke();
+
+    // Tongue tip
+    ctx.fillStyle = '#EF5350';
+    ctx.beginPath();
+    ctx.arc(teX, teY, Math.max(5, 7 * scale), 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw fly on tongue tip
+    if (tongueTarget.state === 'tongue_shoot' && tongueProgress > 0.6) {
+      drawFly(teX, teY - 5 * scale, Math.max(10, 13 * scale), t);
+    } else if (tongueTarget.state === 'caught') {
+      drawFly(teX, teY - 5 * scale, Math.max(10, 13 * scale), t);
+    }
+    ctx.restore();
+  }
+}
+
+// ─── Dragonfly ───
+function drawDragonfly(t) {
+  const period = 15000;
+  const prog = ((t * 0.9) % period) / period;
+  const x = -30 + (W + 60) * prog;
+  const y = H * 0.22 + Math.sin(prog * Math.PI * 4) * 25;
+  const wingFlap = Math.sin(t * 0.04) * 0.6;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = '#E91E63';
+  ctx.beginPath(); ctx.ellipse(0, 0, 10, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(200,230,255,0.5)';
+  ctx.beginPath(); ctx.ellipse(-3, -4*(1+wingFlap*0.3), 7, 4, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(3, -4*(1-wingFlap*0.3), 7, 4, 0.3, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// ─── HUD ───
+function drawHUD() {
+  const barH = Math.max(44, 52 * scale);
+
+  ctx.fillStyle = 'rgba(0,40,20,0.55)';
+  ctx.fillRect(0, 0, W, barH);
+
+  const fontSize = Math.max(15, 20 * scale);
+  ctx.font = `bold ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#A5D6A7';
+  ctx.textAlign = 'left';
+  ctx.fillText('🐸 Fraction Frog', 14, barH / 2);
+
+  ctx.fillStyle = '#FFE082';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Score: ${score}`, W / 2, barH / 2);
+
+  ctx.fillStyle = '#A5D6A7';
+  ctx.textAlign = 'right';
+  ctx.fillText(`Round ${round + 1}`, W - 14, barH / 2);
+
+
+
+  // Streak indicator
+  if (streak >= 2) {
+    const streakX = W - 14;
+    const streakY = barH / 2 + fontSize * 0.8;
+    const streakSize = Math.max(11, 14 * scale);
+    ctx.font = `bold ${streakSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.fillStyle = '#FF8A65';
+    ctx.textAlign = 'right';
+    const fireEmoji = streak >= 5 ? '🔥🔥' : '🔥';
+    ctx.fillText(`${fireEmoji} ${streak}x streak`, streakX, streakY);
+  }
+}
+
+// ─── Prompt Card ───
+function drawPrompt() {
+  if (!currentRound) return;
+  const barH = Math.max(44, 52 * scale);
+  const cardY = barH + 12;
+  const cardH = Math.max(48, 60 * scale);
+  const cardW = Math.min(340 * scale, W * 0.7);
+  const cx = W / 2;
+
+  // Subtle bounce when round starts
+  const entranceElapsed = performance.now() - padEntranceStart;
+  let promptScale = 1;
+  if (entranceElapsed < 300) {
+    promptScale = easeOutBack(entranceElapsed / 300);
+  }
+
+  ctx.save();
+  ctx.translate(cx, cardY + cardH / 2);
+  ctx.scale(promptScale, promptScale);
+  ctx.translate(-cx, -(cardY + cardH / 2));
+
+  roundRect(cx - cardW/2, cardY, cardW, cardH, 16);
+  ctx.fillStyle = 'rgba(255,255,255,0.93)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const labelSize = Math.max(14, 18 * scale);
+  ctx.font = `bold ${labelSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.fillStyle = '#1B5E20';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Jump to', cx - 40 * scale, cardY + cardH / 2);
+
+  const fracSize = Math.max(22, 30 * scale);
+  ctx.font = `800 ${fracSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.fillStyle = '#E65100';
+  ctx.fillText(currentRound.target.label, cx + 35 * scale, cardY + cardH / 2);
+
+  ctx.restore();
+}
+
+// ─── Feedback Overlays ───
+function drawFeedbackOverlay(t) {
+  if (feedbackAlpha <= 0) return;
+  const elapsed = t - feedbackStartTime;
+  if (elapsed > 1000) { feedbackAlpha = 0; return; }
+  if (elapsed > 600) feedbackAlpha = 1 - (elapsed - 600) / 400;
+
+  ctx.save();
+  ctx.globalAlpha = feedbackAlpha;
+  const fontSize = Math.max(24, 36 * scale);
+  ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Pop-in scale effect
+  let popScale = 1;
+  if (elapsed < 200) popScale = easeOutBack(elapsed / 200);
+
+  const fy = H * 0.35;
+  ctx.save();
+  ctx.translate(W/2, fy);
+  ctx.scale(popScale, popScale);
+  ctx.translate(-W/2, -fy);
+
+  const tw = ctx.measureText(feedbackMsg).width + 40;
+  roundRect(W/2 - tw/2, fy - fontSize * 0.7, tw, fontSize * 1.5, 14);
+  ctx.fillStyle = feedbackType === 'correct' ? 'rgba(232,245,233,0.95)' : 'rgba(255,235,238,0.95)';
+  ctx.fill();
+  ctx.strokeStyle = feedbackType === 'correct' ? '#4CAF50' : '#EF5350';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = feedbackType === 'correct' ? '#2E7D32' : '#C62828';
+  ctx.fillText(feedbackMsg, W/2, fy + 2);
+
+  ctx.restore();
+  ctx.restore();
+}
+
+function drawComboOverlay(t) {
+  if (comboAlpha <= 0) return;
+  const elapsed = t - comboStartTime;
+  if (elapsed > 1200) { comboAlpha = 0; return; }
+  if (elapsed > 800) comboAlpha = 1 - (elapsed - 800) / 400;
+
+  ctx.save();
+  ctx.globalAlpha = comboAlpha;
+  const fontSize = Math.max(20, 28 * scale);
+  ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const fy = H * 0.28;
+  let popScale = 1;
+  if (elapsed < 250) popScale = easeOutElastic(elapsed / 250);
+
+  ctx.save();
+  ctx.translate(W/2, fy);
+  ctx.scale(popScale, popScale);
+
+  // Rainbow-ish gradient text
+  ctx.fillStyle = '#FF6D00';
+  ctx.fillText(comboMsg, 0, 0);
+
+  ctx.restore();
+  ctx.restore();
+}
+
+// ─── Effects Rendering ───
+function drawRipples() {
+  const now = performance.now();
+  ripples = ripples.filter(r => {
+    const elapsed = now - r.startTime;
+    if (elapsed < 0 || elapsed > r.duration) return elapsed < 0;
+    const prog = elapsed / r.duration;
+    const size = 15 + 60 * prog;
+    ctx.strokeStyle = `rgba(255,255,255,${0.5 * (1 - prog)})`;
+    ctx.lineWidth = 3 * (1 - prog);
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y, size, size * 0.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    return true;
+  });
+}
+
+function drawSparkles() {
+  const now = performance.now();
+  sparkles = sparkles.filter(s => {
+    const elapsed = now - s.startTime;
+    if (elapsed > s.duration) return false;
+    const prog = elapsed / s.duration;
+    const d = s.dist * easeInOut(prog);
+    const sx = s.x + Math.cos(s.angle) * d;
+    const sy = s.y + Math.sin(s.angle) * d;
+    const size = 5 * (1 - prog);
+    ctx.fillStyle = s.color;
+    ctx.globalAlpha = 1 - prog;
+    // Draw as a 4-point star
+    drawMiniStar(sx, sy, size);
+    ctx.globalAlpha = 1;
+    return true;
+  });
+}
+
+function drawScorePops() {
+  const now = performance.now();
+  scorePops = scorePops.filter(p => {
+    const elapsed = now - p.startTime;
+    if (elapsed > p.duration) return false;
+    const prog = elapsed / p.duration;
+    const py = p.y - 40 * prog;
+    const alpha = prog < 0.2 ? prog / 0.2 : 1 - (prog - 0.2) / 0.8;
+    const popScale = prog < 0.15 ? easeOutBack(prog / 0.15) : 1;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(p.x, py);
+    ctx.scale(popScale, popScale);
+    const fontSize = Math.max(18, 26 * scale);
+    ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(p.text, 1, 1);
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.text, 0, 0);
+    ctx.restore();
+    return true;
+  });
+}
+
+function drawConfetti() {
+  const now = performance.now();
+  confetti = confetti.filter(c => {
+    const elapsed = now - c.startTime;
+    if (elapsed < 0) return true;
+    if (c.y > H + 30) return false;
+    c.x += c.vx;
+    c.y += c.vy;
+    c.vy += 0.03; // gravity
+    c.rot += c.rotSpeed;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.rot);
+    ctx.fillStyle = c.color;
+    ctx.fillRect(-c.w/2, -c.h/2, c.w, c.h);
+    ctx.restore();
+    return true;
+  });
+}
+
+// ─── Rounded Rect ───
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function drawMiniStar(x, y, r) {
+  ctx.beginPath();
+  ctx.moveTo(x, y-r);
+  ctx.lineTo(x+r*0.25, y-r*0.25);
+  ctx.lineTo(x+r, y);
+  ctx.lineTo(x+r*0.25, y+r*0.25);
+  ctx.lineTo(x, y+r);
+  ctx.lineTo(x-r*0.25, y+r*0.25);
+  ctx.lineTo(x-r, y);
+  ctx.lineTo(x-r*0.25, y-r*0.25);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ─── Button ───
+function drawButton(text, bx, by, bw, bh) {
+  roundRect(bx-bw/2+3, by-bh/2+4, bw, bh, bh*0.35);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fill();
+
+  const grad = ctx.createLinearGradient(bx, by-bh/2, bx, by+bh/2);
+  grad.addColorStop(0, '#43A047');
+  grad.addColorStop(1, '#2E7D32');
+  roundRect(bx-bw/2, by-bh/2, bw, bh, bh*0.35);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const fontSize = Math.max(18, 24 * scale);
+  ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx, by+1);
+}
+
+// ═══════════════════════════════════════
+// SCREENS
+// ═══════════════════════════════════════
+
+function drawStartScreen(t) {
+  drawBackground(t);
+
+  const cx = W / 2;
+  const titleSize = Math.max(28, Math.min(50*scale, W*0.1));
+
+  // Title with gentle bob
+  const titleBob = Math.sin(t * 0.002) * 3;
+  ctx.font = `800 ${titleSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillText('Fraction Frog', cx+2, H*0.18+2+titleBob);
+  ctx.fillStyle = '#FFE082';
+  ctx.fillText('Fraction Frog', cx, H*0.18+titleBob);
+
+  const subSize = Math.max(13, 18*scale);
+  ctx.font = `${subSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.fillStyle = '#C8E6C9';
+  ctx.fillText('Match the fraction to the right lily pad!', cx, H*0.26);
+
+  // Frog on lily pad
+  const frogSz = Math.min(90*scale, W*0.2);
+  const bobY = Math.sin(t * 0.003) * 4;
+  const frogCY = H * 0.42 + bobY;
+
+  ctx.fillStyle = '#43A047';
+  ctx.beginPath();
+  ctx.ellipse(cx, frogCY + frogSz*0.3, frogSz*0.7, frogSz*0.3, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  drawFrog(cx, frogCY, frogSz, 'idle');
+
+  // Button with pulse
+  const btnW = Math.min(200*scale, W*0.5);
+  const btnH = Math.max(48, 56*scale);
+  const pulse = 1 + Math.sin(t * 0.004) * 0.03;
+  ctx.save();
+  ctx.translate(cx, H*0.62);
+  ctx.scale(pulse, pulse);
+  ctx.translate(-cx, -H*0.62);
+  drawButton('Start!', cx, H*0.62, btnW, btnH);
+  ctx.restore();
+
+  // Decorative pies
+  drawFractionPie(cx - 130*scale, H*0.78, 24*scale, {n:1,d:2});
+  drawFractionRect(cx, H*0.82, 20*scale, {n:2,d:3});
+  drawFractionPie(cx + 120*scale, H*0.77, 22*scale, {n:3,d:4});
+}
+
+function drawEndScreen(t) {
+  drawBackground(t);
+
+  const cx = W / 2;
+  const titleSize = Math.max(28, Math.min(46*scale, W*0.1));
+
+  // Confetti
+  drawConfetti();
+
+  ctx.font = `800 ${titleSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillText('Great Job!', cx+2, H*0.15+2);
+  ctx.fillStyle = '#FFE082';
+  ctx.fillText('Great Job!', cx, H*0.15);
+
+  // Score with glow
+  const scoreSize = Math.max(22, 34*scale);
+  ctx.font = `800 ${scoreSize}px 'Segoe UI', Arial, sans-serif`;
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`Score: ${score}`, cx, H*0.26);
+
+  const msgSize = Math.max(14, 20*scale);
+  ctx.font = `${msgSize}px 'Segoe UI', Arial, sans-serif`;
+  const stars = score >= 80 ? '⭐⭐⭐' : score >= 50 ? '⭐⭐' : '⭐';
+  const msg = score >= 80 ? 'Amazing work!' : score >= 50 ? 'Well done!' : 'Keep practicing!';
+  ctx.fillStyle = '#C8E6C9';
+  ctx.fillText(`${stars}  ${msg}  ${stars}`, cx, H*0.34);
+
+  // Best streak
+  if (bestStreak >= 3) {
+    const stSize = Math.max(12, 16*scale);
+    ctx.font = `bold ${stSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.fillStyle = '#FF8A65';
+    ctx.fillText(`🔥 Best streak: ${bestStreak}`, cx, H*0.39);
+  }
+
+  // Flies earned
+  if (totalFliesEarned > 0) {
+    const flyStatY = bestStreak >= 3 ? H * 0.43 : H * 0.39;
+    const flySize = Math.max(12, 16*scale);
+    ctx.font = `bold ${flySize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.fillStyle = '#76FF03';
+    ctx.fillText(`🪰 Flies earned: ${totalFliesEarned}`, cx, flyStatY);
+  }
+
+  // Happy frog
+  const frogSz = Math.min(100*scale, W*0.22);
+  const bobY = Math.sin(t * 0.003) * 4;
+  drawFrog(cx, H*0.50 + bobY, frogSz, 'happy');
+
+  // Sparkles
+  if (score >= 80) {
+    for (let i = 0; i < 5; i++) {
+      const angle = t * 0.002 + i * Math.PI * 2 / 5;
+      const dist = frogSz * 0.8;
+      const sx = cx + Math.cos(angle) * dist;
+      const sy = H*0.50 + Math.sin(angle) * dist * 0.6 + bobY;
+      const alpha = 0.4 + 0.3 * Math.sin(t * 0.005 + i * 2);
+      ctx.fillStyle = `rgba(255,214,0,${alpha})`;
+      drawMiniStar(sx, sy, 6*scale);
+    }
+  }
+
+  const btnW = Math.min(220*scale, W*0.55);
+  const btnH = Math.max(48, 56*scale);
+  drawButton('Play Again!', cx, H*0.66, btnW, btnH);
+}
+
+// ─── Playing Screen ───
+function drawPlayingScreen(t) {
+  drawBackground(t);
+  drawHUD();
+  drawPrompt();
+  drawDragonfly(t);
+
+  for (let i = 0; i < pads.length; i++) drawLilyPad(pads[i], i, t);
+
+  if (!animating && frogExpression !== 'happy') drawHomeRock();
+
+  // Animate frog jump
+  if (animating) {
+    const elapsed = performance.now() - animStartTime;
+    const prog = Math.min(elapsed / ANIM_DURATION, 1);
+    const ep = easeInOut(prog);
+
+    frogX = lerp(animStartX, animEndX, ep);
+    const linearY = lerp(animStartY, animEndY, ep);
+    const arcHeight = Math.abs(animEndY - animStartY) * 0.5 + 70 * scale;
+    const arc = -4 * arcHeight * prog * (1 - prog);
+    frogY = linearY + arc;
+
+    if (prog >= 1) {
+      animating = false;
+      frogX = animEndX;
+      frogY = animEndY;
+      frogExpression = 'happy';
+
+      addRipples(frogX, frogY + 15*scale);
+      addSparkles(frogX, frogY);
+      addScorePop(frogX, frogY - 30*scale, `+${POINTS}`, '#FFD600');
+
+      sndSplash();
+      setTimeout(() => sndCorrect(), 150);
+
+      showFeedback(SUCCESS_MSGS[round % SUCCESS_MSGS.length], 'correct');
+
+      // Combo feedback
+      if (streak >= 2 && streak <= COMBO_MSGS.length - 1) {
+        comboMsg = COMBO_MSGS[streak] || `${streak}x Combo!`;
+        comboAlpha = 1;
+        comboStartTime = performance.now();
+        sndCombo(streak);
+        // Extra sparkles for combo
+        addSparkles(frogX - 30*scale, frogY - 20*scale);
+        addSparkles(frogX + 30*scale, frogY - 20*scale);
+      }
+
+      // Fly jar: earn a fly every 3 correct (cumulative, not streak)
+      correctSinceFly++;
+      if (correctSinceFly >= CORRECT_PER_FLY) {
+        correctSinceFly = 0;
+        flyCount++;
+        totalFliesEarned++;
+        flyJarBounce = performance.now();
+        sndFlyEarned();
+        addScorePop(flyJarX, flyJarY - 20 * scale, '+1 Fly!', '#76FF03');
+      }
+
+      // Check for pending jar tap
+      if (pendingJarTap && flyCount > 0) {
+        pendingJarTap = false;
+        flyCount--;
+        spawnFlyAnim();
+      } else {
+        pendingJarTap = false;
+      }
+
+      setTimeout(() => {
+        round++;
+        startRound();
+      }, 500);
+    }
+  }
+
+  // Update fly animations (multi-fly system)
+  updateFlyAnimations(performance.now());
+
+  // Draw frog
+  const frogSz = Math.min(70*scale, W*0.12);
+  let frogDrawScale = 1;
+  if (animating) {
+    const elapsed = performance.now() - animStartTime;
+    const prog = Math.min(elapsed / ANIM_DURATION, 1);
+    frogDrawScale = 1 + 0.15 * Math.sin(prog * Math.PI);
+  }
+  // Apply gulp scale during feeding animation
+  if (gulpScaleStart > 0) {
+    frogDrawScale *= gulpScale;
+  }
+
+  // Override expression during feeding
+  let drawExpr = frogExpression;
+  const hasActiveFly = flyAnims.length > 0;
+  const isCatching = tongueTarget && (tongueTarget.state === 'tongue_shoot' || tongueTarget.state === 'caught');
+  if (isCatching) {
+    drawExpr = 'jump'; // wide-eyed focused look
+  } else if (hasActiveFly) {
+    // Excited look when flies are buzzing — wider eyes
+    drawExpr = flyAnims.length >= 3 ? 'happy' : 'idle';
+  }
+
+  drawFrog(frogX, frogY, frogSz * frogDrawScale, drawExpr);
+
+  // Fly animation overlay (tongues, fly sprites)
+  drawFlyAnimations(performance.now());
+
+  // Fly jar (draw on top)
+  drawFlyJar(performance.now());
+
+  drawRipples();
+  drawSparkles();
+  drawScorePops();
+  drawFeedbackOverlay(performance.now());
+  drawComboOverlay(performance.now());
+}
+
+// ═══════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════
+function gameLoop(t) {
+  time = t;
+  ctx.clearRect(0, 0, W, H);
+
+  switch (gameState) {
+    case 'start': drawStartScreen(t); break;
+    case 'playing':
+    case 'animating':
+    case 'feedback': drawPlayingScreen(t); break;
+    case 'end': drawEndScreen(t); break;
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ─── Init ───
+layoutFrogHome();
+layoutFlyJar();
+frogX = frogHomeX;
+frogY = frogHomeY;
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

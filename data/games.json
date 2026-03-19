@@ -108,6 +108,15 @@
     "theme": "logic"
   },
   {
+    "slug": "fraction-frog",
+    "title": "Fraction Frog",
+    "path": "/fraction-frog.html",
+    "status": "live",
+    "tags": ["math", "fractions", "number sense", "touch", "single-player"],
+    "description": "Hop to the lily pad with the matching fraction and build score streaks across each round.",
+    "theme": "break"
+  },
+  {
     "slug": "rube-goldberg-machine",
     "title": "Rube Goldberg Machine Builder",
     "path": "/rube-goldberg%20copy.html",
