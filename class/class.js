@@ -79,16 +79,16 @@
     if (window.location.protocol === "file:") {
       return "";
     }
-    return window.location.origin + "/go#" + slug;
+    return window.location.origin + "/" + slug;
   }
 
   function getDisplayShortUrl(slug) {
     if (!slug) return "";
     try {
       var host = window.location.host || "steamlab.games";
-      return host + "/go#" + slug;
+      return host + "/" + slug;
     } catch (e) {
-      return "steamlab.games/go#" + slug;
+      return "steamlab.games/" + slug;
     }
   }
 
@@ -353,7 +353,7 @@
       renderPreviewThumb(payload);
       renderTags(payload.tags);
 
-      // Short link bar — show the short /go#slug URL for typing,
+      // Short link bar — show the short /<slug> URL for typing,
       // fall back to direct game URL if no slug available
       if (shortLinkEl) {
         var displayUrl = getDisplayShortUrl(activeSlug);
