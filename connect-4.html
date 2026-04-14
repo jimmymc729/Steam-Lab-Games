@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Connect 4 — Smartboard Edition</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: -apple-system, system-ui, sans-serif; background: #0a1a2e; color: #fff; touch-action: manipulation; }
+  body { display: flex; flex-direction: column; }
+
+  /* Top bar */
+  #topbar { height: 9vh; display: flex; align-items: center; justify-content: space-between; padding: 0 2vw; background: #061225; border-bottom: 3px solid #1a3a5c; }
+  #score { font-size: 4vh; font-weight: 900; letter-spacing: 2px; }
+  #score .red { color: #ff3b47; }
+  #score .yel { color: #ffd028; }
+  #score .dash { color: #5a7a9a; margin: 0 2vw; }
+  #difficulty-btn { font-size: 2.4vh; font-weight: 800; padding: 1.2vh 2vw; background: #1a3a5c; color: #fff; border: 3px solid #2a5a8c; border-radius: 10px; cursor: pointer; min-height: 80px; min-width: 160px; }
+  #sound-btn { font-size: 3vh; padding: 1.2vh 1.5vw; background: #1a3a5c; color: #fff; border: 3px solid #2a5a8c; border-radius: 10px; cursor: pointer; min-height: 80px; min-width: 80px; }
+  #reset-btn { font-size: 2vh; font-weight: 700; padding: 1.2vh 2vw; background: #2a1a1a; color: #ff8888; border: 3px solid #5a2a2a; border-radius: 10px; cursor: pointer; min-height: 80px; min-width: 120px; position: relative; overflow: hidden; }
+  #reset-btn .fill { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: #ff3b47; opacity: 0.4; transition: none; }
+  #reset-btn span { position: relative; z-index: 1; }
+
+  /* Main area */
+  #main { flex: 1; display: flex; align-items: stretch; }
+
+  /* Side panels */
+  .panel { width: 14%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2vh 1vw; gap: 2vh; transition: opacity 0.25s, filter 0.25s; }
+  .panel.dim { opacity: 0.25; filter: grayscale(60%); }
+  .panel-label { font-size: 3.2vh; font-weight: 900; letter-spacing: 2px; text-align: center; }
+  .panel-left .panel-label { color: #ff3b47; }
+  .panel-right .panel-label { color: #ffd028; }
+  .turn-indicator { width: 70%; aspect-ratio: 1; border-radius: 50%; border: 5px solid; box-shadow: inset -6px -6px 12px rgba(0,0,0,0.4); }
+  .panel-left .turn-indicator { background: radial-gradient(circle at 35% 30%, #ff6b77, #ff3b47 50%, #c01820); border-color: #ff3b47; }
+  .panel-right .turn-indicator { background: radial-gradient(circle at 35% 30%, #ffe878, #ffd028 50%, #c09018); border-color: #ffd028; }
+  .panel .your-turn { font-size: 2.4vh; font-weight: 800; letter-spacing: 1px; opacity: 0; transition: opacity 0.2s; text-align: center; min-height: 3vh; }
+  .panel:not(.dim) .your-turn { opacity: 1; }
+  .panel:not(.dim) .turn-indicator { animation: turnpulse 1.6s infinite ease-in-out; }
+  @keyframes turnpulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.05); filter: brightness(1.2); } }
+
+  /* Column hover zones on the board */
+  .col-zone { position: absolute; top: 0; height: 100%; cursor: pointer; }
+  .col-zone.disabled { cursor: not-allowed; }
+  .col-zone.hover-active::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    background: rgba(255,255,255,0.08); border-radius: 10px;
+  }
+  .preview-piece { position: absolute; pointer-events: none; border-radius: 50%; box-shadow: inset -4px -4px 8px rgba(0,0,0,0.4); opacity: 0.75; transition: left 0.12s ease-out, opacity 0.2s; z-index: 5; }
+  .preview-piece.red { background: radial-gradient(circle at 35% 30%, #ff6b77, #ff3b47 50%, #c01820); }
+  .preview-piece.yel { background: radial-gradient(circle at 35% 30%, #ffe878, #ffd028 50%, #c09018); }
+  .preview-piece.hidden { opacity: 0; }
+
+  /* Thinking dots */
+  .thinking { display: flex; gap: 8px; justify-content: center; align-items: center; height: 80px; }
+  .thinking span { width: 16px; height: 16px; border-radius: 50%; background: #ffd028; animation: pulse 1.2s infinite ease-in-out; }
+  .thinking span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1.2); opacity: 1; } }
+
+  /* Board */
+  #board-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1vh 1vw; position: relative; }
+  #board-container { position: relative; }
+  #board { background: #1a4a8a; border: 6px solid #0a2a5a; border-radius: 18px; padding: 1.2vh; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); gap: 1vh; box-shadow: 0 0 60px rgba(0, 100, 200, 0.3); position: relative; }
+  .cell { background: #0a1a2e; border-radius: 50%; position: relative; overflow: hidden; }
+  .piece { position: absolute; inset: 6%; border-radius: 50%; transition: opacity 0.4s; }
+  .piece.red { background: radial-gradient(circle at 35% 30%, #ff6b77, #ff3b47 50%, #c01820); box-shadow: inset -4px -4px 8px rgba(0,0,0,0.4); }
+  .piece.yel { background: radial-gradient(circle at 35% 30%, #ffe878, #ffd028 50%, #c09018); box-shadow: inset -4px -4px 8px rgba(0,0,0,0.4); }
+  .piece.drop { animation: drop 0.45s cubic-bezier(0.5, 0, 0.7, 1); }
+  @keyframes drop {
+    0% { transform: translateY(var(--drop-from)); }
+    85% { transform: translateY(2%); }
+    92% { transform: translateY(-1%); }
+    100% { transform: translateY(0); }
+  }
+  .piece.win { animation: winpulse 0.8s infinite ease-in-out; }
+  @keyframes winpulse { 0%, 100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.08); filter: brightness(1.4); } }
+  .piece.lose { opacity: 0.4; }
+
+  /* Win line overlay */
+  #winline { position: absolute; pointer-events: none; }
+  #winline line { stroke: #fff; stroke-width: 8; stroke-linecap: round; filter: drop-shadow(0 0 12px #fff); }
+
+  /* Overlays */
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(6, 18, 37, 0.88); z-index: 10; }
+  .overlay.hidden { display: none; }
+  #mode-select { flex-direction: column; gap: 4vh; }
+  #mode-select h1 { font-size: 7vh; font-weight: 900; letter-spacing: 4px; background: linear-gradient(90deg, #ff3b47, #ffd028); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  #mode-select .mode-btns { display: flex; gap: 3vw; }
+  .mode-btn { font-size: 4vh; font-weight: 900; padding: 4vh 5vw; border-radius: 20px; border: 5px solid; background: #0a2a5a; color: #fff; cursor: pointer; min-height: 160px; min-width: 280px; letter-spacing: 2px; }
+  #mode-1p { border-color: #ff3b47; }
+  #mode-2p { border-color: #ffd028; }
+  .mode-btn:active { transform: scale(0.96); }
+
+  #ready-overlay { justify-content: space-around; }
+  .ready-btn { font-size: 5vh; font-weight: 900; padding: 6vh 4vw; border-radius: 20px; border: 5px solid; background: #0a2a5a; color: #fff; cursor: pointer; min-height: 200px; min-width: 280px; letter-spacing: 3px; }
+  .ready-btn.p1 { border-color: #ff3b47; }
+  .ready-btn.p2 { border-color: #ffd028; }
+  .ready-btn.done { background: #1a5a2a; border-color: #4aff6a; }
+  .ready-btn:active { transform: scale(0.96); }
+
+  #match-end { flex-direction: column; gap: 4vh; }
+  #match-end h2 { font-size: 8vh; font-weight: 900; letter-spacing: 3px; }
+  #new-match-btn { font-size: 4vh; font-weight: 900; padding: 4vh 6vw; border-radius: 20px; border: 5px solid #4aff6a; background: #0a2a5a; color: #fff; cursor: pointer; min-height: 160px; letter-spacing: 2px; }
+  #new-match-btn:active { transform: scale(0.96); }
+
+  #swap-btn { font-size: 2.2vh; font-weight: 800; padding: 1.2vh 2vw; background: #2a3a5a; color: #fff; border: 3px solid #4a6a8c; border-radius: 10px; cursor: pointer; min-height: 80px; min-width: 140px; }
+  #swap-btn.hidden { display: none; }
+
+  /* Round announcement banner */
+  #announce {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.6);
+    padding: 4vh 6vw; border-radius: 24px;
+    background: rgba(6, 18, 37, 0.92); border: 6px solid;
+    font-size: 7vh; font-weight: 900; letter-spacing: 3px;
+    text-align: center; white-space: nowrap;
+    opacity: 0; pointer-events: none; z-index: 20;
+    transition: opacity 0.3s, transform 0.35s cubic-bezier(0.3, 1.6, 0.5, 1);
+    box-shadow: 0 0 80px rgba(255, 255, 255, 0.2);
+  }
+  #announce.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #announce.red { border-color: #ff3b47; color: #ff3b47; text-shadow: 0 0 30px rgba(255, 59, 71, 0.8); }
+  #announce.yel { border-color: #ffd028; color: #ffd028; text-shadow: 0 0 30px rgba(255, 208, 40, 0.8); }
+  #announce.draw { border-color: #88aacc; color: #ffffff; text-shadow: 0 0 30px rgba(136, 170, 204, 0.8); }
+  #announce .sub { display: block; font-size: 3.2vh; font-weight: 700; letter-spacing: 2px; margin-top: 1.5vh; color: #fff; opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div id="topbar">
+  <button id="reset-btn" title="Hold 2 seconds to reset"><div class="fill"></div><span>RESET</span></button>
+  <div id="score"><span class="red" id="score-red">0</span><span class="dash">—</span><span class="yel" id="score-yel">0</span></div>
+  <div style="display:flex; gap:1vw;">
+    <button id="swap-btn" class="hidden">SWAP SIDES</button>
+    <button id="difficulty-btn">PRO</button>
+    <button id="sound-btn" title="Toggle sound">🔊</button>
+  </div>
+</div>
+
+<!-- Main play area -->
+<div id="main">
+  <div class="panel panel-left" id="panel-left">
+    <div class="panel-label" id="label-left">PLAYER 1</div>
+    <div class="turn-indicator"></div>
+    <div class="your-turn">YOUR TURN</div>
+  </div>
+
+  <div id="board-wrap">
+    <div id="board-container">
+      <div id="board"></div>
+      <svg id="winline"></svg>
+      <div id="announce"></div>
+    </div>
+
+    <!-- Mode select overlay -->
+    <div class="overlay" id="mode-select">
+      <h1>CONNECT 4</h1>
+      <div class="mode-btns">
+        <button class="mode-btn" id="mode-1p">1 PLAYER</button>
+        <button class="mode-btn" id="mode-2p">2 PLAYERS</button>
+      </div>
+    </div>
+
+    <!-- Ready overlay -->
+    <div class="overlay hidden" id="ready-overlay">
+      <button class="ready-btn p1" id="ready-p1">TAP TO READY</button>
+      <button class="ready-btn p2" id="ready-p2">TAP TO READY</button>
+    </div>
+
+    <!-- Match end overlay -->
+    <div class="overlay hidden" id="match-end">
+      <h2 id="match-end-text">RED WINS MATCH</h2>
+      <button id="new-match-btn">NEW MATCH</button>
+    </div>
+  </div>
+
+  <div class="panel panel-right" id="panel-right">
+    <div class="panel-label" id="label-right">PLAYER 2</div>
+    <div class="turn-indicator"></div>
+    <div class="your-turn">YOUR TURN</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SOUND SYSTEM (Web Audio — no files needed)
+// ============================================================
+let audioCtx = null;
+let soundOn = true;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function envTone(freq, start, dur, type='sine', peak=0.25, endFreq=null) {
+  if (!soundOn) return;
+  const ctx = getCtx();
+  const t0 = ctx.currentTime + start;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (endFreq != null) osc.frequency.exponentialRampToValueAtTime(endFreq, t0 + dur);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(peak, t0 + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+function noiseBurst(start, dur, peak=0.2, filterFreq=2000) {
+  if (!soundOn) return;
+  const ctx = getCtx();
+  const t0 = ctx.currentTime + start;
+  const bufferSize = Math.floor(ctx.sampleRate * dur);
+  const buf = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufferSize);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = filterFreq;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(peak, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  src.connect(filter).connect(gain).connect(ctx.destination);
+  src.start(t0);
+  src.stop(t0 + dur);
+}
+
+// Swoosh during drop (falling whoosh)
+function sfxDrop() {
+  envTone(600, 0, 0.32, 'sawtooth', 0.08, 180);
+  noiseBurst(0, 0.3, 0.05, 1200);
+}
+// Satisfying thud when piece lands
+function sfxLand() {
+  envTone(120, 0, 0.18, 'sine', 0.5, 60);
+  envTone(80, 0, 0.22, 'triangle', 0.35, 40);
+  noiseBurst(0, 0.08, 0.18, 800);
+}
+// Hover tick
+function sfxHover() {
+  envTone(1200, 0, 0.04, 'square', 0.05);
+}
+// Round win fanfare (quick 3-note)
+function sfxRoundWin() {
+  envTone(523, 0.00, 0.18, 'triangle', 0.3);   // C5
+  envTone(659, 0.12, 0.18, 'triangle', 0.3);   // E5
+  envTone(784, 0.24, 0.30, 'triangle', 0.35);  // G5
+  envTone(1047, 0.24, 0.30, 'sine', 0.25);     // C6
+}
+// Match win — bigger fanfare
+function sfxMatchWin() {
+  envTone(523, 0.00, 0.15, 'triangle', 0.3);
+  envTone(659, 0.12, 0.15, 'triangle', 0.3);
+  envTone(784, 0.24, 0.15, 'triangle', 0.3);
+  envTone(1047, 0.36, 0.40, 'triangle', 0.4);
+  envTone(1319, 0.36, 0.40, 'sine', 0.3);      // E6
+  envTone(1568, 0.52, 0.50, 'sine', 0.3);      // G6
+  noiseBurst(0.36, 0.6, 0.1, 5000);            // sparkle
+}
+// Invalid / blocked
+function sfxBlock() {
+  envTone(180, 0, 0.15, 'square', 0.2, 120);
+}
+// Ready tap
+function sfxReady() {
+  envTone(660, 0, 0.1, 'sine', 0.25);
+  envTone(880, 0.06, 0.12, 'sine', 0.25);
+}
+// Button click
+function sfxClick() {
+  envTone(800, 0, 0.05, 'square', 0.1);
+}
+// CPU thinking hum (single soft ping)
+function sfxCpuThink() {
+  envTone(440, 0, 0.08, 'sine', 0.08);
+}
+
+// ============================================================
+// SPEECH — spoken announcements
+// ============================================================
+let cachedVoice = null;
+function pickMaleVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  // Known deep/male voices across Chrome, Safari, Edge, Firefox (Mac/Win)
+  const malePatterns = [
+    /Daniel/i, /Alex\b/i, /Fred/i, /Oliver/i, /Arthur/i, /Aaron/i,
+    /Google UK English Male/i, /Google US English.*Male/i,
+    /Microsoft (David|Mark|George|Guy|Ryan)/i,
+    /\bmale\b/i
+  ];
+  for (const pat of malePatterns) {
+    const v = voices.find(v => /^en/i.test(v.lang) && pat.test(v.name));
+    if (v) return v;
+  }
+  // Fallback: any English voice NOT obviously female
+  const femaleHint = /female|samantha|victoria|karen|tessa|fiona|zira|hazel|susan|allison|ava|serena/i;
+  const fallback = voices.find(v => /^en/i.test(v.lang) && !femaleHint.test(v.name));
+  return fallback || voices.find(v => /^en/i.test(v.lang)) || null;
+}
+
+function speak(text, opts = {}) {
+  if (!soundOn) return;
+  if (!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = opts.rate ?? 0.88;
+    u.pitch = opts.pitch ?? 0.55; // Deeper
+    u.volume = opts.volume ?? 1.0;
+    if (!cachedVoice) cachedVoice = pickMaleVoice();
+    if (cachedVoice) u.voice = cachedVoice;
+    window.speechSynthesis.speak(u);
+  } catch (e) {}
+}
+// Voices load asynchronously in Chrome — refresh cache when they arrive
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => { cachedVoice = pickMaleVoice(); };
+  // Also try immediately in case they're already loaded
+  setTimeout(() => { cachedVoice = pickMaleVoice(); }, 200);
+}
+
+// ============================================================
+// CONNECT 4 — SMARTBOARD EDITION
+// State
+// ============================================================
+const ROWS = 6, COLS = 7;
+const EMPTY = 0, RED = 1, YEL = 2;
+
+let board = [];                 // board[r][c] -> 0 | 1 | 2
+let currentPlayer = RED;        // whose turn
+let startingPlayer = RED;       // alternates each round
+let scores = { 1: 0, 2: 0 };    // round wins in current match
+let gameOver = false;           // round ended
+let busy = false;               // piece animating or AI thinking
+let onePlayer = false;          // vs CPU?
+let humanSide = RED;            // which color the human plays in 1P mode
+let difficulty = 'PRO';         // ROOKIE / PRO / MASTER
+let readyState = { 1: false, 2: false };
+
+// ============================================================
+// Board DOM
+// ============================================================
+const boardEl = document.getElementById('board');
+function buildBoard() {
+  boardEl.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      boardEl.appendChild(cell);
+    }
+  }
+  // Preview piece shown above hovered column
+  const preview = document.createElement('div');
+  preview.className = 'preview-piece red hidden';
+  preview.id = 'preview-piece';
+  document.getElementById('board-container').appendChild(preview);
+  wireBoardInput();
+  sizeBoard();
+}
+
+function wireBoardInput() {
+  // Click / tap / move on the board — map pointer X to column
+  const handlePointer = (e, isClick) => {
+    if (busy || gameOver) return;
+    if (isCpuTurn()) return;
+    const rect = boardEl.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    if (x < 0 || x > rect.width) return hidePreview();
+    const col = Math.floor((x / rect.width) * COLS);
+    if (col < 0 || col >= COLS) return hidePreview();
+    if (board[0][col] !== EMPTY) { hidePreview(); return; }
+    showPreview(col);
+    if (isClick) {
+      handleColumnTap(col);
+      hidePreview();
+    }
+  };
+  boardEl.addEventListener('mousemove', (e) => handlePointer(e, false));
+  boardEl.addEventListener('mouseleave', () => hidePreview());
+  boardEl.addEventListener('click', (e) => handlePointer(e, true));
+  boardEl.addEventListener('touchstart', (e) => { e.preventDefault(); handlePointer(e, true); }, { passive: false });
+}
+
+let lastPreviewCol = -1;
+function showPreview(col) {
+  const preview = document.getElementById('preview-piece');
+  if (col !== lastPreviewCol) { sfxHover(); lastPreviewCol = col; }
+  const firstCell = boardEl.querySelector(`.cell[data-r="0"][data-c="${col}"]`);
+  if (!firstCell) return;
+  const bRect = boardEl.getBoundingClientRect();
+  const cRect = firstCell.getBoundingClientRect();
+  const size = cRect.width * 0.88;
+  preview.style.width = size + 'px';
+  preview.style.height = size + 'px';
+  preview.style.left = (cRect.left - bRect.left + (cRect.width - size)/2) + 'px';
+  preview.style.top = (cRect.top - bRect.top - size - 8) + 'px';
+  preview.className = 'preview-piece ' + (currentPlayer === RED ? 'red' : 'yel');
+}
+function hidePreview() {
+  const preview = document.getElementById('preview-piece');
+  if (preview) preview.classList.add('hidden');
+  lastPreviewCol = -1;
+}
+function sizeBoard() {
+  const wrap = document.getElementById('board-wrap');
+  const maxW = wrap.clientWidth - 20;
+  const maxH = wrap.clientHeight - 20;
+  // board aspect 7:6
+  let w = maxW, h = (w / 7) * 6;
+  if (h > maxH) { h = maxH; w = (h / 6) * 7; }
+  boardEl.style.width = w + 'px';
+  boardEl.style.height = h + 'px';
+}
+window.addEventListener('resize', sizeBoard);
+
+function resetBoardArray() {
+  board = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let c = 0; c < COLS; c++) row.push(EMPTY);
+    board.push(row);
+  }
+}
+
+function clearBoardDOM() {
+  document.querySelectorAll('.cell').forEach(c => { c.innerHTML = ''; });
+  document.getElementById('winline').innerHTML = '';
+}
+
+// ============================================================
+// Drop logic
+// ============================================================
+function lowestEmptyRow(b, col) {
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (b[r][col] === EMPTY) return r;
+  }
+  return -1;
+}
+
+function dropPiece(col, player) {
+  const r = lowestEmptyRow(board, col);
+  if (r < 0) return false;
+  board[r][col] = player;
+  // DOM
+  const cell = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${col}"]`);
+  const piece = document.createElement('div');
+  piece.className = 'piece ' + (player === RED ? 'red' : 'yel') + ' drop';
+  const dropFromPct = -((r + 1) * 110);
+  piece.style.setProperty('--drop-from', dropFromPct + '%');
+  cell.appendChild(piece);
+  return { r, c: col };
+}
+
+// ============================================================
+// Win detection
+// ============================================================
+function checkWin(b, player) {
+  // Returns array of 4 [r,c] coords, or null
+  // Horizontal
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 4; c++) {
+      if (b[r][c]===player && b[r][c+1]===player && b[r][c+2]===player && b[r][c+3]===player)
+        return [[r,c],[r,c+1],[r,c+2],[r,c+3]];
+    }
+  }
+  // Vertical
+  for (let c = 0; c < COLS; c++) {
+    for (let r = 0; r <= ROWS - 4; r++) {
+      if (b[r][c]===player && b[r+1][c]===player && b[r+2][c]===player && b[r+3][c]===player)
+        return [[r,c],[r+1,c],[r+2,c],[r+3,c]];
+    }
+  }
+  // Diagonal down-right
+  for (let r = 0; r <= ROWS - 4; r++) {
+    for (let c = 0; c <= COLS - 4; c++) {
+      if (b[r][c]===player && b[r+1][c+1]===player && b[r+2][c+2]===player && b[r+3][c+3]===player)
+        return [[r,c],[r+1,c+1],[r+2,c+2],[r+3,c+3]];
+    }
+  }
+  // Diagonal up-right
+  for (let r = 3; r < ROWS; r++) {
+    for (let c = 0; c <= COLS - 4; c++) {
+      if (b[r][c]===player && b[r-1][c+1]===player && b[r-2][c+2]===player && b[r-3][c+3]===player)
+        return [[r,c],[r-1,c+1],[r-2,c+2],[r-3,c+3]];
+    }
+  }
+  return null;
+}
+
+function isFull(b) {
+  for (let c = 0; c < COLS; c++) if (b[0][c] === EMPTY) return false;
+  return true;
+}
+
+// ============================================================
+// AI
+// ============================================================
+function legalCols(b) {
+  const out = [];
+  for (let c = 0; c < COLS; c++) if (b[0][c] === EMPTY) out.push(c);
+  return out;
+}
+
+function cloneBoard(b) { return b.map(row => row.slice()); }
+
+function simulateDrop(b, col, player) {
+  const nb = cloneBoard(b);
+  const r = lowestEmptyRow(nb, col);
+  if (r < 0) return null;
+  nb[r][col] = player;
+  return nb;
+}
+
+function findImmediateWin(b, player) {
+  for (const c of legalCols(b)) {
+    const nb = simulateDrop(b, c, player);
+    if (checkWin(nb, player)) return c;
+  }
+  return -1;
+}
+
+// ROOKIE: 70% random, 30% block immediate loss
+function aiRookie(b, me, opp) {
+  if (Math.random() < 0.3) {
+    const block = findImmediateWin(b, opp);
+    if (block >= 0) return block;
+  }
+  const cols = legalCols(b);
+  return cols[Math.floor(Math.random() * cols.length)];
+}
+
+// PRO: win > block > center-biased random
+function aiPro(b, me, opp) {
+  const win = findImmediateWin(b, me);
+  if (win >= 0) return win;
+  const block = findImmediateWin(b, opp);
+  if (block >= 0) return block;
+  const cols = legalCols(b);
+  // Center bias: weight by proximity to col 3
+  const weights = cols.map(c => 4 - Math.abs(3 - c));
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.random() * total;
+  for (let i = 0; i < cols.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return cols[i];
+  }
+  return cols[0];
+}
+
+// MASTER: minimax alpha-beta
+function scorePosition(b, player) {
+  const opp = player === RED ? YEL : RED;
+  let score = 0;
+  // Center column preference
+  for (let r = 0; r < ROWS; r++) if (b[r][3] === player) score += 3;
+  // Score windows of 4
+  const scoreWindow = (win) => {
+    const me = win.filter(v => v === player).length;
+    const op = win.filter(v => v === opp).length;
+    const em = win.filter(v => v === EMPTY).length;
+    let s = 0;
+    if (me === 4) s += 100;
+    else if (me === 3 && em === 1) s += 8;
+    else if (me === 2 && em === 2) s += 3;
+    if (op === 3 && em === 1) s -= 10;
+    return s;
+  };
+  // Horizontal
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c <= COLS-4; c++)
+      score += scoreWindow([b[r][c],b[r][c+1],b[r][c+2],b[r][c+3]]);
+  // Vertical
+  for (let c = 0; c < COLS; c++)
+    for (let r = 0; r <= ROWS-4; r++)
+      score += scoreWindow([b[r][c],b[r+1][c],b[r+2][c],b[r+3][c]]);
+  // Diag dr
+  for (let r = 0; r <= ROWS-4; r++)
+    for (let c = 0; c <= COLS-4; c++)
+      score += scoreWindow([b[r][c],b[r+1][c+1],b[r+2][c+2],b[r+3][c+3]]);
+  // Diag ur
+  for (let r = 3; r < ROWS; r++)
+    for (let c = 0; c <= COLS-4; c++)
+      score += scoreWindow([b[r][c],b[r-1][c+1],b[r-2][c+2],b[r-3][c+3]]);
+  return score;
+}
+
+function minimax(b, depth, alpha, beta, maximizing, me, opp, deadline) {
+  if (performance.now() > deadline) return [null, scorePosition(b, me)];
+  const winMe = checkWin(b, me);
+  const winOp = checkWin(b, opp);
+  if (winMe) return [null, 1000000 + depth];
+  if (winOp) return [null, -1000000 - depth];
+  if (isFull(b) || depth === 0) return [null, scorePosition(b, me)];
+  const cols = legalCols(b).sort((a,c) => Math.abs(3-a) - Math.abs(3-c));
+  let bestCol = cols[0];
+  if (maximizing) {
+    let value = -Infinity;
+    for (const c of cols) {
+      const nb = simulateDrop(b, c, me);
+      const [, v] = minimax(nb, depth-1, alpha, beta, false, me, opp, deadline);
+      if (v > value) { value = v; bestCol = c; }
+      alpha = Math.max(alpha, value);
+      if (alpha >= beta) break;
+    }
+    return [bestCol, value];
+  } else {
+    let value = Infinity;
+    for (const c of cols) {
+      const nb = simulateDrop(b, c, opp);
+      const [, v] = minimax(nb, depth-1, alpha, beta, true, me, opp, deadline);
+      if (v < value) { value = v; bestCol = c; }
+      beta = Math.min(beta, value);
+      if (alpha >= beta) break;
+    }
+    return [bestCol, value];
+  }
+}
+
+function aiMaster(b, me, opp) {
+  const deadline = performance.now() + 500;
+  const [col] = minimax(b, 6, -Infinity, Infinity, true, me, opp, deadline);
+  if (col == null) return aiPro(b, me, opp);
+  return col;
+}
+
+function aiChoose(b, me, opp) {
+  if (difficulty === 'ROOKIE') return aiRookie(b, me, opp);
+  if (difficulty === 'PRO') return aiPro(b, me, opp);
+  return aiMaster(b, me, opp);
+}
+
+// ============================================================
+// Turn handling
+// ============================================================
+function setActivePanel() {
+  const left = document.getElementById('panel-left');
+  const right = document.getElementById('panel-right');
+  // Left is always RED, Right is always YEL
+  if (currentPlayer === RED) { left.classList.remove('dim'); right.classList.add('dim'); }
+  else { right.classList.remove('dim'); left.classList.add('dim'); }
+}
+
+function isCpuTurn() {
+  return onePlayer && currentPlayer !== humanSide;
+}
+
+function handleColumnTap(col) {
+  if (busy || gameOver) return;
+  if (isCpuTurn()) return;
+  if (board[0][col] !== EMPTY) return;
+  doMove(col);
+}
+
+function doMove(col) {
+  busy = true;
+  sfxDrop();
+  const placed = dropPiece(col, currentPlayer);
+  // Landing thud near end of animation
+  setTimeout(sfxLand, 380);
+  // Wait for drop animation
+  setTimeout(() => {
+    const winCoords = checkWin(board, currentPlayer);
+    if (winCoords) {
+      endRound(currentPlayer, winCoords);
+      return;
+    }
+    if (isFull(board)) {
+      endRound(0, null); // draw
+      return;
+    }
+    currentPlayer = (currentPlayer === RED) ? YEL : RED;
+    setActivePanel();
+    busy = false;
+    if (isCpuTurn()) scheduleCpuMove();
+  }, 480);
+}
+
+function scheduleCpuMove() {
+  busy = true;
+  showThinking(true);
+  let delay;
+  if (difficulty === 'MASTER') delay = 700 + Math.random() * 700;
+  else delay = 600 + Math.random() * 400;
+  setTimeout(() => {
+    const me = currentPlayer;
+    const opp = me === RED ? YEL : RED;
+    const col = aiChoose(board, me, opp);
+    showThinking(false);
+    doMove(col);
+  }, delay);
+}
+
+function showThinking(on) {
+  const rightLabel = document.getElementById('label-right');
+  const leftLabel = document.getElementById('label-left');
+  const cpuPanel = humanSide === RED ? document.getElementById('panel-right') : document.getElementById('panel-left');
+  const cpuLabel = humanSide === RED ? rightLabel : leftLabel;
+  // Just animate the label when thinking
+  if (on) cpuLabel.style.animation = 'pulse 1s infinite ease-in-out';
+  else cpuLabel.style.animation = '';
+}
+
+// ============================================================
+// Round / match end
+// ============================================================
+function roundWinnerName(winner) {
+  if (onePlayer) {
+    if (winner === humanSide) return 'You';
+    return 'The C P U';
+  }
+  return winner === RED ? 'Red' : 'Yellow';
+}
+
+function showAnnouncement(title, sub, colorClass) {
+  const el = document.getElementById('announce');
+  el.className = '';
+  el.classList.add(colorClass);
+  el.innerHTML = title + (sub ? `<span class="sub">${sub}</span>` : '');
+  // Trigger entry animation
+  requestAnimationFrame(() => el.classList.add('show'));
+}
+function hideAnnouncement() {
+  const el = document.getElementById('announce');
+  el.classList.remove('show');
+}
+
+function endRound(winner, winCoords) {
+  gameOver = true;
+  if (winner !== 0) {
+    scores[winner]++;
+    updateScore();
+    setTimeout(sfxRoundWin, 200);
+    // Highlight winning pieces
+    const winSet = new Set(winCoords.map(([r,c]) => r+','+c));
+    document.querySelectorAll('.cell').forEach(cell => {
+      const r = cell.dataset.r, c = cell.dataset.c;
+      const piece = cell.querySelector('.piece');
+      if (!piece) return;
+      if (winSet.has(r+','+c)) piece.classList.add('win');
+      else piece.classList.add('lose');
+    });
+    drawWinLine(winCoords);
+    // Announcement only if match isn't ending (match-end has its own overlay)
+    const willBeMatchEnd = scores[RED] >= 3 || scores[YEL] >= 3;
+    if (!willBeMatchEnd) {
+      const who = roundWinnerName(winner);
+      const colorClass = winner === RED ? 'red' : 'yel';
+      let title, speech;
+      if (onePlayer && winner === humanSide) {
+        title = 'YOU WIN!'; speech = 'You win the round!';
+      } else if (onePlayer) {
+        title = 'CPU WINS'; speech = 'The C P U wins the round.';
+      } else {
+        title = (winner === RED ? 'RED' : 'YELLOW') + ' WINS!';
+        speech = who + ' wins the round!';
+      }
+      setTimeout(() => {
+        showAnnouncement(title, 'ROUND ' + (scores[RED] + scores[YEL]), colorClass);
+        speak(speech);
+      }, 600);
+    }
+  } else {
+    setTimeout(() => {
+      showAnnouncement("IT'S A DRAW", 'NO WINNER THIS ROUND', 'draw');
+      speak("It's a draw!");
+    }, 300);
+  }
+  // Check match end (first to 3)
+  if (scores[RED] >= 3 || scores[YEL] >= 3) {
+    setTimeout(showMatchEnd, 1500);
+  } else {
+    setTimeout(nextRound, 1800);
+  }
+}
+
+function drawWinLine(coords) {
+  const svg = document.getElementById('winline');
+  const bRect = boardEl.getBoundingClientRect();
+  const wrapRect = document.getElementById('board-wrap').getBoundingClientRect();
+  svg.style.left = (bRect.left - wrapRect.left) + 'px';
+  svg.style.top = (bRect.top - wrapRect.top) + 'px';
+  svg.setAttribute('width', bRect.width);
+  svg.setAttribute('height', bRect.height);
+  const cells = coords.map(([r,c]) => {
+    const cell = boardEl.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+    const rect = cell.getBoundingClientRect();
+    return { x: rect.left - bRect.left + rect.width/2, y: rect.top - bRect.top + rect.height/2 };
+  });
+  const first = cells[0], last = cells[cells.length-1];
+  svg.innerHTML = `<line x1="${first.x}" y1="${first.y}" x2="${last.x}" y2="${last.y}" />`;
+}
+
+function updateScore() {
+  document.getElementById('score-red').textContent = scores[RED];
+  document.getElementById('score-yel').textContent = scores[YEL];
+}
+
+function nextRound() {
+  hideAnnouncement();
+  resetBoardArray();
+  clearBoardDOM();
+  gameOver = false;
+  busy = false;
+  startingPlayer = (startingPlayer === RED) ? YEL : RED;
+  currentPlayer = startingPlayer;
+  if (onePlayer) {
+    // Skip ready overlay in 1P mode
+    setActivePanel();
+    if (isCpuTurn()) scheduleCpuMove();
+  } else {
+    showReadyOverlay();
+  }
+}
+
+function showMatchEnd() {
+  hideAnnouncement();
+  sfxMatchWin();
+  const winner = scores[RED] >= 3 ? RED : YEL;
+  let text, speech;
+  if (onePlayer) {
+    if (winner === humanSide) { text = 'YOU WIN THE MATCH!'; speech = 'Congratulations! You win the match!'; }
+    else { text = 'CPU WINS THE MATCH'; speech = 'The C P U wins the match. Good try!'; }
+  } else {
+    if (winner === RED) { text = 'RED WINS THE MATCH!'; speech = 'Red wins the match! Well played!'; }
+    else { text = 'YELLOW WINS THE MATCH!'; speech = 'Yellow wins the match! Well played!'; }
+  }
+  document.getElementById('match-end-text').textContent = text;
+  document.getElementById('match-end-text').style.color = winner === RED ? '#ff3b47' : '#ffd028';
+  document.getElementById('match-end').classList.remove('hidden');
+  // Speak after the fanfare peaks so they don't clash
+  setTimeout(() => speak(speech, { rate: 0.9, pitch: 1.15 }), 900);
+}
+
+function newMatch() {
+  scores[RED] = 0; scores[YEL] = 0;
+  updateScore();
+  document.getElementById('match-end').classList.add('hidden');
+  startingPlayer = RED;
+  nextRound();
+}
+
+// ============================================================
+// Ready overlay
+// ============================================================
+function showReadyOverlay() {
+  readyState[1] = false; readyState[2] = false;
+  const p1 = document.getElementById('ready-p1');
+  const p2 = document.getElementById('ready-p2');
+  p1.classList.remove('done'); p2.classList.remove('done');
+  p1.textContent = 'TAP TO READY'; p2.textContent = 'TAP TO READY';
+  document.getElementById('ready-overlay').classList.remove('hidden');
+}
+function hideReadyOverlay() {
+  document.getElementById('ready-overlay').classList.add('hidden');
+  setActivePanel();
+}
+
+document.getElementById('ready-p1').addEventListener('click', () => {
+  readyState[1] = true;
+  sfxReady();
+  const el = document.getElementById('ready-p1');
+  el.classList.add('done'); el.textContent = 'READY';
+  if (readyState[1] && readyState[2]) hideReadyOverlay();
+});
+document.getElementById('ready-p2').addEventListener('click', () => {
+  readyState[2] = true;
+  sfxReady();
+  const el = document.getElementById('ready-p2');
+  el.classList.add('done'); el.textContent = 'READY';
+  if (readyState[1] && readyState[2]) hideReadyOverlay();
+});
+
+// ============================================================
+// Mode select
+// ============================================================
+document.getElementById('mode-1p').addEventListener('click', () => {
+  sfxClick(); getCtx();
+  onePlayer = true;
+  humanSide = RED;
+  document.getElementById('label-right').textContent = 'CPU';
+  document.getElementById('label-left').textContent = 'YOU';
+  document.getElementById('swap-btn').classList.remove('hidden');
+  startGame();
+});
+document.getElementById('mode-2p').addEventListener('click', () => {
+  sfxClick(); getCtx();
+  onePlayer = false;
+  document.getElementById('label-left').textContent = 'PLAYER 1';
+  document.getElementById('label-right').textContent = 'PLAYER 2';
+  document.getElementById('swap-btn').classList.add('hidden');
+  startGame();
+});
+
+function startGame() {
+  document.getElementById('mode-select').classList.add('hidden');
+  scores[RED] = 0; scores[YEL] = 0;
+  updateScore();
+  startingPlayer = RED;
+  resetBoardArray();
+  clearBoardDOM();
+  currentPlayer = startingPlayer;
+  gameOver = false;
+  busy = false;
+  if (onePlayer) {
+    setActivePanel();
+    if (isCpuTurn()) scheduleCpuMove();
+  } else {
+    showReadyOverlay();
+  }
+}
+
+// Swap sides
+document.getElementById('swap-btn').addEventListener('click', () => {
+  if (busy) return;
+  humanSide = humanSide === RED ? YEL : RED;
+  if (humanSide === RED) {
+    document.getElementById('label-left').textContent = 'YOU';
+    document.getElementById('label-right').textContent = 'CPU';
+  } else {
+    document.getElementById('label-left').textContent = 'CPU';
+    document.getElementById('label-right').textContent = 'YOU';
+  }
+  // If it's now CPU's turn, schedule it
+  if (!gameOver && isCpuTurn() && !busy) scheduleCpuMove();
+});
+
+// ============================================================
+// Difficulty toggle
+// ============================================================
+document.getElementById('difficulty-btn').addEventListener('click', () => {
+  const order = ['ROOKIE', 'PRO', 'MASTER'];
+  const i = order.indexOf(difficulty);
+  difficulty = order[(i + 1) % 3];
+  document.getElementById('difficulty-btn').textContent = difficulty;
+});
+
+// ============================================================
+// Reset (hold 2 seconds)
+// ============================================================
+const resetBtn = document.getElementById('reset-btn');
+const resetFill = resetBtn.querySelector('.fill');
+let holdTimer = null, holdStart = 0, holdRaf = null;
+function startHold() {
+  holdStart = performance.now();
+  const tick = () => {
+    const pct = Math.min(100, ((performance.now() - holdStart) / 2000) * 100);
+    resetFill.style.width = pct + '%';
+    if (pct < 100) holdRaf = requestAnimationFrame(tick);
+    else doReset();
+  };
+  holdRaf = requestAnimationFrame(tick);
+}
+function cancelHold() {
+  if (holdRaf) cancelAnimationFrame(holdRaf);
+  resetFill.style.width = '0%';
+}
+function doReset() {
+  cancelHold();
+  // Go back to mode select
+  scores[RED] = 0; scores[YEL] = 0;
+  updateScore();
+  resetBoardArray();
+  clearBoardDOM();
+  gameOver = false; busy = false;
+  document.getElementById('match-end').classList.add('hidden');
+  document.getElementById('ready-overlay').classList.add('hidden');
+  document.getElementById('mode-select').classList.remove('hidden');
+  document.getElementById('panel-left').classList.add('dim');
+  document.getElementById('panel-right').classList.add('dim');
+}
+resetBtn.addEventListener('mousedown', startHold);
+resetBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });
+resetBtn.addEventListener('mouseup', cancelHold);
+resetBtn.addEventListener('mouseleave', cancelHold);
+resetBtn.addEventListener('touchend', cancelHold);
+resetBtn.addEventListener('touchcancel', cancelHold);
+
+// New match button
+document.getElementById('new-match-btn').addEventListener('click', () => { sfxClick(); newMatch(); });
+
+// Sound toggle
+document.getElementById('sound-btn').addEventListener('click', () => {
+  soundOn = !soundOn;
+  document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) sfxClick();
+});
+
+// Difficulty button click sound
+document.getElementById('difficulty-btn').addEventListener('click', sfxClick);
+
+// ============================================================
+// Init
+// ============================================================
+resetBoardArray();
+buildBoard();
+document.getElementById('panel-left').classList.add('dim');
+document.getElementById('panel-right').classList.add('dim');
+setTimeout(sizeBoard, 50);
+</script>
+</body>
+</html>
