@@ -57,6 +57,7 @@
   var qrInstance = null;
   var activeUrl = "";
   var activeShortUrl = "";
+  var activeLaunchUrl = "";
   var activeTitle = "STEAM Lab Experiment";
   var activeStatus = "live";
   var activeSlug = "";
@@ -272,7 +273,7 @@
   }
 
   async function copyLink() {
-    var text = activeShortUrl || activeUrl;
+    var text = activeLaunchUrl || activeShortUrl || activeUrl;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -321,7 +322,7 @@
     }
 
     window.addEventListener("resize", function () {
-      if (activeUrl) renderQr(activeUrl);
+      if (activeLaunchUrl || activeUrl) renderQr(activeLaunchUrl || activeUrl);
     });
 
     document.addEventListener("keydown", function (event) {
@@ -343,6 +344,7 @@
 
       // Build short URL
       activeShortUrl = buildShortUrl(activeSlug);
+      activeLaunchUrl = activeShortUrl || activeUrl;
 
       if (gameTitleEl) gameTitleEl.textContent = activeTitle;
       if (gameDescription) gameDescription.textContent = payload.description;
@@ -366,11 +368,12 @@
         }
       }
 
-      // QR always encodes the direct game URL so students land straight in the game
-      renderQr(activeUrl);
+      // Prefer the clean slug URL so the QR, copy link, and open button
+      // all point to the same canonical launch route.
+      renderQr(activeLaunchUrl);
 
       if (openBtn && !openBtn.classList.contains("disabled")) {
-        openBtn.href = activeUrl;
+        openBtn.href = activeLaunchUrl;
       }
 
       if (activeStatus !== "live") {

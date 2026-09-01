@@ -227,6 +227,9 @@ Original prompt: i want to create a math flight simulator game for students to p
   - `class/index.html?game=connect-4` now builds `Open Game` as `/connect-4/`.
   - `connect-4/` loads the game title `Connect 4 Online - Play Free in Your Browser`.
   - The page exposes the expected shared favicon link and rendered score UI.
+- Follow-up routing polish:
+  - Updated `class/class.js` so the QR code, copy action, and `Open Game` button all use the same canonical launch URL (`/<slug>`) instead of mixing the short slug with a direct file path.
+  - Verified locally on `2026-09-01` that the Connect 4 class page now exposes `http://127.0.0.1:4186/connect-4` for both the visible link and the `Open Game` destination.
 
 ## 2026-03-19 (Fraction Frog)
 - New request: build a polished, single-file HTML5 educational game named `Fraction Frog` focused on matching a numeric fraction prompt to visual fraction models.
