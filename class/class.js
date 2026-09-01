@@ -140,26 +140,6 @@
     });
   }
 
-  async function fetchPortalThumbSvg(slug) {
-    var sources = ["../index.html", "/index.html"];
-    for (var i = 0; i < sources.length; i++) {
-      try {
-        var response = await fetch(sources[i], { cache: "no-store" });
-        if (!response.ok) continue;
-        var html = await response.text();
-        var parser = new DOMParser();
-        var doc = parser.parseFromString(html, "text/html");
-        var card = doc.getElementById(slug) || doc.querySelector('[data-lab="' + slug + '"]');
-        if (!card) continue;
-        var thumbSvg = card.querySelector(".thumb svg");
-        if (thumbSvg) return thumbSvg.outerHTML;
-      } catch (err) {
-        // Try next source.
-      }
-    }
-    return "";
-  }
-
   function renderPreviewThumb(game) {
     if (!previewThumb) return;
     var slug = (game && game.slug) || "";
@@ -186,26 +166,6 @@
         '</svg>';
     }
 
-    function showSvgFallback() {
-      fetchPortalThumbSvg(slug).then(function (svgMarkup) {
-        if (svgMarkup) {
-          previewThumb.innerHTML = svgMarkup;
-          return;
-        }
-
-        var legacyImg = document.createElement("img");
-        legacyImg.alt = (game && game.title) || "Experiment preview";
-        legacyImg.src = "../thumbs/" + slug + ".svg";
-        legacyImg.onerror = function () {
-          showPlaceholder(game);
-        };
-        previewThumb.innerHTML = "";
-        previewThumb.appendChild(legacyImg);
-      }).catch(function () {
-        showPlaceholder(game);
-      });
-    }
-
     if (!slug) {
       showPlaceholder(game);
       return;
@@ -216,14 +176,14 @@
       img.alt = (game && game.title) || "Experiment preview";
       img.src = aiThumbSrc + "?v=20260901";
       img.onerror = function () {
-        showSvgFallback();
+        showPlaceholder(game);
       };
       previewThumb.innerHTML = "";
       previewThumb.appendChild(img);
       return;
     }
 
-    showSvgFallback();
+    showPlaceholder(game);
   }
 
   function renderTags(tags) {

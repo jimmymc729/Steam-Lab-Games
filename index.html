@@ -654,6 +654,10 @@
       transition: transform 220ms ease;
     }
 
+    .thumb > svg {
+      display: none;
+    }
+
     .card:hover .thumb img,
     .card:hover .thumb svg {
       transform: scale(1.03);
@@ -1893,6 +1897,13 @@
 
       let toastTimer = null;
 
+      function showThumbPlaceholder(thumb, title) {
+        thumb.innerHTML =
+          '<div class="placeholder-thumb" style="width:100%;height:154px;display:grid;place-items:center;background:#eef6ff;color:#9bb7d3;font-family:Poppins,sans-serif;font-weight:800;font-size:1rem;letter-spacing:0.02em;">' +
+          String((title || "Lab")).replace(/[&<>"]/g, "") +
+          "</div>";
+      }
+
       function applyAiThumbnails() {
         cards.forEach((card) => {
           const slug = card.dataset.lab;
@@ -1906,9 +1917,12 @@
           img.loading = "lazy";
           img.decoding = "async";
           img.addEventListener("load", () => {
-            thumb.replaceChildren(img);
             thumb.dataset.thumbSource = "ai";
           });
+          img.addEventListener("error", () => {
+            showThumbPlaceholder(thumb, card.dataset.title || "Lab");
+          });
+          thumb.replaceChildren(img);
         });
       }
 
