@@ -51,7 +51,7 @@
     { slug: "rube-goldberg-machine", title: "Rube Goldberg Machine Builder", path: "/rube-goldberg%20copy.html", status: "live", description: "Chain ramps, dominoes, and gadgets to create a machine.", tags: ["engineering", "physics"], theme: "engineering" },
     { slug: "biome-world-lab", title: "Biome World Lab", path: "/biome-world-lab.html", status: "live", description: "Explore Earth's biomes by adjusting temperature and rainfall.", tags: ["science", "geography"], theme: "science" },
     { slug: "moonjet-cavern", title: "Moonjet Cavern", path: "/games/moonjet-cavern/", status: "coming_soon", description: "Pilot an astronaut through rocky caverns.", tags: ["arcade", "physics"], theme: "sim" },
-    { slug: "connect-4", title: "Connect 4 Showdown", path: "/connect-4.html", status: "live", description: "Two-player smartboard classic with an AI opponent — drop, stack, and line up four to win.", tags: ["strategy", "2 player"], theme: "logic" }
+    { slug: "connect-4", title: "Connect 4 Showdown", path: "/connect%204/index.html", status: "live", description: "Two-player smartboard classic with an AI opponent — drop, stack, and line up four to win.", tags: ["strategy", "2 player"], theme: "logic" }
   ];
 
   var qrInstance = null;
