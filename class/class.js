@@ -220,6 +220,12 @@
         : null;
 
       if (!game) {
+        game = FALLBACK_GAMES.find(function (entry) {
+          return String(entry.slug || "").toLowerCase() === slug;
+        }) || null;
+      }
+
+      if (!game) {
         throw new Error("Game slug not found in registry: " + slug);
       }
 
