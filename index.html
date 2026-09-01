@@ -651,13 +651,17 @@
       background: #ecf5ff;
     }
 
+    .thumb img,
     .thumb svg {
       width: 100%;
       height: 154px;
       display: block;
+      object-fit: cover;
+      object-position: center;
       transition: transform 220ms ease;
     }
 
+    .card:hover .thumb img,
     .card:hover .thumb svg {
       transform: scale(1.03);
     }
@@ -944,6 +948,7 @@
       }
 
       .thumb,
+      .thumb img,
       .thumb svg {
         min-height: 146px;
         height: 146px;
@@ -991,6 +996,7 @@
       }
 
       .thumb,
+      .thumb img,
       .thumb svg {
         min-height: 176px;
         height: 176px;
@@ -1880,8 +1886,44 @@
       const toastEl = document.getElementById("toast");
       const filterChips = Array.from(document.querySelectorAll("[data-filter-chip]"));
       const activeFilters = new Set();
+      const aiThumbs = {
+        "pixel-print": "thumbs/pixel-print.jpg",
+        "spin-art-studio": "thumbs/spin-art-studio.jpg",
+        "spiro-spark-studio": "thumbs/spiro-spark-studio.jpg",
+        "maze-generator": "thumbs/maze-generator.jpg",
+        "quake-lab": "thumbs/quake-lab.jpg",
+        "rube-goldberg-machine": "thumbs/rube-goldberg-machine.jpg",
+        "sky-math-academy": "thumbs/sky-math-academy.jpg",
+        "balloon-pop-quantities": "thumbs/balloon-pop-quantities.jpg",
+        "greater-gator": "thumbs/greater-gator.jpg",
+        "math-cannon": "thumbs/math-cannon.jpg",
+        "pollinator-patrol": "thumbs/pollinator-patrol.jpg",
+        "ten-frame-builder": "thumbs/ten-frame-builder.jpg",
+        "fraction-frog": "thumbs/fraction-frog.jpg",
+        "moonjet-cavern": "thumbs/moonjet-cavern.jpg",
+        "connect-4": "thumbs/connect-4.jpg"
+      };
 
       let toastTimer = null;
+
+      function applyAiThumbnails() {
+        cards.forEach((card) => {
+          const slug = card.dataset.lab;
+          const src = slug ? aiThumbs[slug] : "";
+          const thumb = card.querySelector(".thumb");
+          if (!src || !thumb) return;
+
+          const img = new Image();
+          img.src = src;
+          img.alt = "";
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.addEventListener("load", () => {
+            thumb.replaceChildren(img);
+            thumb.dataset.thumbSource = "ai";
+          });
+        });
+      }
 
       function updateExperimentCounts(value) {
         if (countEl) countEl.textContent = String(value);
@@ -1968,6 +2010,8 @@
       } else {
         updateExperimentCounts(cards.length);
       }
+
+      applyAiThumbnails();
 
       // Show toast on play button or card-link click
       const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.card-link"));

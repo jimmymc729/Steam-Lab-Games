@@ -1,0 +1,31 @@
+<svg viewBox="0 0 300 154" xmlns="http://www.w3.org/2000/svg" role="img">
+            <defs>
+              <linearGradient id="tenFrameSkyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#eef2ff" />
+                <stop offset="100%" stop-color="#f8f6ff" />
+              </linearGradient>
+            </defs>
+            <rect width="300" height="154" fill="url(#tenFrameSkyGrad)" />
+            <rect x="18" y="18" width="264" height="118" rx="12" fill="#ffffff" stroke="#cfd5f5" />
+            <rect x="48" y="38" width="204" height="78" rx="10" fill="#f5f3ff" stroke="#b6afea" />
+            <g stroke="#8a80d9" stroke-width="2">
+              <line x1="89" y1="38" x2="89" y2="116" />
+              <line x1="130" y1="38" x2="130" y2="116" />
+              <line x1="171" y1="38" x2="171" y2="116" />
+              <line x1="212" y1="38" x2="212" y2="116" />
+              <line x1="48" y1="77" x2="252" y2="77" />
+            </g>
+            <g fill="#fd79a8">
+              <circle cx="69" cy="57" r="9" />
+              <circle cx="110" cy="57" r="9" />
+              <circle cx="151" cy="57" r="9" />
+              <circle cx="192" cy="57" r="9" />
+              <circle cx="233" cy="57" r="9" />
+            </g>
+            <g fill="#00b894">
+              <circle cx="69" cy="96" r="9" />
+              <circle cx="110" cy="96" r="9" />
+              <circle cx="151" cy="96" r="9" />
+            </g>
+            <text x="150" y="30" text-anchor="middle" font-family="'Nunito Sans', sans-serif" font-size="16" font-weight="800" fill="#5d53ba">8 on the ten frame</text>
+          </svg>
