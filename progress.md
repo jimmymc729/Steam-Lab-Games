@@ -1,0 +1,1386 @@
+Original prompt: i want to create a math flight simulator game for students to practice math skills in a fun and engaging way. i want the game to be fun, engaging, colorful and imaginative
+
+## 2026-03-12
+- Initialized project log for new game build.
+- Planned first playable prototype as a standalone HTML canvas game with math challenge gates, score, streak, fuel, shields, fullscreen toggle, and testing hooks.
+- Blocker: Node/npx are currently unavailable in this environment, so Playwright automation may require installing Node before scripted validation.
+- Implemented `math-flight-simulator.html` with colorful canvas visuals, flight controls, math challenge clouds, collectible stars/fuel, score/streak system, timer, and win/lose screens.
+- Added automation hooks: `window.render_game_to_text` and `window.advanceTime(ms)`.
+- Added fullscreen toggle on `f` and pause/resume on `p`.
+- Fixed key bugs found during code review:
+  - Prevented answer-option generation from stalling on large answers.
+  - Corrected multiplication equation generation so expression and answer always match.
+  - Added compatibility-safe rounded rectangle drawing helper.
+  - Improved collectible star drawing path construction.
+- Added `Sky Math Academy` entry to `data/games.json` so it can appear in the game catalog.
+- Validation: `python3 -m json.tool data/games.json` passed.
+- Remaining blocker: cannot run Playwright validation loop because this environment currently has no JavaScript runtime (`node`/`npx` unavailable).
+- Next-agent suggestions:
+  - Install Node.js + Playwright client dependencies, then run `$WEB_GAME_CLIENT` against `math-flight-simulator.html` served locally.
+  - Capture and inspect gameplay screenshots for menu, active mission, pause, victory, and game-over states.
+  - Verify `render_game_to_text` mirrors on-screen challenge/options after multiple challenge cycles.
+- Attempted local HTTP smoke test via `python3 -m http.server`; blocked in sandbox with `nice(5) failed: operation not permitted`, so browser-serving validation was not completed here.
+- Updated challenge flow so each equation is shown first in a short preview phase, then answer choices reveal after a delay (`revealed` / `revealDelay` state added per challenge).
+- Collision checks now only activate after choices are revealed.
+- `render_game_to_text` now reports reveal state and hides option values until reveal.
+- Reworked challenge sequencing per user feedback: now each math equation appears as a standalone gate first (`promptX`), and only after the player passes it do answer clouds spawn in (`choicesX`).
+- Removed prior timer-based reveal approach (`revealed/revealDelay`) so choices no longer appear directly under the equation.
+- Tuned equation->choices pacing: answer clouds now follow closely behind the prompt gate using a fixed spatial follow distance (`ANSWER_FOLLOW_DISTANCE = 130`) instead of long delayed spawn.
+- Centered the equation prompt card vertically (`promptY = WORLD_HEIGHT * 0.5`).
+- Presentation update per feedback: answer choices now enter in the same style/motion language as the problem card (sliding in from the right as rounded cards), instead of cloud bubbles.
+- Choices now appear in a calmer centered vertical stack around mid-screen (`centerY-120`, `centerY`, `centerY+120`).
+- Choice entrance now starts just off-screen after prompt pass (`choicesX = WORLD_WIDTH + 90`) for immediate follow-up.
+- Tightened problem-to-answer spacing: answer cards now trail the problem by a fixed in-world distance (`CHOICES_TRAIL_DISTANCE = 220`) so they appear sooner after passing the problem gate.
+- Adjusted spacing again after playtest feedback: increased `CHOICES_TRAIL_DISTANCE` from 220 to 300 for a more relaxed transition between prompt and answers.
+- Fixed answer-entry presentation bug: choices now always start off-screen right and slide in visibly (no on-screen pop-in).
+- Added a brief faster entry glide for answer cards (`CHOICES_ENTRY_SPEED_MULTIPLIER = 1.7`) so they enter in the same manner as the prompt without feeling too delayed.
+- Adjusted prompt-to-answer spacing by 25% per request by increasing answer entry glide speed multiplier from 1.7 to 2.125, preserving the same off-screen slide-in behavior.
+- Made problem-to-answer spacing 50% closer by reducing `CHOICES_ENTRY_OFFSET` from 120 to 60 while keeping the same slide-in behavior.
+- Applied stronger, visible spacing reduction after user reported no change: answer cards now keep moving faster after entry (`CHOICES_CRUISE_SPEED_MULTIPLIER = 2.0`) to reduce prompt-to-answer gap by about half in practice while preserving slide-in style.
+- Reverted the previous "stronger spacing reduction" change by removing `CHOICES_CRUISE_SPEED_MULTIPLIER` and restoring post-entry answer-card speed to base camera speed.
+- Added a calmer prompt linger after passing the problem: problem now holds on-screen for 1.0s (`PROMPT_POST_PASS_HOLD_SECONDS`) and then drifts off at 35% speed (`PROMPT_POST_PASS_DRIFT_MULTIPLIER`) while answers enter.
+- Included `promptHoldTimer` in `render_game_to_text` for visibility during testing/debugging.
+- Smoothed prompt linger behavior: removed hard 1.0s stop and replaced it with continuous ease-down motion.
+- New behavior after pass: prompt decelerates smoothly toward drift speed (`PROMPT_POST_PASS_DRIFT_MULTIPLIER = 0.35`) using `PROMPT_SLOWDOWN_EASE_RATE = 4.5`.
+- Added `promptSpeedMultiplier` to challenge state and `render_game_to_text` for visibility.
+- Added equation formatting helper so displayed prompts include a trailing equals sign (e.g., `9 + 6 =`) for clearer math framing.
+- Applied this to both the prompt card text and the `Now choose` feedback text.
+- Added a candy-inspired sound effects layer via Web Audio API in `math-flight-simulator.html`.
+- Implemented themed SFX cues: launch chime, answer-choice entry sparkle, star/fuel collection pops, correct-answer combo chimes, incorrect-answer down tones, pause/resume blips, victory fanfare, and game-over stinger.
+- Added sound unlock/resume handling on first key input and a runtime mute toggle on `M`.
+- Added HUD sound status text (`Sound On/Off (M)`), menu/control text updates, and `soundEnabled` in `render_game_to_text` payload.
+- Updated remaining UI copy from "answer clouds" to "answer cards" for consistency with the current presentation.
+- Improved control responsiveness with a frame-rate-independent input response model in `updatePlayer`.
+- Replaced heavy per-frame friction with eased velocity targeting for faster steering and cleaner stopping.
+- Added reversal assist impulse (`reverseSnap`) so direction changes feel immediate.
+- Added `window.blur` key-clear guard to prevent stuck movement when focus changes.
+- Added a dedicated post-answer "brain break" phase focused on fuel-up opportunities.
+- New behavior after each resolved answer:
+  - Starts a timed brain-break window (`BRAIN_BREAK_SECONDS = 2.6`).
+  - Spawns guaranteed fuel waves near the player path (`spawnBrainBreakFuelWave`) plus boosted random fuel chance.
+  - Delays next problem spawn until brain-break timer ends.
+- Updated menu copy to mention fuel-up brain breaks.
+- Exposed brain-break state in `render_game_to_text` (`timer`, `wavesRemaining`) for testing/debugging.
+- Started imagegen workflow for a candy-inspired plane sprite (transparent PNG).
+- Confirmed `imagegen` CLI dry-run command and output path (`output/imagegen/plane-sprite.png`).
+- Blocked on live generation because `OPENAI_API_KEY` is not set in this shell.
+- Wired new plane sprite into player rendering with fallback vector drawing if sprite load fails.
+- Added sprite asset load at `assets/plane-sprite.png` and exposed `player.spriteReady` in `render_game_to_text`.
+- Processed user-provided plane image into transparent PNG (background removed) and saved as `assets/plane-sprite.png`.
+- Added student-selectable math settings:
+  - Mode: Addition / Subtraction / Mixed (`1`/`2`/`3` in menu)
+  - Level: Easy / Medium / Challenge (`Q`/`W`/`E` in menu)
+  - Negative answers toggle (`N` in menu), default OFF.
+- Replaced equation generator to focus on addition/subtraction only (no multiplication/division), with number ranges by level.
+- Prevented negative subtraction results when negatives are OFF, and constrained distractor options to non-negative in that mode.
+- Added selected math settings to HUD, menu, and `render_game_to_text` payload.
+- Menu setting keys now update instantly without entering movement key state.
+- Added direct pre-launch menu selection UI on canvas (clickable/tappable controls):
+  - Math mode buttons (Addition/Subtraction/Mixed)
+  - Level buttons (Easy/Medium/Challenge)
+  - Negative answers toggle button
+  - Clickable launch button
+- Added pointer hit-testing + cursor feedback for menu controls so students can choose settings without keyboard shortcuts.
+- Style overhaul pass for challenge presentation:
+  - Replaced plain problem/answer boxes with a candy-themed equation ribbon + colorful answer capsules.
+  - Added per-choice color themes, soft bobbing motion, and stronger highlight/edge styling for readability.
+  - Added motivational reward popups (rotating praise text) and candy-confetti/sparkle celebration particles on correct answers.
+  - Added softer corrective popup feedback on misses to keep tone encouraging.
+- Updated render flow to include floating reward text layer and exposed `rewardPopups` count in `render_game_to_text`.
+- Quick static validation complete (function references + brace/syntax sanity checks), but runtime browser automation is still blocked in this environment because `node`/`npx` are unavailable.
+- Next-agent suggestion: run the Playwright loop once Node is installed to verify visual spacing, readability contrast, and animation pacing on both menu and active gameplay states.
+- Typography refresh applied to match requested warm playful classroom style:
+  - Added Google Fonts load for Baloo 2, Atkinson Hyperlegible, and Nunito.
+  - Introduced canvas font constants (`FONT_TITLE`, `FONT_MATH`, `FONT_UI`) for consistent usage.
+  - Mapped typography roles: Baloo for titles/celebration labels, Atkinson for math expressions and answer numbers, Nunito for HUD/menu/support text.
+  - Updated body default font from Trebuchet to Nunito.
+- Added fighter-pilot audio layer with continuous jet engine sound:
+  - Implemented persistent Web Audio jet graph (dual turbine oscillators + filtered noise) initialized with audio context.
+  - Added dynamic throttle model (`updateJetEngineSound`) that reacts to flight speed, forward push, boost/afterburner, and game mode (menu/playing/paused/end).
+  - Kept sound-toggle behavior compatible by routing through existing master gain.
+- Upgraded right-answer celebration to include multi-burst fireworks:
+  - New `createFireworksShow` spawns radial firework sparks + expansion rings on correct answers.
+  - Correct-answer flow now triggers fireworks visuals and a dedicated `firework` SFX layer in addition to existing success sounds.
+  - Expanded particle update/draw logic with `firework` and `ring` particle kinds.
+- Added `jetThrottle` to `render_game_to_text` payload for verification/debugging.
+- Validation note: only static checks were run here; browser/Playwright runtime validation remains blocked because `node`/`npx` are unavailable in this environment.
+- Retuned continuous jet engine from "buzzy mower" style toward a cinematic fighter-jet profile:
+  - Replaced sawtooth-heavy oscillator stack with a layered model: low rumble oscillator + subtle turbine oscillator + filtered noise body + afterburner hiss band.
+  - Added low-frequency wobble modulation for turbine texture without harsh tonal buzz.
+  - Updated throttle mapping for deeper idle (menu/pause/end) and stronger speed/boost-driven spool-up in gameplay.
+  - Kept mute/master integration unchanged so existing `M` toggle still controls the full mix.
+- Validation: static integrity checks passed (balanced delimiters + function reference checks); runtime browser audio validation still not automated in this environment due to missing `node`/`npx`.
+- Jet-audio behavior revised per user feedback:
+  - Engine sound now activates only while directional movement keys are held (`Arrow`/`WASD`) during gameplay.
+  - Non-directional states (menu, pause, coasting without input) now fade jet throttle to zero for silence.
+  - Retuned tone away from buzz toward low rumbling roar by lowering core bands and using sine-based oscillators with less high-frequency emphasis.
+  - Kept smooth spool-in/out via faster throttle easing so starts/stops feel responsive, not abrupt.
+- Replaced green floating-island background decorations with mixed sky decor: clouds, twinkle stars, and balloons.
+- Added `createSkyDecor()` generator and updated reset/respawn logic so decor cycles with varied types and parallax speeds.
+- Updated background renderer to draw:
+  - soft cloud clusters,
+  - rotating decorative stars,
+  - colorful balloons with strings/baskets and gentle vertical sway.
+- Jet audio deep-rumble pass:
+  - Added dedicated sub-bass oscillator layer (`subOsc`) for heavier low-end body.
+  - Lowered main engine filter bands (`bodyBand`/`bodyLowpass`) to emphasize roar over hiss.
+  - Reduced high whistle content by sharply lowering turbine/hiss gains and narrowing afterburner high-end boost.
+  - Kept directional-key gating intact so rumble only appears while steering input is held.
+- Simplified prompt instruction text in `math-flight-simulator/index.html` from a long sentence to: "Choose the correct answer" for clarity/readability.
+- Mobile/iPad playability pass (math-flight-simulator/index.html):
+  - Added touch-safe canvas behavior (`touch-action: none`) and portrait-friendly frame sizing media query.
+  - Implemented virtual touch controls for gameplay:
+    - left analog joystick (multi-touch pointer tracking),
+    - right BOOST button.
+  - Wired touch input into movement + boost logic so touch and keyboard can coexist.
+  - Updated jet-direction detection to treat joystick movement as directional input.
+  - Added tap-to-restart on victory/gameover screens for keyboardless devices.
+  - Updated launch/replay/menu copy to mention tap/mobile controls.
+  - Exposed touch control state in `render_game_to_text` for debugging.
+- Validation: static checks only (syntax/balance + function wiring). Runtime Playwright loop still unavailable here due missing `node`/`npx`.
+
+## 2026-03-12 (Spiro Spark Studio)
+- New request: build an HTML5 spirograph simulator for classroom use (interactive whiteboards, Chromebooks, iPads) with easy controls and print support.
+- Implemented new standalone app: `spirograph-studio.html`.
+- Added touch-friendly responsive layout with large controls, tablet-safe stacking, and canvas tap-to-start/pause behavior.
+- Built spirograph engine with two pattern types:
+  - Inside Ring (hypotrochoid)
+  - Outside Ring (epitrochoid)
+- Added kid-friendly parameter controls: big ring, rolling gear, pen offset, pen width, draw speed.
+- Added style controls: single/rainbow/palette color modes, palette picker, pen color, paper color.
+- Added one-tap presets (`Flower Burst`, `Star Bloom`, `Ribbon Wheel`, `Orbit Wave`) plus `Surprise Me` randomizer.
+- Added teacher/student output actions:
+  - Restart trace
+  - Clear canvas
+  - Fullscreen toggle (button + `f` key, `Esc` exits via browser default)
+  - Download PNG
+  - Print Design with classroom label metadata.
+- Added moving guide overlay toggle and progress/status UI for draw completion.
+- Added integration hooks for automated game inspection:
+  - `window.render_game_to_text()`
+  - `window.advanceTime(ms)`
+- Added `Spiro Spark Studio` to `data/games.json` so it appears in the portal catalog.
+- Runtime automation blocker remains: `node`/`npx` are unavailable in this environment, so the Playwright loop from `develop-web-game` could not be run here.
+- Next-agent suggestion:
+  - After Node is available, serve the workspace, run `$WEB_GAME_CLIENT` against `/spirograph-studio.html`, capture screenshots/text state, and verify full control flows (touch/mouse/keyboard, print/download, presets, fullscreen).
+- Verification run (this turn):
+  - `python3 -m json.tool data/games.json` passed.
+  - Attempted Playwright client invocation via `$WEB_GAME_CLIENT --help`; blocked because `node` command is unavailable (`zsh: command not found: node`).
+- UI polish pass (user feedback): reorganized controls in `spirograph-studio.html` into a numbered workflow (`1. Choose pattern`, `2. Shape`, `3. Style`, `4. Draw controls`, `5. Save/Print`) with a larger primary Start/Pause button and helper notes to improve classroom intuitiveness.
+
+## 2026-03-12 (Balloon Pop Quantities)
+- New request: build a satisfying HTML5 balloon pop game for quantity practice, designed for teachers/students using interactive whiteboards, Chromebooks, and iPads.
+- Implemented new standalone game: `balloon-pop-quantities.html`.
+- Core gameplay:
+  - Target-quantity rounds (pop all balloons matching a chosen quantity before time runs out).
+  - Adjustable classroom settings: range (`1-5`, `1-10`, `1-12`), representation mode (`Mixed`, `Dots`, `Numbers`), and round duration (`30/35/45s`).
+  - Scoring with combo bonuses, time bonus on round clear, and gentle penalty for incorrect pops.
+- Satisfaction/engagement polish:
+  - Balloon pop particle bursts and celebration text.
+  - Audio feedback (correct pop, incorrect pop, round clear), with mute toggle and user-gesture audio unlock.
+  - Playful animated sky/canvas background and large, touch-friendly UI controls.
+- Device + classroom fit:
+  - Pointer/touch-first interaction (`pointerdown`, `touch-action: none`) and keyboard shortcuts (`F`, `M`, `P`, `Enter/Space`).
+  - Fullscreen button + `f` key support.
+  - Large high-contrast controls and HUD intended for projected/board usage.
+- Automation hooks for game testing:
+  - Added `window.render_game_to_text()` with coordinate note and live gameplay state.
+  - Added deterministic `window.advanceTime(ms)` hook.
+- Data wiring:
+  - Added live catalog entry to `data/games.json`:
+    - slug: `balloon-pop-quantities`
+    - path: `/balloon-pop-quantities.html`
+- Validation this turn:
+  - `python3 -m json.tool data/games.json` passed.
+  - Confirmed required hooks exist in `balloon-pop-quantities.html`.
+- Runtime automation blocker:
+  - Playwright client step still blocked here because `node`/`npx` are unavailable (`zsh: command not found: node`).
+- Next-agent suggestions:
+  - Once Node is available, run `$WEB_GAME_CLIENT` against `/balloon-pop-quantities.html` and inspect screenshots/text state for round transitions, touch hit accuracy, and readability at board distance.
+  - Verify audio unlock/mute behavior on iPad Safari and Chromebook Chrome.
+- Readability improvement pass (user feedback: values/quantities hard to read on balloons):
+  - Increased balloon size range and reduced max concurrent balloons (`MAX_BALLOONS` from 20 to 18) to reduce visual crowding.
+  - Reworked balloon shading to reduce washout/glare and added a clearer edge stroke.
+  - Added a high-contrast center badge on every balloon for quantity content.
+  - Numeral mode: increased weight/clarity with large dark-blue numerals plus white + dark stroke stack.
+  - Dot mode: increased dot size and contrast (dark dots with light outlines) for clearer counting on projected displays.
+- Visual balance pass (user feedback: clearer labels made balloons look less like balloons):
+  - Removed hard circular center badge and replaced with a softer translucent label glow integrated into balloon material.
+  - Restored stronger glossy balloon cues (richer radial color, layered highlights, edge shine, and a small balloon knot).
+  - Kept high readability by using white numerals with dark stroke/shadow and improved dot contrast on a subtle dark inner patch.
+  - Preserved prior crowding reduction (larger balloons + slightly fewer on screen) for classroom projection clarity.
+- Additional visual-balance refinement after screenshot review ("still looks off"):
+  - Reduced on-screen density slightly again (`MAX_BALLOONS` 16) to preserve composition and reduce overlap.
+  - Redesigned dot quantities to a cleaner two-row counting layout (ten-frame style up to 10, extended to 12) with centered partial rows.
+  - Removed heavy dot outlines that were reading as "eyes" and switched to softer, high-contrast white dots on a subtle inner tint.
+  - Softened numeral treatment (white outline + dark fill) and reduced hard label edges to keep a natural balloon material look.
+- Applied direct user-requested dot simplification:
+  - Quantity dots changed to black (`#111111`).
+  - Removed the gray oval backing shape behind dot quantities.
+- Dot readability refinement: increased horizontal/vertical spacing in the dot layout and slightly reduced dot radius so each quantity is easier to count quickly.
+
+## 2026-09-01 (Portal polish + Connect 4 routing)
+- Replaced the temporary `connect-4/index.html` redirect shim with the full Connect 4 game so the clean `/connect-4/` URL serves the game directly.
+- Kept the legacy `connect 4/index.html` page in place so existing old links can still resolve independently.
+- Corrected nested-page favicon paths across the STEAM Lab Games site so subpages now load the shared root `favicon.png` via `../favicon.png?v=20260901`.
+- Local verification:
+  - `class/index.html?game=connect-4` now builds `Open Game` as `/connect-4/`.
+  - `connect-4/` loads the game title `Connect 4 Online - Play Free in Your Browser`.
+  - The page exposes the expected shared favicon link and rendered score UI.
+
+## 2026-03-19 (Fraction Frog)
+- New request: build a polished, single-file HTML5 educational game named `Fraction Frog` focused on matching a numeric fraction prompt to visual fraction models.
+- Implemented new standalone game file: `fraction-frog.html`.
+- Built complete game-state flow:
+  - Start screen with title/instructions and Start button.
+  - Playing state with 10 rounds, score tracking (+10 on correct), and 3 choices per round.
+  - End screen with final score summary and Play Again button.
+- Implemented V1 fraction pool exactly as requested: `1/2`, `1/3`, `2/3`, `1/4`, `3/4`.
+- Implemented round generator with clean data structure:
+  - Random target each round.
+  - Exactly 3 choices per round.
+  - Correct answer shuffled among choices.
+  - Wrong choices always distinct and never duplicate the correct fraction.
+- Implemented visual fraction models on lily pads (not text-only matching):
+  - Pie/radial slice models and bar-section models.
+  - Equal partitions by denominator.
+  - Numerator represented by shaded partitions.
+- Implemented interaction and feedback:
+  - Click/tap lily pad to answer.
+  - Correct: frog performs requestAnimationFrame arc jump, ripple/sparkle landing effect, success feedback, score increment, and next-round transition.
+  - Incorrect: no jump, gentle wobble on chosen pad, encouraging try-again message.
+  - Input lock during jump/transition to prevent answer spam.
+- Added accessibility/usability polish:
+  - Large prompt text and controls.
+  - High-contrast messaging.
+  - Touch-friendly large pads and buttons.
+  - Keyboard support (`1/2/3`, arrows + `Space`/`Enter`) for classroom devices.
+- Added subtle pond atmosphere and friendly visuals:
+  - Animated water shimmer/bubbles.
+  - Floating lily pads.
+  - Home rock, reeds, and expressive frog moods.
+- Added test hooks expected by the web-game workflow:
+  - `window.render_game_to_text()`
+  - `window.advanceTime(ms)`
+- Validation performed:
+  - Static sanity checks (`wc`, `rg` spot checks) completed on `fraction-frog.html`.
+  - Attempted required Playwright client run via `$WEB_GAME_CLIENT`; blocked because `node` is unavailable (`zsh: command not found: node`).
+- Next-agent suggestions:
+  - Install/enable Node.js in this environment, then run:
+    - `node "$WEB_GAME_CLIENT" --url "file:///Users/jamesmcnicholas/Documents/Steam%20Lab%20Games/fraction-frog.html" --actions-file "$WEB_GAME_ACTIONS" --iterations 3 --pause-ms 250`
+  - Capture and inspect screenshots/state JSON for start, active play, correct jump, wrong-answer wobble, and end-screen flow.
+- Portal integration pass for live launch:
+  - Added `Balloon Pop Quantities` card to `index.html` game grid with Play and Class QR actions.
+  - Updated visible portal counts from 8 to 9 and added a matching live-launch note in the Updates list.
+  - Added `balloon-pop-quantities` to `class/class.js` fallback registry so `class/index.html?game=balloon-pop-quantities` resolves even when `data/games.json` cannot be fetched.
+- Validation this turn:
+  - Confirmed new homepage card/link wiring via `rg` checks.
+  - Confirmed homepage now contains 9 catalog cards.
+  - Playwright loop still blocked in this environment (`npx` unavailable; `command -v npx` returned non-zero).
+  - Attempted `$WEB_GAME_CLIENT` invocation (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+- Instruction-banner UX update (user request):
+  - Banner no longer disappears entirely during gameplay.
+  - Temporary messages (correct/incorrect/pause/round clear) still show strongly, then fade back.
+  - A persistent translucent objective reminder now remains visible: "Pop every balloon showing quantity X." during active rounds.
+- Cuteness + color engagement pass:
+  - Upgraded overall palette to brighter candy-like colors.
+  - Refreshed page chrome with more playful gradients and lighter panel treatments.
+  - Repainted sky scene with warm animated sun/rays, soft rainbow arcs, twinkle sparkles, and layered hills.
+  - Added per-balloon decorative stickers (star/heart) for charm without hiding quantity cues.
+  - Upgraded pop particles from plain squares to mixed circle/diamond/star confetti with rotating motion and multi-color bursts.
+- Gameplay mode changed from countdown timer to no-time-limit practice mode:
+
+  - Removed round time limit and timer controls.
+  - Added visible stopwatch (`Time m:ss`) that counts up during active play.
+  - Added persistent best score memory using `localStorage` (`balloon_pop_quantities_best_score`).
+  - Added `Best` HUD pill and in-game celebration message when a new high score is reached (`New High Score! Amazing work!`).
+  - Updated helper text to clarify no-time-limit behavior.
+- Added end-of-round celebration award sequence:
+  - Replaced simple round transition with dedicated `roundCelebrate` mode (~3.6s).
+  - On round clear, all remaining balloons are queued and exploded in a chain reaction into fireworks/confetti bursts.
+  - Added ongoing sky fireworks during celebration for a highly stimulating visual payoff.
+  - Added richer celebration audio: fanfare sequence + per-firework blast tones.
+  - Added animated celebration overlay card showing round completion, current score, stopwatch time, and round bonus.
+  - Shows `NEW HIGH SCORE!` inside the celebration card when a new best is unlocked.
+  - Extended `render_game_to_text` with celebration queue/summary fields.
+- Restored timed-round gameplay by user request:
+  - Reintroduced round timer selector (`30s/35s/45s`) and countdown HUD pill (`Left XXs`).
+  - Added timer urgency styling (`.pill.alert`) for final 5 seconds.
+  - Round timer now decrements during `playing`; if it reaches 0, the game ends (`gameOver`) instead of continuing.
+  - Wrong pops now reduce remaining round time slightly again.
+  - Round celebration now reports time as remaining time (e.g., `12s left`) instead of endless stopwatch duration.
+  - Updated helper copy to clarify timed-round behavior and game-over on timeout.
+  - Updated `render_game_to_text` to expose `timer` + `roundDuration` settings again.
+- Added per-round dynamic background themes:
+  - Introduced multiple full-scene background palettes (sky/sun/rainbow/cloud/sparkle/hills).
+  - Each new round now switches to a different theme automatically.
+  - Theme order rotates every round and randomizes starting theme each new game session.
+  - Exposed `backgroundThemeIndex` in `render_game_to_text` for testing/debug visibility.
+- Added `Unlimited` option to Round Time selector.
+- Logic update for Unlimited mode:
+  - Timer is disabled (no countdown/game-over on time).
+  - HUD shows `Unlimited` instead of `Left XXs`.
+  - Wrong-answer time penalty is skipped in Unlimited mode.
+  - Round celebration summary shows `Unlimited mode` instead of time-left text.
+- Updated `render_game_to_text`:
+  - `timer` is `null` in Unlimited mode.
+  - Added settings flag: `unlimited: true/false`.
+- Expanded round background variety significantly for stronger student engagement:
+  - Increased scene themes from 5 to 12 distinct artistic styles (e.g., Rainbow Meadow, Cotton Candy Sunset, Aurora Grove, Starlight Carnival, Moonbeam Meadow, Cherry Blossom Sky, Neon Dusk).
+  - Added theme-specific decorative motifs beyond color swaps: kites, petals, bubbles, planets, aurora ribbons, stars, and fireflies.
+  - Extended background renderer to support per-theme behavior controls (optional rays/rainbow, cloud density, sparkle density, sun position).
+  - Added `backgroundThemeName` to `render_game_to_text` for validation/debugging.
+- Behavior fix per user feedback in `spirograph-studio.html`: changing settings no longer clears existing artwork; canvas is now erased only by explicit `Clear Canvas` actions (`Clear` button or `C` key). Restart/settings changes reset trace state without wiping prior strokes.
+- Transition smoothing pass in `spirograph-studio.html`:
+  - Control edits now apply on `change` (release/commit) instead of every slider tick to prevent jumpy mid-drag resets.
+  - Applying controls now pauses drawing safely and prompts user to start a new layer, preserving prior artwork.
+  - Fixed scale recalculation so geometry scale updates on parameter changes even when canvas pixel dimensions stay the same.
+- UX adjustment per user feedback: removed forced auto-pause on control changes. Settings now commit without changing the current play/pause state while still preserving existing artwork.
+- Follow-up UX fix: split setting behavior in `spirograph-studio.html`.
+  - Geometry controls (`curve type`, `big ring`, `rolling gear`, `pen offset`) now start a fresh trace layer (without clearing canvas).
+  - Style controls (`pen size`, `speed`, colors, palette) now apply live without resetting progress.
+  - This removes the feeling that every setting edit "breaks" flow while still protecting artwork.
+
+## 2026-03-12 (Greater Gator)
+- New request: build a single-file HTML5 number-comparison game called `Greater Gator` for steamlab.games.
+- Implemented new standalone game: `greater-gator.html`.
+- Gameplay implemented:
+  - Two numbers shown with a cartoon gator in the center.
+  - Student chooses `<`, `>`, or `=` using large touch targets.
+  - Correct answer: gator chomps toward the larger number (or bounces for equals), stars/sparkles appear, score + streak increment, and next round auto-loads.
+  - Incorrect answer: gator shake + bubble effect, gentle retry messaging, no score penalty.
+- Classroom usability additions:
+  - Level selector (`1-10`, `1-20`, `10-99`), sound toggle, reset score, fullscreen button (`f` key), and keyboard symbol shortcuts.
+  - Reinforcement text after answers (`Correct: a < b` / `Try again: ...`).
+  - Responsive layout with high-contrast visuals and large controls suitable for iPads/smartboards.
+- Number generation behavior:
+  - Equal cases intentionally included (`EQUAL_CHANCE = 0.2`).
+  - Non-equal rounds randomize left/right placement so larger values are balanced across sides.
+- Added test hooks for automated inspection:
+  - `window.render_game_to_text()` with coordinate-system note and current interactive state.
+  - `window.advanceTime(ms)` deterministic stepping hook.
+- Catalog wiring:
+  - Added live registry entry to `data/games.json` (`slug: greater-gator`, `path: /greater-gator.html`).
+- Validation this turn:
+  - `python3 -m json.tool data/games.json` passed.
+  - Verified Playwright client script exists at `$CODEX_HOME/skills/develop-web-game/scripts/web_game_playwright_client.js`.
+- Runtime automation blocker (still present in this environment):
+  - Required Playwright loop could not be executed because `node` is unavailable (`zsh: command not found: node`).
+- Next-agent suggestion:
+  - Once Node is available, run `$WEB_GAME_CLIENT` against `/greater-gator.html`, inspect screenshots/text-state output, and verify full interaction flow on both desktop and touch scenarios.
+- Greater Gator visual/animation refinement pass:
+  - Reworked gator art into a richer cartoon style (layered body gradients, scutes, legs, neck, and upgraded head/jaw details).
+  - Added explicit head-orientation animation state (`headDirection`, `targetDirection`) so correct answers now steer the gator's head by relation:
+    - `>` turns/chomps left,
+    - `<` turns/chomps right,
+    - `=` stays centered with a nodding motion.
+  - Added smooth head-turn interpolation in `updateGator` and reset safety on level/score resets so direction state does not stick between rounds.
+  - Extended `render_game_to_text` with gator heading fields for automated verification (`headDirection`, `targetDirection`).
+- Validation note: runtime browser automation remains blocked in this environment because `node`/`npx` are unavailable.
+- Greater Gator overlap + turn-quality fix (user-reported):
+  - Moved number cards farther apart (`24%` / `76%` canvas width) to preserve center play space.
+  - Added a head-safe lane between cards and clamped gator head anchor so snout/jaw cannot enter either number card area during turns/chomps.
+  - Reduced/retuned head geometry and body width to improve spacing and readability.
+  - Improved chomp timing with a snappier jaw pulse and stronger directional head-turn intent.
+  - Added persistent facing-direction state to avoid jittery mirror flips during turn transitions.
+- Greater Gator orientation update (user request):
+  - Switched from head-only mirroring to full-body flipping so the entire gator now faces the answer direction (`>` left, `<` right).
+  - Removed extra head-only mirror transform and updated turn offsets in facing-local space.
+  - Adjusted safe-lane head clamping math to work correctly under full-body mirrored transforms, preserving no-overlap behavior with number cards.
+- Reverted orientation behavior per user feedback:
+  - Restored head-only turn/mirror behavior (removed full-body flip transform).
+  - Kept the overlap protections (wider card spacing + head-safe lane clamping) from the previous fix.
+- Greater Gator engagement + representation expansion:
+  - Added representation mode selector in toolbar: `Numerals`, `Dots`, `Fish`, `Mixed`.
+  - Added round-level representation assignment with mixed-mode variety and frequent visual-side inclusion.
+  - Number cards now support multiple renderers:
+    - Numerals (large value display),
+    - Dot quantity frames (base-10 friendly ten-frames + remainder),
+    - Fish quantity groups (fish schools with tens + ones).
+  - Kept numeral support text on all cards to supplement visuals and aid transfer.
+- Feedback/engagement upgrade:
+  - Added `Swamp Trail` checkpoint meter and HUD pill (`Trail x/5`).
+  - Added animated reward banner with praise/milestone messages and special equals feedback.
+  - Added card pulse emphasis on correct target side plus extra celebration particles.
+- Testing hooks updated:
+  - `render_game_to_text` now includes mode and per-side representations (`leftRepresentation`/`rightRepresentation`) plus reward banner state.
+- Validation this pass:
+  - Static checks completed via targeted `rg` scans.
+  - Playwright client invocation remains blocked because `node` is unavailable (`zsh: command not found: node`).
+- Representation UX correction per user clarification (balloon-style):
+  - Simplified representation options to `Numerals`, `Dots`, and `Mixed` (removed fish option from selector and logic).
+  - Mixed mode now alternates only between numerals and dots, with a bias toward one side numeral / one side dots when values are dot-friendly.
+  - Dot visuals were simplified to clean black-dot clusters (balloon-like look) and removed extra representation badges/dual-label clutter.
+- Representation preference update per user feedback:
+  - Switched representation options from dots-based to fish-based (`Numerals`, `Fish`, `Mixed`).
+  - Updated mixed-mode assignment logic to alternate between numerals and fish (with readability fallback to numerals for larger values).
+  - Replaced dot cluster renderer with a legible fish-icon quantity renderer for visual-count cards.
+- Final polish pass (cleanup + launch readiness):
+  - Cleaned canvas HUD overlap by removing redundant in-canvas title/question text.
+  - Repositioned and simplified the in-canvas Swamp Trail meter for cleaner hierarchy.
+  - Enlarged/repositioned reward banner to avoid visual collisions and improve readability.
+- Representation tuning:
+  - Kept fish-first mode set (`Numerals`, `Fish`, `Mixed`) and removed dot artifacts.
+  - Improved mode assignment logic so fish mode uses fish per side when values are fish-friendly (<=20), with numeral fallback for larger values.
+  - Mixed mode now ensures stronger fish/numeral variety while preserving readability.
+- New metric:
+  - Added `Fish Eaten` counter to HUD (`fishPill`) and game state (`state.fishEaten`).
+  - Counter increments on every correct answer by the larger compared value (`max(left, right)`).
+  - Included fish gain in reward banner messaging and added `fishEaten` to `render_game_to_text`.
+- Economy + customization system (final-product pass):
+  - Added persistent coin economy: `+1` coin per correct answer plus streak bonus (`+1` every 5 in a row).
+  - Added `Swamp Shop` UI with buy/equip flow and affordability states.
+  - Added shop items and visual effects:
+    - Lily Pad Pack (extra lily pads),
+    - Reeds Pack (denser reeds),
+    - Fireflies (animated glow dots),
+    - Sunset Sky (warm sky overlay),
+    - Frog Friend (animated frog companion),
+    - Rainbow Water (water shimmer overlay).
+  - Added persistence via `localStorage` (`greater_gator_progress_v1`) for coins, total fish eaten, unlocked items, and equipped items.
+  - Added shop toggle button and keyboard shortcut (`B`) for opening/closing the shop.
+- HUD + metrics updates:
+  - Added `Coins` pill and kept `Fish Eaten` as a persistent total metric.
+  - Added `Total Fish Eaten` accumulation on correct answers by larger compared value (`max(left, right)`).
+  - `Reset Score` now resets round/session stats but keeps economy progression and shop unlocks.
+- UX cleanup:
+  - Reward banner now includes fish/coin gains and auto-adjusts font size for long text.
+  - Mixed representation and fish mode logic preserved with readability fallback for larger values.
+- Testing hooks update:
+  - `render_game_to_text` now includes `coins` and detailed `shop` state (`open`, `unlocked`, `equipped`).
+- Validation note: Playwright runtime still cannot run here because `node` is unavailable (`zsh: command not found: node`).
+- Shop discoverability tweak:
+  - Moved `Swamp Shop` panel above the game canvas (right below header/stats) so it is immediately visible when opened, instead of below the play controls.
+
+## 2026-03-13 (Greater Gator Integration)
+- New request: add `greater-gator.html` to the live steamlab.games portal.
+- Portal integration updates:
+  - Added a new `Greater Gator` game card in `index.html` with:
+    - play link: `greater-gator.html`
+    - class QR link: `class/index.html?game=greater-gator`
+    - math/science category metadata for chip filtering.
+  - Updated visible homepage experiment counts from 9 to 10.
+  - Added a `Greater Gator` live-launch bullet to the Lab Updates section.
+- Class QR resiliency update:
+  - Added fallback registry entry in `class/class.js` for slug `greater-gator` (`/greater-gator.html`) so class launch still resolves if `data/games.json` cannot be fetched.
+- Validation this turn:
+  - Verified `greater-gator` wiring in `index.html` and `class/class.js` via `rg`.
+  - Confirmed homepage now contains 10 game cards.
+  - `python3 -m json.tool data/games.json` passed.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), but runtime remains blocked in this environment: `node` is not installed (`command not found: node`).
+
+## 2026-03-15 (Math Cannon Card Theme Polish)
+- User request: make the portal thumbnail for `Math Cannon` clearly pirate + ship themed.
+- Updated `index.html` Math Cannon card thumbnail SVG to emphasize pirate visuals:
+  - ocean + wave bands, sun/sky, pirate ship hull, mast+sails, pirate flag, and cannon silhouette,
+  - answer targets integrated as floating numbered orbs to keep gameplay context.
+- Updated card copy to match theme: "Fire your pirate ship cannon..." and retagged card chip to `PIRATE ARCADE`.
+- Validation this turn:
+  - Confirmed `Math Cannon` pirate copy/thumbnail/tag updates via `rg` and card block inspection.
+  - Confirmed homepage static counts remain `11` and total card count remains `11`.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed in this environment (`command not found: node`).
+
+## 2026-03-13 (Math Cannon)
+- New request: build a standalone `Math Cannon` game focused on fun, imaginative fact fluency practice.
+- Implemented new game file: `math-cannon.html`.
+- Core gameplay delivered:
+  - Friendly cartoon cannon at the bottom with projectile firing.
+  - Three floating answer targets per round with randomized correct placement.
+  - Tap-to-shoot interactions (plus keyboard `1`/`2`/`3` shortcuts).
+  - Correct answer feedback: star/confetti particle bursts, praise messaging, score + streak updates.
+  - Incorrect answer feedback: wobble + smoke puff, gentle retry flow (no harsh penalty).
+- Math progression implemented:
+  - Level 1: addition within 10.
+  - Level 2: addition within 20 (unlocks after 8 correct).
+  - Level 3: subtraction (unlocks after 18 correct).
+  - Distractor generation keeps answers unique and near the correct value.
+- Visual/style implementation:
+  - Bright cloud-kingdom sky gradient, drifting clouds, floating islands, rainbow arcs.
+  - Large touch-friendly targets and high-contrast numbers.
+- Control/UI additions:
+  - Start, Reset, Sound toggle, Fullscreen toggle (`F` key).
+  - `R` reset and `M` sound keyboard shortcuts.
+- Automation hooks added for game testing:
+  - `window.render_game_to_text()`
+  - `window.advanceTime(ms)`
+- Portal integration updates:
+  - Added `Math Cannon` to `data/games.json` (slug: `math-cannon`, path: `/math-cannon.html`).
+  - Added homepage game card + Play/Class QR links in `index.html`.
+  - Added fallback registry entry in `class/class.js` for Class QR mode.
+  - Updated homepage static count text to 11 and added a Lab Updates bullet for Math Cannon.
+- Validation this turn:
+  - `python3 -m json.tool data/games.json` passed.
+  - Verified `math-cannon` references across `data/games.json`, `index.html`, and `class/class.js` via `rg`.
+- Runtime automation blocker remains:
+  - Playwright client attempt failed because `node`/`npx` are not installed in this environment (`npx missing`, `command not found: node`).
+- Next-agent suggestions:
+  - Install Node.js in this environment, then run the `develop-web-game` Playwright loop against `/math-cannon.html` and inspect screenshots + `render_game_to_text` output for gameplay states.
+  - After runtime test, tune target motion speed and hit timing based on observed classroom pacing.
+- Pirate-theme iteration (user feedback):
+  - Rethemed `math-cannon.html` to a playful pirate look: ocean background, wave motion, island palms, passing pirate ships, wood-deck cannon styling, and pirate-flavored menu/feedback copy.
+  - Updated target styling to look like treasure-barrel style floating targets while preserving large readable number labels.
+- Cannon aiming upgrade (user feedback):
+  - Added continuous cursor/touch tracking via `updateCannonAim(dt)`.
+  - Cannon now follows pointer position in real time (with smooth easing) instead of only rotating at fire time.
+  - Added pointer exit handling (`pointerleave`/`pointercancel`) with a safe default aim fallback.
+- Validation this turn:
+  - Verified new pirate/theme and pointer-tracking hooks in `math-cannon.html` via `rg` checks.
+  - Runtime Playwright/browser validation still blocked in this environment due missing `node`/`npx`.
+- Target mechanic redesign (user feedback):
+  - Replaced the three floating circular targets with three large pirate ships on the horizon.
+  - Updated target placement to horizon band and increased target size for classroom readability/touch use.
+  - Reworked hit detection from simple circle distance to a wide ship-shaped ellipse hit area.
+  - Replaced target rendering with full ship art (hull, masts, sails, and large numeric sail labels).
+  - Updated player-facing copy to reference ships (tap ships, fire at the right ship).
+  - Hid decorative background ships during active gameplay to avoid confusion with answer ships.
+- Ship visual cleanup pass (user feedback):
+  - Simplified answer ships to clean, bold silhouettes for legibility (single strong hull shape + single large sail).
+  - Added high-contrast rounded number badge on each sail for easier readability at distance.
+  - Removed extra decorative micro-details that made ships visually busy.
+  - Retuned ship color palette to bolder, cleaner hues with strong outlines.
+  - Enlarged/retuned ship hitboxes upward so tapping sails feels reliable.
+- Legibility size pass (user feedback):
+  - Increased answer ship overall scale significantly (`getTargetRadius` up to larger min/max).
+  - Increased horizontal separation and lowered horizon anchor to fit larger ships cleanly.
+  - Enlarged sail area + number badge + number font for stronger board-distance readability.
+  - Expanded ship hitboxes to match larger visuals.
+  - Reduced idle bobbing drift to keep larger ships stable and easier to read.
+- Correct-hit reward polish pass (user feedback):
+  - Added cinematic correct-hit explosion sequence for ships:
+    - large starburst,
+    - wooden debris burst,
+    - water splash burst,
+    - smoke plume,
+    - expanding shockwave ring.
+  - Added premium hit feedback polish:
+    - brief impact flash overlay,
+    - screen shake on correct explosion,
+    - longer resolve hold so players can feel the payoff.
+  - Upgraded correct-hit audio from simple chimes to layered SFX:
+    - low boom tones,
+    - filtered noise burst for impact body,
+    - high sparkle tail tones.
+  - Updated reward popup text to `BOOM +1` for stronger positive reinforcement.
+  - Added `screenShake` and `flashAlpha` to `render_game_to_text` payload for testing/debug visibility.
+- Explosion behavior fix (user feedback):
+  - Removed old visual effect where the correct ship looked like it shrank away.
+  - Correct-hit ships now switch to an `exploding` state and disappear immediately.
+  - Added explicit ship-fragment breakup system (`shipShard` particles) for hull/sail/flag pieces.
+  - Fragments now burst outward with rotation, gravity, and drag so the ship visibly breaks apart.
+  - Round completion now keys off `resolvedCorrect` state (not prior `state===correct`), preserving flow with the new explosion state.
+  - Exposed `resolvedCorrect` and `explodeTimer` in `render_game_to_text` target payload for testing/debugging.
+- Full visual + auditory polish pass (user feedback):
+  - Added dynamic ambient soundscape (continuous sea/wind/ship-creak layer) with smooth runtime mixing by game state.
+  - Added richer cannon-fire SFX stack (low boom body + transient noise crack + tone tail).
+  - Retuned incorrect SFX with a softer, more tactile thunk profile.
+  - Added `shotPulse` visual state to synchronize muzzle-flash glow and impact energy.
+  - Visual atmosphere upgrades:
+    - richer sky gradient + horizon haze,
+    - brighter sun bloom,
+    - deeper ocean gradient,
+    - reflected sunlight band,
+    - more nuanced wave/foam rendering,
+    - procedural water sparkle streaks.
+  - Ship rendering polish:
+    - upgraded hull/sail gradients and highlights,
+    - clearer structure lines/rigging,
+    - stronger number-badge depth and contrast.
+  - Cannon rendering polish:
+    - deck shadowing,
+    - wood/metal gradient materials,
+    - dynamic muzzle flash tied to shot pulse.
+  - Scene composition polish:
+    - subtle vignette and color-grade overlays for a more cinematic, polished look.
+  - Added `shotPulse` to `render_game_to_text` payload for testing/debug visibility.
+- Validation note: runtime Playwright/browser validation remains blocked in this environment because `node`/`npx` are unavailable.
+- Equation prominence update (user feedback):
+  - Reworked on-canvas top UI so the math equation is now the primary visual focus.
+  - Added a large dedicated equation banner near top-center with bigger type, stronger contrast, and depth styling.
+  - Kept gameplay instruction text in a secondary, smaller panel beneath the equation.
+- Intense SFX + swashbuckling music upgrade (user feedback):
+  - Added heavier cannon blast layering (dual descending body sweeps, impact crack noise, high transient bite).
+  - Added stronger explosion layering for correct hits (deep descending boom stack + textured broadband burst + bright success tail).
+  - Added new helper `playSweepTone()` for more cinematic descending/impact envelopes.
+  - Added original adventure-style background music loop via Web Audio scheduling (`scheduleMusicLoop`) with:
+    - repeating heroic lead motif,
+    - driving bass pulse,
+    - percussion accents,
+    - periodic harmonic support tones.
+  - Added persistent `musicState` scheduler and integrated it into the main update loop.
+  - Kept sound system gesture-safe/unlock-safe and compatible with existing sound toggle.
+- Audio intensity + mix refinement pass (user request follow-up):
+  - Added output dynamics compression on the Web Audio master bus to keep cannon/explosion SFX punchy while reducing harsh clipping risk.
+  - Further intensified cannon fire stack with deeper descending body, sharper transient crack, and delayed low-end tail.
+  - Further intensified correct-hit explosion stack with multi-layer boom body, brighter shrapnel/crackle texture, and longer triumph tail.
+- Background music enhancement pass:
+  - Expanded the existing swashbuckling procedural loop with added harmony and per-step drum accents for a fuller pirate-adventure feel.
+  - Added scheduler drift recovery in `scheduleMusicLoop()` so music does not backlog after long sound-off periods.
+  - Updated sound-toggle behavior to restart music scheduling cleanly when sound is re-enabled.
+- Validation note: runtime Playwright/browser verification still blocked in this environment because `node`/`npx` are unavailable.
+- UI artifact fix (user screenshot feedback):
+  - Fixed top equation/instruction banner outline rendering in `drawMessageBar()`.
+  - Root cause: stroke call was using the previous gloss-strip path instead of the full panel path, creating a stray left-side capsule line.
+  - Added explicit `beginPath + roundedRectPath(...)` for each panel before stroking.
+- UI order tweak (user feedback): swapped in-canvas message/equation panel positions so direction text is on top and the math problem panel is directly below it.
+- Math mode selector upgrade (user request):
+  - Added adjustable operation modes with HUD buttons: `Addition`, `Subtraction`, `Mixed`.
+  - Added keyboard shortcuts for mode switching: `A` (Addition), `S` (Subtraction), `X` (Mixed).
+  - Refactored equation generator so operation is determined by selected mode; mixed mode randomizes `+`/`-` each round.
+  - Kept level progression pacing but made it mode-specific (`modeCorrect`) so each mode tracks its own level progression.
+  - Updated HUD chip to show `Mode | Level` and updated menu/help copy to explain the new mode system.
+  - Exposed `mathMode` and per-mode progress in `render_game_to_text` (`modeCorrect`) for testing/debugging.
+- Validation note: runtime browser/Playwright validation still blocked here because `node`/`npx` are unavailable.
+- Background cleanup (user request): removed floating islands from Pirate Math Cannon.
+  - Deleted island generation from `initSkyObjects()`.
+  - Removed island update loop from `updateSky()`.
+  - Removed island rendering from background draw path and deleted unused `drawIsland()` helper.
+- Visual polish pass (user request: improve look):
+  - HUD cleanup:
+    - Reworked top HUD into a cleaner grid layout with a dedicated right-side meta column.
+    - Grouped stats and mode buttons into matching soft-blue segmented panels for better hierarchy.
+    - Reduced button color noise by shifting most controls to a unified navy family and keeping `Start` as the main warm accent.
+  - Equation/directions panel art direction:
+    - Redesigned in-canvas panels to parchment style with warmer tones and stronger edge definition.
+    - Reduced instruction plaque emphasis and enlarged equation plaque to make the math prompt the visual hero.
+    - Added parchment texture lines, inner border, and decorative corner pins to the equation plaque.
+  - Background depth:
+    - Added horizon glow/haze and a distant sea band for stronger atmospheric perspective.
+    - Tuned ocean gradient and layered near/far wave passes to increase depth.
+    - Added subtle depth fade over upper water for richer scene separation.
+- Validation note: runtime browser/Playwright validation is still blocked in this environment because `node`/`npx` are unavailable.
+- Motivation/progression system implementation (user request):
+  - Added coin economy tied to performance:
+    - +1 base coin per correct hit.
+    - Streak milestone bonuses at 3/5/8 streaks.
+    - Added `bestStreak` tracking.
+  - Added persistent progression save/load (`localStorage`):
+    - key: `pirate_math_cannon_progress_v1`
+    - saves coins, best streak, owned items, equipped items.
+  - Added Port Shop game loop/state:
+    - New `port` mode with overlay panel and clickable item cards.
+    - Round flow now opens Port after a successful round so players can spend coins before continuing.
+    - Added manual Port toggle via HUD `Port Shop` button and keyboard shortcut `B`.
+  - Added shop inventory + equip/buy behavior:
+    - Cannon skins, flag styles, deck trims, companion, and bonus items.
+    - Buy/equip rules with affordability messaging.
+  - Added live upgrades visible on the player foreground ship/cannon base:
+    - Cannon skin color variants.
+    - Deck trim variants.
+    - Flag variants (including skull mark).
+    - Parrot companion.
+    - Lucky barrel visual cue when bonus is equipped.
+  - Added light gameplay assist upgrades:
+    - `Lucky Barrel`: +1 extra coin on first correct answer each round.
+    - `Spyglass Charm`: removes one decoy ship each round.
+  - HUD/UX updates:
+    - Added `Coins` chip.
+    - Added `Port Shop` control button.
+    - Updated notes/menu copy to explain streak coins + Port controls.
+  - Debug/testing hook expansion:
+    - `render_game_to_text` now includes economy/shop state (`coins`, `bestStreak`, `roundCoins`, `roundMessage`, `shop`).
+- Validation note: runtime browser/Playwright validation is still blocked in this environment because `node`/`npx` are unavailable.
+- Shop flow tweak (user feedback): disabled automatic Port opening after solved rounds.
+  - Gameplay now advances directly to the next round on correct resolution.
+  - Port Shop opens only when explicitly requested (`Port Shop` button or `B` key).
+- Reward-coolness upgrade pass (user feedback: rewards felt underwhelming):
+  - Reworked shop inventory into higher-fantasy/aspirational pirate rewards with stronger naming and progression feel.
+  - Added richer item metadata (`rarity`, `blurb`) and expanded inventory (including new Monkey companion + Chain Lightning bonus).
+  - Upgraded shop card presentation to show rarity labels, power blurbs, and clearer value messaging.
+  - Boosted visual impact of equipped upgrades in gameplay:
+    - Stormforged/Dragonfire cannon visuals,
+    - Kraken/Ghost flag variants,
+    - Treasure/Shadow deck trims,
+    - Parrot and Monkey companions,
+    - Lightning aura cues.
+  - Added stronger reward FX behavior:
+    - Dragonfire adds ember explosion accents.
+    - Chain Lightning adds faster shot speed, electric projectile styling, thunder accent SFX, and stronger impact shake/flash.
+  - Added rarity-colored `UNLOCKED!` popup when purchasing new items.
+- Shop UI bugfix pass (user screenshot feedback):
+  - Fixed Port Shop card text overlap by switching card text rendering to `alphabetic` baseline and retuning vertical offsets.
+  - Prevented in-game message/equation bar from rendering behind the Port overlay (removed distracting ghosted text under modal).
+- Port Shop readability/hierarchy fix (user screenshot issue):
+  - Increased shop modal max size (`0.92` viewport, up to `1040x700`) so item cards have more vertical room.
+  - Added responsive card layout (`compactCard`) to avoid line collisions on shorter canvases.
+  - Added text fitting helper for item names/blurbs to prevent overflow (`fitCardText` with ellipsis).
+  - In compact cards, hide the blurb line and prioritize clean title/category/action hierarchy.
+  - Kept prior fix that hides the in-game message bar while in Port mode.
+- Validation note: browser/Playwright verification still blocked here because `node`/`npx` are unavailable in this environment.
+- Menu overlay spacing bugfix (user screenshot feedback):
+  - Fixed start-screen overlap where the final controls line collided with the `Tap To Start` button.
+  - Increased menu panel max height slightly for breathing room (`470` max).
+  - Replaced hardcoded instruction Y percentages with computed line spacing (`instructionStartY` + `instructionLineStep`).
+  - Added safe button placement logic to enforce a minimum gap below the last instruction line.
+- Validation note: browser runtime check still manual-only in this environment because `node`/`npx` are unavailable.
+- Cannon fantasy/coolness upgrade pass (user request: “much much cooler”):
+  - Added a new top-tier cannon purchase: `Leviathan Dread Cannon` (`cannon-leviathan`, style `royal`, Mythic).
+  - Upgraded cannon shop lineup pricing/identity for stronger progression feel:
+    - Stormforged Cannon cost 46, Dragonfire Cannon cost 132, Leviathan Dread Cannon cost 188.
+  - Rebuilt `drawCannon()` with a larger, more dramatic silhouette:
+    - larger carriage and wheel treatment,
+    - richer wood/metal gradients,
+    - expanded barrel with rings, sigils, muzzle depth,
+    - animated idle bob + ember glow,
+    - stronger shot flash and skin aura.
+  - Added style-specific cannon visuals:
+    - Storm: electric sigils/arcs,
+    - Dragon: horned dragon-maw style muzzle accents,
+    - Royal/Leviathan: sea-rune arcs and spectral glow.
+  - Upgraded projectile visuals by cannon skin (`drawProjectile`):
+    - unique core/glow colors for storm/dragon/royal,
+    - style-specific projectile trail motifs.
+  - Upgraded hit feedback by cannon skin (`spawnCorrectExplosion`):
+    - added extra style particles and stronger flash/shake for royal cannon.
+  - Tuned cannon launch point and royal shell speed for new larger barrel:
+    - projectile start offset increased to 94,
+    - royal cannon projectile speed slightly boosted.
+  - Added cannon-specific audio layering in `playShootSound()` and `playCorrectSound()` for storm/dragon/royal identities.
+  - Port Shop cannon card polish:
+    - added mini cannon preview art on cannon cards,
+    - added cannon-specific status text (`ACTIVE CANNON` / `BLAST STYLE UNLOCK`),
+    - cannon-specific action labels (`Buy Beast`, `Tap to arm this cannon`).
+- Validation note: browser/Playwright runtime verification remains manual-only here because `node`/`npx` are unavailable.
+- Companion visibility fix (user report: monkey equipped but not visible):
+  - Reworked companion rendering in `drawCannon()` so both parrot and monkey are larger, higher contrast, and positioned clearly above deck.
+  - Monkey now has a distinct silhouette (body/face/tail/cap) and stronger motion/shadow so it is unmistakable when equipped.
+  - Added save-compatibility normalization in `loadProgress()` to map legacy equipped style strings (e.g., `monkey`) to current item IDs (`pet-monkey`) and mark them owned.
+  - This prevents old save formats from silently falling back to `none` companion.
+- Companion polish follow-up (user request):
+  - Increased monkey crewmate render scale and moved him higher on deck so he is clearly visible during gameplay.
+  - Added ambient monkey chatter SFX system:
+    - new `playMonkeyChatterSound()` + `updateMonkeyChatter(dt)` hooks,
+    - chatter triggers occasionally while monkey is equipped and mode is `playing`,
+    - cadence randomized (~5.4s to 11.2s) to avoid repetitive spam.
+  - Added equip-time monkey chatter timer reset so chatter can happen soon after equipping.
+- Chain Lightning excitement upgrade (user request):
+  - Added dynamic bolt system with dedicated lightning paths:
+    - new `state.lightningBolts`, `createLightningPath()`, and `spawnLightningBolt()` helpers.
+    - bolts now render with glow/core passes via new `drawLightningBolts()` and update via `updateLightningBolts(dt)`.
+  - Added true chain-jump behavior on correct lightning hit (`triggerChainLightning`):
+    - lightning jumps from the correct ship to up to 2 decoy ships,
+    - decoys get zapped/explode instantly,
+    - extra sparkle/smoke, stronger flash/shake, `CHAIN xN` popup,
+    - bonus coin reward for chained decoy zaps.
+  - Enhanced projectile lightning feel during flight:
+    - crackling mini-bolts spawn around projectile while Chain Lightning is equipped,
+    - occasional high-frequency zap noise burst while bolt travels.
+  - Enhanced lightning impact payoff:
+    - more lightning branch bolts around hit point,
+    - stronger flash, shake, and shot pulse values.
+  - Enhanced lightning audio identity:
+    - added `playLightningChainSound(chainCount)` for layered thunder/zap when chain triggers.
+  - Updated Chain Lightning shop blurb to reflect the new behavior.
+  - Added `lightningBolts` count to `render_game_to_text` payload for debugging visibility.
+  - Cleared lightning bolt visuals on run start/new round to avoid carryover artifacts.
+- Validation note: automated runtime Playwright checks remain unavailable in this environment because `node`/`npx` are missing.
+
+## 2026-03-15 (Sky Math Card Thumbnail Plane Fix)
+- User request: make the `Sky Math Academy` homepage thumbnail read more clearly as a plane.
+- Updated the card SVG in `index.html`:
+  - replaced the old bar-like aircraft shape with a clearer plane silhouette (fuselage, wings, tail, canopy, nose/propeller).
+  - preserved the existing visual style/colors and equation/answer-card context.
+- Validation this turn:
+  - Confirmed updated SVG plane geometry exists in the Sky Math card block.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed in this environment (`command not found: node`).
+
+## 2026-03-15 (Greater Gator Card Thumbnail Gator Fix)
+- User request: make the `Greater Gator` homepage thumbnail look more like a gator.
+- Updated the card SVG in `index.html`:
+  - replaced the simplified fish-like center shape with a fuller gator silhouette (tail, body mass, long snout/jaw, teeth line, legs, eye, and back ridges).
+  - kept the existing color palette and card composition so it still matches the portal style.
+- Validation this turn:
+  - Confirmed updated gator SVG geometry appears in the `greater-gator` card block.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed in this environment (`command not found: node`).
+
+## 2026-03-15 (Greater Gator Thumbnail Refinement)
+- User feedback: previous gator pass still looked awkward.
+- Refined the `Greater Gator` card SVG again in `index.html` to a cleaner side-profile:
+  - smoother tail curve, lower/longer body shape, simpler snout + jaw geometry, cleaner teeth placement, and reduced visual clutter.
+  - keeps the same palette/layout while improving readability at card size.
+- Validation this turn:
+  - Confirmed revised side-profile geometry is present in the `greater-gator` card block.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-15 (Biome World Lab)
+- New request: start an HTML5 world-simulation prototype inspired by WorldBox where biomes emerge naturally from geography-driven climate rules.
+- Implemented standalone prototype `biome-world-lab.html` with a single-canvas map and responsive HUD controls.
+- Added world generation pipeline:
+  - terrain heightmap (fractal/value noise + continental falloff),
+  - temperature map (latitude + elevation cooling + coastal moderation),
+  - moisture/rainfall map (wind transport + orographic rain),
+  - river routing from wet highlands downhill,
+  - biome classification from temperature + moisture + terrain/river/fertility.
+- Added interactive controls:
+  - regenerate world (`Generate New World` button / `R` key),
+  - cycle wind direction (`Wind` button / `W` key),
+  - cycle sea level profile (`Sea Level` button),
+  - overlay view switch (Biome/Temperature/Moisture/Elevation via selector or `1-4` keys),
+  - fullscreen toggle (`F`).
+- Added simulation testing hooks for automation:
+  - `window.render_game_to_text()` with coordinate system, controls, world settings, biome summary, and sample tiles.
+  - `window.advanceTime(ms)` deterministic stepping.
+- Added catalog entry in `data/games.json`:
+  - slug: `biome-world-lab`
+  - path: `/biome-world-lab.html`
+- Validation status:
+  - `node` and `npx` are unavailable in this environment, so the required Playwright loop (`$WEB_GAME_CLIENT`) could not be run.
+  - Performed static/data validation where possible (JSON parse check).
+- Next-agent suggestions:
+  - Install Node.js (and Playwright client tooling) so `$WEB_GAME_CLIENT` can run against this page.
+  - Capture screenshots for all overlays and wind directions; verify visible rain-shadow behavior behind mountain ranges.
+  - Add a simple civilization/entity layer after biome stability is validated.
+- Explicit Playwright client invocation attempt confirmed blocker: `node` not found while `$WEB_GAME_CLIENT` script path exists.
+- WorldBox-feature pass: added first civilization simulation layer to `biome-world-lab.html` on top of biome realism.
+- Added settlement system:
+  - settlement suitability map derived from biome + fertility + moisture + river access + elevation comfort,
+  - auto-seeded towns in high-suitability regions,
+  - per-settlement resource economy (food/wood/stone), carrying capacity, growth/starvation, and migration pressure.
+- Added migration/expansion behavior:
+  - pressured settlements can launch migrant waves,
+  - migrants found new outposts or merge into nearby settlements,
+  - migration trails render briefly on-map and `migrationEvents` is tracked.
+- Added world-sim UX updates:
+  - new `Civilization` overlay mode (selector + `C` key + `5` shortcut),
+  - map markers + labels for settlements,
+  - HUD now shows `Settlements` and total `Population`.
+- Expanded automation text hooks:
+  - `render_game_to_text` now includes world year, civilization summary, migration event count, and top settlements.
+- Validation this turn:
+  - `data/games.json` JSON validation still passes.
+  - Required Playwright client check attempted again; still blocked because `node` is not installed (`command not found: node`).
+- Visualization polish: settlement names now display for the largest towns only (top 12 by population) to reduce map clutter during expansion.
+- Village-view pass inspired by reference art:
+  - Added interactive village mode to `biome-world-lab.html` (`Village View` button + `V` key, `Esc` to return).
+  - Added settlement click interaction in world map: clicking a settlement marker selects it and opens its village.
+  - Added selected-settlement state with highlight ring on world map markers.
+- Implemented procedural pixel village renderer tied to settlement simulation data:
+  - village layout generation per selected settlement (roads, central hall, huts, farm plots, rocks, trees, optional pond),
+  - tiny animated villagers wandering path/farm tiles,
+  - village header HUD inside canvas (name, pop, houses, farms, food).
+- Added context-sensitive legend behavior:
+  - world mode keeps biome legend,
+  - village mode shows selected settlement snapshot stats (biome/resources/migration pressure).
+- Extended text-state output:
+  - added `viewMode`, selected settlement details, village summary counts, and village controls in `render_game_to_text`.
+- Resilience updates:
+  - auto-fallback to a valid settlement if selected settlement disappears during simulation.
+- Validation this turn:
+  - `data/games.json` still passes JSON validation.
+  - Playwright client invocation attempted again but remains blocked because `node` is unavailable in this environment (`command not found: node`).
+- Village zoom pass:
+  - Added dedicated village zoom controls (`Village Zoom -`, `Village Zoom +`) and keyboard shortcuts (`+`, `-`, `0` reset) in village mode.
+  - Added mouse-wheel zoom in village mode.
+  - Added drag-to-pan interaction when zoomed in (pointer drag constrained to village panel bounds).
+  - Added zoom/pan state (`villageZoom`, `villagePanX/Y`, `villageViewport`) with clamping so camera cannot pan outside map.
+  - Updated village HUD/legend and in-canvas hint text to show zoom percentage and controls.
+  - Expanded `render_game_to_text` with village zoom/pan/viewport telemetry.
+- Validation this turn:
+  - syntax-balance checks passed for the updated JS block.
+  - `data/games.json` still validates.
+  - Playwright client invocation attempted again but remains blocked due missing `node` (`command not found: node`).
+- Seamless zoom transition refactor (per user feedback):
+  - Removed hard separation between continent view and village view as primary interaction.
+  - Added continuous semantic zoom (`mapZoom`) with wheel/keys/buttons and drag pan on the same canvas.
+  - Added automatic village blending based on zoom level (`VILLAGE_BLEND_START/END`): as zoom increases, village detail fades in over the map; zooming out fades back to continent.
+  - Added camera transform pipeline for world rendering (`currentMapTransform`, `setMapZoom`, `screenToMapPoint`, pan clamping).
+  - Added auto-settlement focus behavior while zoomed in (nearest settlement to viewport center becomes selected).
+  - Updated controls/UI copy to match seamless flow (`Reset View`, `Zoom +/-`, map zoom in legend).
+  - Kept `V` as a convenience jump toggle (zoom to focused village / zoom back out), but mode switching is now driven automatically by zoom blend.
+  - Updated `render_game_to_text` to report map zoom/pan and village blend telemetry.
+- Validation this turn:
+  - JS delimiter/syntax-balance checks passed.
+  - `data/games.json` still validates.
+  - Playwright client attempt still blocked because `node` is missing (`command not found: node`).
+- Multi-stage zoom smoothing pass:
+  - Expanded zoom blend range (`VILLAGE_BLEND_START=1.25`, `VILLAGE_BLEND_END=3.0`) to reduce abrupt transitions.
+  - Added staged semantic zoom layers:
+    - regional settlement footprints,
+    - town road-network overlay,
+    - progressive village overlay detail levels (terrain -> buildings -> villagers -> full UI).
+  - Added `smoothRange()`-based transitions and zoom tier labeling (`Continent`, `Region`, `Town`, `Village`).
+  - Updated world render pipeline to draw intermediate detail bands before full village overlay.
+  - Updated village panel behavior to morph in size/opacity across stages rather than appearing fully at once.
+  - Kept continuous navigation model: wheel zoom + drag pan + settlement focus.
+  - Updated HUD/legend and text-state controls to reflect multi-stage automatic zoom transitions.
+- Validation this turn:
+  - JS delimiter/syntax-balance checks passed.
+  - `data/games.json` still validates.
+- Added an additional middle semantic zoom layer: `District` (between Town and Village).
+  - New district renderer (`drawDistrictLayer`) draws local ring roads/spokes and parcel clusters around settlements.
+  - Updated zoom tier labeling to: `Continent -> Region -> Town -> District -> Village`.
+  - Retuned stage timing bands so transitions progress more gradually and village UI appears later.
+  - Updated render pipeline to include district layer before full village-detail blend.
+  - Updated in-canvas guidance text and `render_game_to_text.controls.zoomStages` to include District.
+- District visibility boost pass (after user reported not seeing it):
+  - strengthened district visuals (larger/clearer rings, spokes, parcel blocks, pulse).
+  - added on-canvas scale badge (top-right) showing current semantic tier + zoom percent.
+  - widened district dwell-time by retuning stage bands (`districtStage` now spans a broader blend interval) and delaying full village takeover.
+  - delayed village-focused legend takeover until deeper zoom so District remains visible longer.
+- Zoomed-in navigation polish:
+  - mouse wheel now pans the camera when zoomed in (without modifier keys).
+  - drag-to-pan kept active while zoomed in; movement now uses shared pan-clamp helper.
+  - arrow keys pan the camera in zoomed states for keyboard navigation.
+  - modifier+wheel (`Ctrl/Cmd/Alt` + wheel) still performs zoom for precise scaling while zoomed.
+- Free-camera semantic zoom pass (WorldBox-style navigation):
+  - removed auto settlement re-selection during zoom and pan so camera movement never snaps/locks to towns.
+  - clicking a settlement now selects it without recentering the camera.
+  - adjusted settlement selection fallback logic so nothing is auto-focused unless explicitly selected.
+  - repurposed `V` jump-focus behavior to target the nearest settlement only when no selection exists.
+  - replaced automatic fullscreen village panel takeover with an in-map village detail layer (`drawVillageMapDetail`) that appears progressively at deep zoom.
+  - kept the continuous semantic zoom chain (`Continent -> Region -> Town -> District -> Village`) while preserving free roam at all zoom levels.
+- Validation this turn:
+  - JS delimiter/syntax-balance checks passed.
+- Deep-zoom detail expansion pass:
+  - raised max map zoom from `3.4` to `9.5` and extended village blend end to `3.6` for longer zoom progression.
+  - added extra semantic scale tiers: `Neighborhood`, `Street`, `Block` (badge + HUD tier text).
+  - upgraded `drawVillageMapDetail` to continue adding density at high zoom:
+    - local ring/spoke street structure,
+    - denser building footprints with roof/window details,
+    - animated pedestrians with richer close-up sprites,
+    - persistent farm belts around settlements.
+  - retuned render pipeline so deep zoom reduces marker clutter while emphasizing roads/buildings/people.
+  - updated wheel behavior:
+    - wheel now zooms at all scales,
+    - `Shift+scroll` (or horizontal-heavy scroll) pans when zoomed in,
+    - drag/arrow panning remains active.
+  - updated UI and text controls copy to match new zoom/pan behavior and expanded zoom stage chain.
+- Validation this turn:
+  - JS delimiter/syntax-balance checks passed.
+  - `data/games.json` still validates.
+- Pixel-style inspiration pass (from user reference image):
+  - restyled deep-zoom settlement rendering to feel closer to classic WorldBox village silhouettes.
+  - replaced smoother circular micro-layout cues with stronger tan crossroads/spokes and blockier path geometry.
+  - reworked buildings to warm straw-roof huts with darker wall bands and visible doors; added larger hall structures for bigger settlements.
+  - upgraded farm patches to brown plots with alternating yellow/green crop strips.
+  - added village props and accents (scattered rocks and small campfire highlights) for lived-in texture.
+  - tuned villager sprites toward tiny head/tunic/tool pixels to match retro city bustle readability.
+- Validation this turn:
+  - JS delimiter/syntax-balance checks passed.
+  - `data/games.json` still validates.
+
+## 2026-03-15 (Biome World Lab village overhaul)
+- New request: significantly improve `biome-world-lab.html` village view into a readable, lively diorama with progression and biome styling.
+- Refactored village system into explicit generation/simulation/render phases with requested functions:
+  - `generateVillageLayout(settlement, biome)`
+  - `assignBuildingTypes(settlement)`
+  - `buildPathNetwork(layout)`
+  - `spawnVillageDecor(layout, biome)`
+  - `updateVillagers(dt)`
+  - `renderVillage(layout, ctx)`
+  - `renderVillageHUD(settlement)`
+- Added deterministic village layout planning based on settlement + world seed:
+  - central town hall/plaza placement,
+  - clustered residential rings,
+  - farm plots on outskirts,
+  - storage/workshop/well placement by settlement development tier,
+  - path network with trunk roads, ring roads, and dead-end pruning.
+- Added building variety + development tiers:
+  - town hall, huts, medium houses, large houses, storage, well, workshop, farms,
+  - tier progression driven by population/resource prosperity,
+  - building counts exposed in layout and render_game_to_text.
+- Added biome-aware village themes (palette + density rules):
+  - temperate, desert, tundra/snow, rainforest, savanna,
+  - biome-specific ground/path/farm/water/tree colors,
+  - biome-driven vegetation and decoration density.
+- Added ambient details and animation:
+  - campfire glow, fences, barrels/crates, flowers, grass tufts, laundry lines,
+  - chimney smoke, pond ripples, subtle tree sway,
+  - villager bobbing/facing + optional carried resource dots.
+- Replaced villager wandering with simple POI task AI:
+  - POI graph from homes/farms/hall/well/storage/workshop,
+  - BFS path routing on village walkable network,
+  - task loops (leave home, visit farms/hall/well/workshop, return home) with idle pauses.
+- Reworked village overlay rendering and HUD:
+  - compact info panel for settlement name, biome, population, resources, prosperity tier, building count,
+  - risk alerts (famine/drought/cold stress),
+  - improved readability and clearer road/building silhouettes.
+- Updated controls/interaction:
+  - `V` toggles village mode,
+  - `Esc` exits village to world,
+  - village zoom/pan controls when active (mouse wheel + drag + arrow keys),
+  - button labels now adapt between map mode and village mode,
+  - added village entry pulse/highlight and smooth overlay entry animation.
+- Updated `render_game_to_text` with village development/biome/building/path details for automation visibility.
+- Validation blocker: could not run required Playwright loop from `develop-web-game` skill because this environment still lacks `node`/`npx`.
+- Validation attempt (required by develop-web-game skill): `node "$WEB_GAME_CLIENT" --help` failed with `zsh: command not found: node`; Playwright automation still blocked in this shell.
+
+## 2026-03-16 (Pollinator Patrol)
+- New request: build a complete classroom-friendly HTML5 educational game "Pollinator Patrol" using a 4x4 sprite sheet with bee/flowers/decor/effects frames.
+- Implemented new standalone game file: `pollinator-patrol.html`.
+- Added clear top-of-file sprite-path instructions and easy constants for:
+  - `PLAYER_SPEED`
+  - `INTERACTION_RADIUS`
+  - `NUMBER_OF_FLOWERS`
+  - `WIN_GOAL`
+- Implemented organized code sections:
+  - asset loading
+  - sprite definitions
+  - game state
+  - input
+  - update loop
+  - render loop
+  - UI rendering
+  - effects
+- Added robust sprite-grid slicing (4 columns x 4 rows) with named frame mapping and no hardcoded crop magic.
+- Added missing-sprite behavior:
+  - loading banner while sprite sheet is loading
+  - error banner + fully playable fallback vector art if the sheet is missing
+- Gameplay implemented:
+  - top-down bee movement (WASD + arrows) with smooth floaty acceleration/drag
+  - animated bee flight frames while moving + idle frame when stationary
+  - flower data model with `position`, `type/color`, `hasPollenSource`, and `pollinated`
+  - proximity interaction with `E` and contextual "Press E" prompt
+  - collect pollen from source flowers, carry one load, pollinate a different flower, consume pollen on pollination
+  - pollinated flowers swap to pollinated sprite and trigger sparkle/glow effect
+  - objective tracking to win at 6 pollinated flowers + restart button
+- Educational/UI clarity included:
+  - on-screen instruction panel with requested lines
+  - HUD for `Pollinated Count` and `Pollen Status`
+  - win message explaining pollination and plant growth
+- Added visual polish:
+  - subtle bee bobbing/tilt
+  - pollen burst particles on collection
+  - sparkle + glow bloom on pollination
+  - garden map with grass tiling, hive, rocks, bushes, and bounded play area
+- Added testing hooks:
+  - `window.render_game_to_text()`
+  - `window.advanceTime(ms)`
+- Compatibility pass: replaced direct `ctx.roundRect` dependency with a safe helper fallback for older canvas implementations.
+- Verification this turn:
+  - Static string/feature presence checks passed.
+  - Playwright automation loop could not run because `node`/`npx` are unavailable in this environment (`node missing`, `npx missing`).
+- Next-agent suggestions:
+  - Place the provided pollinator sprite sheet at the configured path (or update `SPRITE_SHEET_PATH`) and run visual gameplay checks.
+  - Once Node is available, run `$WEB_GAME_CLIENT` scenarios for movement, collect/pollinate flow, win condition, and restart behavior.
+- Follow-up sprite hookup (2026-03-16): user supplied pollinator sprite sheet image.
+- Located file at `pollinator patrol/Gemini_Generated_Image_moybqfmoybqfmoyb (3).png` and copied it to `pollinator patrol/pollinator-spritesheet.png` so `pollinator-patrol.html` resolves `SPRITE_SHEET_PATH` without code edits.
+- Pollinator sprite-sheet fix (2026-03-16 follow-up): improved frame slicing for labeled/checkerboard sheets.
+- Root cause: drawing full 4x4 cells from the provided sheet included background + text labels, causing incorrect visuals.
+- Fix: added automatic per-cell sprite bounds detection at load time (`buildAutoFrameMap` + `detectSpriteBounds`) and updated `drawSprite` to render from trimmed frame rectangles.
+- Updated pixel classifier (`isLikelySpritePixel`) to separate colorful/bright sprite pixels from gray background and dark label text.
+- Result: game still uses the exact same 4x4 grid source, but now pulls the icon art from each cell cleanly.
+- Visual hotfix after user screenshot: added deterministic trim-hint fallback for sprite extraction.
+- Root cause likely `getImageData` restrictions/errors on local `file://` load, which left full-cell drawing active (checkerboard + labels visible).
+- `spriteSheet.onload` now tries auto-trim, then falls back to `buildHintFrameMap()` with normalized per-sprite bounds.
+- Removed checkerboard backgrounds by generating a cleaned transparent sprite sheet: `pollinator patrol/pollinator-spritesheet-clean.png`.
+- Updated game to load cleaned sheet by default (`SPRITE_SHEET_PATH: ./pollinator-spritesheet-clean.png`).
+- Added full-cell slicing mode (`USE_FULL_CELL_SLICES: true`) so the cleaned transparent sheet renders directly without trim-hint artifacts.
+- Kept legacy trim modes in code as fallback, but default path now uses clean transparent assets.
+- Visual scale fix after screenshot feedback: disabled full-cell slice mode (`USE_FULL_CELL_SLICES: false`) while keeping cleaned transparent sprite sheet.
+- Game now uses tight per-sprite trimming again (no checkerboard + correct sprite scale inside tiles).
+- Ground-gap visual fix: changed background fill from blue sky gradient to green lawn gradient in `drawBackground`.
+- Reason: cleaned grass tile has transparent edges; green lawn base prevents visible blue grid gaps between tiles.
+- Crop alignment fix after additional screenshot: replaced trim hints with bounds measured from the cleaned transparent sheet.
+- Previous cut-off sprites were caused by using legacy hint coordinates from the original labeled sheet.
+- Started new-sprite production pipeline for Pollinator Patrol extras.
+- Added sprite pack documentation and layout:
+  - `pollinator patrol/pollinator-extras-pack-spec.md`
+  - `pollinator patrol/pollinator-extras-layout.json`
+- Added ready batch prompts for image generation:
+  - `pollinator patrol/pollinator-extras-jobs.jsonl`
+- Added generation + packing scripts:
+  - `pollinator patrol/scripts/generate-pollinator-extras.sh`
+  - `pollinator patrol/scripts/build-pollinator-extras-sheet.py`
+- Added run instructions:
+  - `pollinator patrol/pollinator-extras-pipeline.md`
+- Verified generation command wiring with dry-run (works), but live generation is currently blocked because `OPENAI_API_KEY` is not set in this shell.
+- Processed user-provided extras sheet (`pollinator patrol/unnamed (2).jpg`) to remove checkerboard + text labels.
+- Added cleanup script: `pollinator patrol/scripts/clean-pollinator-extras-sheet.py`.
+- Produced transparent outputs:
+  - `pollinator patrol/pollinator-extras-spritesheet-clean.png`
+  - `pollinator patrol/pollinator-extras-spritesheet-clean-preview.png` (magenta transparency check)
+  - individual cells under `pollinator patrol/output/imagegen/pollinator-extras-clean-cells/`
+- Wired second sprite sheet into `pollinator patrol/pollinator-patrol.html` via `EXTRAS_SHEET_PATH` and added extras asset loader/frame-map handling.
+- Added first gameplay feature set using extras sprites:
+  - Ambient butterflies (`butterfly_blue_*`, `butterfly_pink_*`) that drift and flutter away from the bee.
+  - Combo/reward system with stars (`star_badge`, `honey_drop`, `combo_burst`) and combo popups.
+  - Garden growth progression after pollination using `seedling_stage_1/2/3` and `clover_patch`.
+- UI updates:
+  - Added HUD cards for `Reward Stars` and `Combo`.
+  - Added top reward ribbon using `mission_scroll` + `star_badge`.
+  - Replaced `SRC` tag text on source flowers with clearer `POLLEN`.
+- Extended debug payload (`render_game_to_text`) to include rewards/combo state, butterfly/growth counts, and extras asset readiness.
+- Validation blocker remains for browser automation: Node/Playwright unavailable in this environment (`node missing`).
+- Added a new enriching sound layer to `pollinator patrol/pollinator-patrol.html`.
+- Implemented Web Audio soundscape with:
+  - ambient garden drone + soft wind noise bed,
+  - dynamic ambient mix tied to bee movement,
+  - gentle random chirp motifs,
+  - action cues for collect/pollinate/combo,
+  - win fanfare motif.
+- Added sound UX controls:
+  - HUD `Sound (M)` status card,
+  - `M` key toggle mute/unmute,
+  - pointer/touch/keydown audio unlock handling for browser autoplay rules,
+  - on-screen instruction updated with mute shortcut.
+- Extended debug payload with audio state (`enabled`, `unlocked`).
+
+## 2026-03-17 (Pollinator Patrol Site Integration)
+- New request: add `pollinator patrol` to the steamlab.games portal.
+- Added live portal card in `index.html`:
+  - card slug/id: `pollinator-patrol`
+  - play path: `pollinator%20patrol/pollinator-patrol.html`
+  - class QR link: `class/index.html?game=pollinator-patrol`
+  - updated static homepage counts from 11 to 12 and added Lab Updates bullet.
+- Added live registry entry in `data/games.json`:
+  - slug: `pollinator-patrol`
+  - title: `Pollinator Patrol`
+  - path: `/pollinator%20patrol/pollinator-patrol.html`
+- Added class fallback entry in `class/class.js` for `pollinator-patrol` so class launch resolves if registry fetch fails.
+- Validation this turn:
+  - Confirmed all new references in `index.html`, `data/games.json`, and `class/class.js` via `rg`.
+  - Confirmed homepage now contains 12 cards.
+  - `python3 -m json.tool data/games.json` passed.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-17 (Ten Frame Builder Site Integration)
+- New request: add `ten-frame-builder` to the steamlab.games portal.
+- Added live portal card in `index.html`:
+  - card slug/id: `ten-frame-builder`
+  - play path: `ten-frame-builder/index.html`
+  - class QR link: `class/index.html?game=ten-frame-builder`
+  - updated static homepage counts from 12 to 13 and added Lab Updates bullet.
+- Added live registry entry in `data/games.json`:
+  - slug: `ten-frame-builder`
+  - title: `Ten Frame Builder`
+  - path: `/ten-frame-builder/index.html`
+- Added class fallback entry in `class/class.js` for `ten-frame-builder` so class launch resolves if registry fetch fails.
+- Validation this turn:
+  - Confirmed all new references in `index.html`, `data/games.json`, and `class/class.js` via `rg`.
+  - Confirmed homepage now contains 13 cards.
+  - `python3 -m json.tool data/games.json` passed.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-17 (GA4 Game Page Tracking Rollout)
+- User request: start option 2 for analytics, so game pages also report activity (not just the portal homepage).
+- Added GA4 snippet (`G-PKMRWW0Z40`) to the `<head>` of current live game files:
+  - `pixel-print-classroom.html`
+  - `spin-art-studio.html`
+  - `spirograph-studio.html`
+  - `buoyancy-sandbox.html`
+  - `maze-generator.html`
+  - `quake-lab/index.html`
+  - `math-flight-simulator/index.html`
+  - `balloon-pop-quantities.html`
+  - `greater-gator.html`
+  - `math-cannon.html`
+  - `pollinator patrol/pollinator-patrol.html`
+  - `ten-frame-builder/index.html`
+  - `rube-goldberg copy.html`
+- Validation this turn:
+  - Confirmed GA ID appears in each updated file (`2` matches per file: loader + config).
+  - Spot-checked head blocks in representative files to confirm placement.
+  - Noted one live registry path currently missing on disk: `biome-world-lab.html` (could not be instrumented yet).
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-19 (Fraction Frog Site Integration)
+- New request: add `fraction-frog.html` to Steam Lab Games.
+- Added live portal card in `index.html`:
+  - card slug/id: `fraction-frog`
+  - play path: `fraction-frog.html`
+  - class QR link: `class/index.html?game=fraction-frog`
+  - updated static homepage counts from 13 to 14 and added Lab Updates bullet.
+- Added live registry entry in `data/games.json`:
+  - slug: `fraction-frog`
+  - title: `Fraction Frog`
+  - path: `/fraction-frog.html`
+  - description/theme included to match current registry schema.
+- Added class fallback entry in `class/class.js` for `fraction-frog` with description/tags/theme.
+- Validation this turn:
+  - Confirmed all new references in `index.html`, `data/games.json`, and `class/class.js` via `rg`.
+  - Confirmed homepage now contains 14 cards.
+  - `python3 -m json.tool data/games.json` passed.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-19 (Class Launch Thumbnail Source Fix)
+- User report: Class Launch preview panel still showed placeholder tiles instead of the actual game thumbnails.
+- Updated `class/class.js` thumbnail logic:
+  - primary source now fetches and reuses the matching `.thumb svg` directly from `index.html` by slug (`id`/`data-lab`),
+  - keeps existing `/thumbs/<slug>.svg` lookup as a secondary fallback,
+  - retains the generated placeholder as final fallback only if both sources fail.
+- Expected result: Class Launch preview cards now match the real homepage card artwork (no generic letter placeholder when card art exists).
+
+## 2026-03-19 (Class Launch Pretty URL Update)
+- User request: use clean student links like `steamlab.games/pixel-print` instead of `steamlab.games/go#pixel-print`.
+- Updated `class/class.js` short-link builders:
+  - `buildShortUrl(slug)` now returns `origin + "/" + slug`
+  - `getDisplayShortUrl(slug)` now shows `host + "/" + slug`
+- Updated inline comment in class launch rendering logic from `/go#slug` to `/<slug>`.
+- Validation this turn:
+  - Confirmed class launch short-link functions now emit `/<slug>` format.
+  - Attempted required Playwright client step (`node "$WEB_GAME_CLIENT" --help`), blocked because `node` is not installed (`command not found: node`).
+
+## 2026-03-23
+- Mars game task kickoff prompt: build a fun, imaginative, engaging, educational terraforming game and start implementation immediately with a playable Phase 1.
+- Created new standalone game folder `terraform-mars/` with modular structure:
+  - `terraform-mars/index.html`
+  - `terraform-mars/style.css`
+  - `terraform-mars/script.js`
+- Implemented Phase 1 MVP systems:
+  - Tile-based 20x12 Mars map with five terrain types (rocky, ice, crater, volcanic, canyon)
+  - Building placement for 5 starter structures with terrain validation and resource costs
+  - Resource simulation loop (energy, metals, water ice, carbon, science)
+  - Planet stat progression (temperature, pressure, oxygen, biomass) and population growth model
+  - One random hazard event type: dust storms that reduce solar output temporarily
+  - Win condition with hold timer and lose condition on sustained life-support shortages
+  - Restart, pause, speed controls, fullscreen toggle (`f`), event log, HUD updates
+  - Canvas visual transitions as terraforming improves and basic building art icons
+- Added automation/test hooks for game tooling:
+  - `window.render_game_to_text`
+  - `window.advanceTime(ms)`
+- Registered new live title in catalog:
+  - `data/games.json` entry for slug `terraform-mars` with path `/terraform-mars/`
+- Validation status:
+  - Unable to run Playwright validation loop in this environment because both `node` and `npx` are missing.
+- Next-agent suggestions:
+  - Install Node.js tooling, then run `$WEB_GAME_CLIENT` against `/terraform-mars/` and inspect screenshots + `render_game_to_text` output.
+  - Tune production/upkeep numbers for target first-win time around 12-20 minutes.
+  - Phase 2 priorities: research tree, additional events, richer milestone feedback cards, and stronger educational science callouts.
+- Validation check: `python3 -m json.tool data/games.json` passed after adding Terraform Mars catalog entry.
+- Smoke review: confirmed `terraform-mars/` contains expected Phase 1 files and wiring.
+- Attempted required Playwright client invocation for this turn (`node "$WEB_GAME_CLIENT" --help`); blocked because `node` is not installed (`command not found: node`).
+- Visual overhaul pass completed for `terraform-mars` after user feedback that graphics were poor.
+- Upgraded canvas art direction in `terraform-mars/script.js`:
+  - Layered Mars sky/horizon background with stars and atmospheric haze.
+  - Terrain-specific tile detailing (craters, ice cracks, canyon bands, volcanic speckles, rocky texture).
+  - Terraforming growth overlays with green patch emergence based on local tile progress.
+  - Building network links between adjacent structures for a livelier colony feel.
+  - Reworked building sprites with animation cues (solar shimmer, drill motion, mine conveyor ore dots, research dish sweep, habitat light pulse).
+  - Added atmospheric glow based on oxygen/pressure progress.
+  - Improved dust storm visuals with denser directional streaks and particles.
+  - Added placement preview quality-of-life visuals: valid/invalid hover tint and terrain/status badge.
+- Updated UI theming in `terraform-mars/style.css`:
+  - Stronger panel materials, glow/contrast, and cohesive sci-fi color treatment.
+  - Improved canvas framing and button gradients for a less placeholder look.
+- Added helper utilities used by new render pass (`hash2D`, `pathRoundedRect`).
+- Retried required Playwright client check after visual overhaul (`node "$WEB_GAME_CLIENT" --help`); still blocked because `node` is not installed.
+- Requested upgrade: make the game a much more immersive 3D world with a fullscreen vibe.
+- Reworked `terraform-mars` into an expedition-style fullscreen 2.5D experience:
+  - Replaced flat top-down rendering with perspective terrain projection and rover-style exploration camera.
+  - Added movement controls for exploration (`WASD`, turn with `Q/E`, sprint with `Shift`).
+  - Added full-screen canvas resizing and world camera state (`explorer`) with heading/bob motion.
+  - Added immersive overlays: center crosshair, compass heading pill, dust storm screen FX, atmospheric glow.
+  - Switched building placement flow to minimap interaction while exploring in 3D world view.
+  - Added minimap hover validation/placement status and rover heading marker.
+- Updated UI shell styling for true fullscreen feel:
+  - Canvas occupies the full viewport.
+  - HUD and console panels float as translucent overlays.
+  - Mobile-responsive overlay behavior preserved.
+- Updated copy in `terraform-mars/index.html`:
+  - Title now `Terraform Mars: Expedition View`.
+  - Build helper text now instructs minimap placement.
+- Validation status:
+  - Unable to run Playwright automation because `node` is still unavailable in this environment.
+  - Re-attempted check (`node "$WEB_GAME_CLIENT" --help`) and confirmed same blocker (`command not found: node`).
+- User feedback: prior immersive build felt bad and almost unplayable; requested SimCity-like terraforming simulation gameplay.
+- Replaced expedition/first-person style implementation with a city-builder simulation loop in `terraform-mars/script.js`.
+- New gameplay direction (SimCity-style):
+  - Large top-down tile map with direct click placement.
+  - Strategy camera controls: pan via WASD/arrow keys or right/middle drag, zoom via mouse wheel.
+  - 8-structure economy with clear roles (power, water, mining, research, atmosphere, greenhouse, habitat).
+  - Placement compatibility + resource checks + per-tile efficiency bonuses.
+  - Continuous production/upkeep simulation, terraforming stats, population model, and win/loss logic.
+  - Random operational events (dust storms, equipment failures, solar flares) with gameplay effects.
+  - Utility-link visualization, hover validation, and tile inspector for tactical readability.
+- Updated game copy in `terraform-mars/index.html`:
+  - Title changed to `Terraform Mars: City Builder`.
+  - Build helper text changed back to map-tile placement.
+- Kept fullscreen shell but refocused interaction toward management gameplay instead of exploration.
+- Sanity checks performed:
+  - Basic delimiter balance check on `terraform-mars/script.js` passed (`balance_ok 0`).
+- Retried required Playwright client invocation after city-builder rewrite (`node "$WEB_GAME_CLIENT" --help`); still blocked due missing `node` in environment.
+
+## 2026-03-23 (Terraform Mars visual overhaul)
+- User requested a stronger Civ V-inspired visual direction for `terraform-mars` after finding the prior build not playable enough.
+- Completed hex-map visual pivot in `terraform-mars/script.js`:
+  - Confirmed and repaired rendering breakage (`shadeCssColor` reference issue from an incomplete prior patch).
+  - Kept odd-q hex picking/placement and tuned world layout margins for a more strategic-map presentation.
+  - Retuned map scale to larger readable sectors (`28x18`, `tileSize 34`) for clearer city-building interactions.
+  - Added terrain relief attributes (`elevation`, `fertility`) and used them in rendering for stronger topographic variation.
+  - Reworked terrain shading/textures (ridge highlights, crater rings, vegetation spread, polar ice striations) for a painted strategy-map feel.
+  - Updated utility links/building glyph rendering to read as district infrastructure rather than abstract icons.
+  - Updated inspector/camera badge styling and `render_game_to_text` coordinate note to hex-grid wording.
+- Re-skinned `terraform-mars/style.css` into a full-screen parchment/bronze strategy UI:
+  - Serif typographic stack, warm metallic palette, map-like panel styling, and stronger visual hierarchy.
+  - Mission bar, HUD, side controls, overlay card, logs, and buttons now share a cohesive grand-strategy aesthetic.
+  - Preserved responsive behavior for mobile breakpoints.
+- Updated `terraform-mars/index.html` title/header text to `Terraform Mars: Grand Strategy` and `Steam Lab Planetary Command`.
+- Known validation blocker remains: JavaScript runtime tooling (`node`/`npx`) is not available in this environment, so Playwright visual/gameplay verification could not be run.
+- Next-agent suggestions:
+  - Run the Playwright loop from the `develop-web-game` skill once Node is available.
+  - Evaluate balance/readability after the larger tile scale (resource pacing may now feel different due to map capacity changes).
+  - If requested, add a true isometric camera mode and low-poly 3D building meshes while preserving current mechanics.
+
+## 2026-03-23 (Betta Buddy Virtual Pet)
+- New request: build an HTML5 virtual pet inspired by Mopy-style fish care, but centered on a betta fish.
+- Implemented new standalone game page: `betta-buddy.html`.
+- Core pet loop included:
+  - Five decaying care stats (`hunger`, `happiness`, `cleanliness`, `energy`, `health`).
+  - Care actions: Feed, Play Laser, Clean Tank, Toggle Sleep, Medicine.
+  - Fish behavior AI priorities: eat pellets, chase laser toy, or free-swim wander; sleep mode slows movement.
+  - Health impact logic based on neglected stats, with recovery when conditions are consistently good.
+- Visual/style pass:
+  - Canvas aquarium scene with animated water gradients, sunbeams, plants, bubbles, sparkles, and sand bed.
+  - Custom drawn betta fish with flowing fins and sleep-state visual cues.
+  - UI dashboard with responsive stat meters and mood/speech bubble feedback.
+- Persistence:
+  - Added local autosave/load (`localStorage`, key `bettaBuddySaveV1`) with periodic autosave and unload save.
+- Testing hooks for automation:
+  - Added `window.render_game_to_text()` with coordinate note + current interaction state.
+  - Added deterministic `window.advanceTime(ms)` stepping hook.
+- Catalog integration:
+  - Added live game entry to `data/games.json`:
+    - slug: `betta-buddy`
+    - path: `/betta-buddy.html`
+- Validation this turn:
+  - `python3 -m json.tool data/games.json` passed.
+  - Confirmed required interaction functions/hooks exist in `betta-buddy.html`.
+- Runtime automation blocker remains:
+  - `node` and `npx` are unavailable in this environment, so the required Playwright loop via `$WEB_GAME_CLIENT` could not be executed.
+- Next-agent suggestion:
+  - Once Node/npm are available, run `$WEB_GAME_CLIENT` against `/betta-buddy.html` and verify screenshots/text-state for feed, play-laser drag, sleep toggle, medicine cooldown, and low-health visual warning behavior.
+- Betta Buddy sprite-rendering upgrade:
+  - Added auto sprite loader with fallback draw path in `betta-buddy.html`.
+  - Sprite candidates now auto-checked at startup:
+    - `assets/betta-sprite-sheet.png`
+    - `assets/betta-spritesheet.png`
+    - `betta-sprite-sheet.png`
+    - `betta-spritesheet.png`
+  - Added row-based animation selection for a 10x6 sheet (idle/cruise/dart/turn/flare/rest).
+  - Added lightweight sheet cleanup pass to key out checkerboard/divider/text artifacts for rough draft sheets.
+  - Preserved existing vector fish renderer as fallback when no sprite file is present.
+  - Added sprite metadata to `window.render_game_to_text()` payload (`ready/source/cols/rows/loadError`).
+  - Added UI note indicating where to place the realistic sprite sheet.
+- Environment note: chat attachment image could not be auto-located in local filesystem; manual file placement is still required to activate the sprite path.
+- Betta Buddy sprite UX upgrade (no file-path setup needed):
+  - Added `Load Sprite Sheet` UI button and hidden file input.
+  - Added image paste support (`Cmd/Ctrl+V`) and drag-drop support on the tank canvas.
+  - Added custom sprite persistence in `localStorage` (`bettaBuddySpriteDataUrlV1`) so uploads survive page reload.
+  - Loader order now: saved uploaded sprite -> known file paths -> vector fallback.
+  - Updated notes text to explain upload/paste/drop workflow.
+- Betta sprite-sheet cleanup fix:
+  - Generated `assets/betta-sprite-sheet-clean.png` from the user-provided labeled sheet by extracting fish components and repacking to a clean 10x6 transparent grid.
+  - Updated `betta-buddy.html` sprite candidate priority to load the clean sheet first.
+  - Added robust fallback behavior for environments where canvas pixel reads fail (e.g., file-origin restrictions), so sprite animation can still render.
+- Additional sprite cleanup refinement:
+  - Reprocessed `assets/betta-sprite-sheet-clean.png` to preserve dark body detail while removing checker/background artifacts.
+  - Removed stray artifact in final rest frame and created cache-busting variant `assets/betta-sprite-sheet-clean-v2.png`.
+  - Updated sprite candidate priority in `betta-buddy.html` to load `betta-sprite-sheet-clean-v2.png` first.
+- Nose clipping fix:
+  - Relaxed alpha bound detection threshold in sprite-frame bounds (`>2` instead of `>20`).
+  - Added +4px safety expansion around computed bounds before drawing.
+  - Goal: preserve antialias/detail at fish nose and fin edges, preventing hard crop cutoffs.
+- Runtime nose-clipping root-cause fix:
+  - Added `shouldRunRuntimeSheetCleanup(image, sourceLabel)`.
+  - Clean/transparent sprite sheets now skip destructive runtime keying.
+  - Runtime cleanup now only applies to opaque/raw sheets; prevents dark nose pixels from being erased during larger animation frames.
+- Betta Buddy stabilization pass (spaz/clipping/fullscreen polish):
+  - Replaced mixed sprite loading paths with a single fixed-cell frame builder (`buildSheetFrames`) that always preserves per-cell dimensions plus transparent padding.
+  - Added optional non-destructive cell cleanup (`cleanupSpriteCell`) for non-transparent uploads while keeping frame bounds constant.
+  - Removed per-frame bounding-box trimming and legacy raw/trimmed branch flags, preventing frame-anchor jitter and nose cropping from tight bounds.
+  - Added smoother animation state machine: speed EMA + row hysteresis + short row lock to stop rapid row flicker.
+  - Smoothed fish locomotion/turning with arrival-speed scaling and stricter facing hysteresis.
+  - Added larger dynamic movement margins based on sprite render size to prevent fish edge clipping during larger poses.
+  - Kept Mopy fullscreen behavior (`Mopy View` + `f`) and existing CSS fullscreen mode.
+- Validation note: runtime Playwright loop still blocked in this environment because `node`/`npx` are unavailable.
+- Sprite preference tweak: startup now restores saved uploaded sprite first, then falls back to built-in candidate files.
