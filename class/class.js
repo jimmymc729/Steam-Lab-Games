@@ -11,6 +11,23 @@
   var previewThumb = document.getElementById("previewThumb");
   var gameDescription = document.getElementById("gameDescription");
   var gameTags = document.getElementById("gameTags");
+  var AI_THUMBS = {
+    "pixel-print": "../thumbs/pixel-print.jpg",
+    "spin-art-studio": "../thumbs/spin-art-studio.jpg",
+    "spiro-spark-studio": "../thumbs/spiro-spark-studio.jpg",
+    "maze-generator": "../thumbs/maze-generator.jpg",
+    "quake-lab": "../thumbs/quake-lab.jpg",
+    "rube-goldberg-machine": "../thumbs/rube-goldberg-machine.jpg",
+    "sky-math-academy": "../thumbs/sky-math-academy.jpg",
+    "balloon-pop-quantities": "../thumbs/balloon-pop-quantities.jpg",
+    "greater-gator": "../thumbs/greater-gator.jpg",
+    "math-cannon": "../thumbs/math-cannon.jpg",
+    "pollinator-patrol": "../thumbs/pollinator-patrol.jpg",
+    "ten-frame-builder": "../thumbs/ten-frame-builder.jpg",
+    "fraction-frog": "../thumbs/fraction-frog.jpg",
+    "moonjet-cavern": "../thumbs/moonjet-cavern.jpg",
+    "connect-4": "../thumbs/connect-4.jpg"
+  };
 
   var params = new URLSearchParams(window.location.search);
   var slugParam = params.get("game");
@@ -146,6 +163,7 @@
   function renderPreviewThumb(game) {
     if (!previewThumb) return;
     var slug = (game && game.slug) || "";
+    var aiThumbSrc = slug ? AI_THUMBS[slug] : "";
 
     function showPlaceholder(g) {
       var themeColors = {
@@ -168,32 +186,44 @@
         '</svg>';
     }
 
+    function showSvgFallback() {
+      fetchPortalThumbSvg(slug).then(function (svgMarkup) {
+        if (svgMarkup) {
+          previewThumb.innerHTML = svgMarkup;
+          return;
+        }
+
+        var legacyImg = document.createElement("img");
+        legacyImg.alt = (game && game.title) || "Experiment preview";
+        legacyImg.src = "../thumbs/" + slug + ".svg";
+        legacyImg.onerror = function () {
+          showPlaceholder(game);
+        };
+        previewThumb.innerHTML = "";
+        previewThumb.appendChild(legacyImg);
+      }).catch(function () {
+        showPlaceholder(game);
+      });
+    }
+
     if (!slug) {
       showPlaceholder(game);
       return;
     }
 
-    fetchPortalThumbSvg(slug).then(function (svgMarkup) {
-      if (svgMarkup) {
-        previewThumb.innerHTML = svgMarkup;
-        return;
-      }
-
-      // Fallback to /thumbs/ if present
+    if (aiThumbSrc) {
       var img = document.createElement("img");
       img.alt = (game && game.title) || "Experiment preview";
-      img.src = "../thumbs/" + slug + ".svg";
-      img.style.width = "100%";
-      img.style.height = "auto";
-      img.style.display = "block";
+      img.src = aiThumbSrc + "?v=20260901";
       img.onerror = function () {
-        showPlaceholder(game);
+        showSvgFallback();
       };
       previewThumb.innerHTML = "";
       previewThumb.appendChild(img);
-    }).catch(function () {
-      showPlaceholder(game);
-    });
+      return;
+    }
+
+    showSvgFallback();
   }
 
   function renderTags(tags) {

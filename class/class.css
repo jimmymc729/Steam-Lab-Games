@@ -134,6 +134,14 @@ body {
   height: auto;
 }
 
+.preview-thumb img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 300 / 154;
+  height: auto;
+  object-fit: cover;
+}
+
 .preview-thumb .placeholder-thumb {
   width: 100%;
   aspect-ratio: 300 / 154;
