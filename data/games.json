@@ -135,6 +135,33 @@
     "theme": "science"
   },
   {
+    "slug": "terraform-mars",
+    "title": "Terraform Mars",
+    "path": "/terraform-mars/",
+    "status": "live",
+    "tags": ["science", "space", "strategy", "simulation", "single-player"],
+    "description": "Build a Mars outpost tile by tile, survive dust storms, and raise temperature, pressure, oxygen, and population.",
+    "theme": "science"
+  },
+  {
+    "slug": "betta-buddy",
+    "title": "Betta Buddy",
+    "path": "/betta-buddy.html",
+    "status": "live",
+    "tags": ["virtual-pet", "simulation", "care", "touch", "single-player"],
+    "description": "Care for a colorful betta fish by feeding, cleaning, playing, and managing its daily mood and health.",
+    "theme": "sim"
+  },
+  {
+    "slug": "connect-4",
+    "title": "Connect 4 Showdown",
+    "path": "/connect-4/",
+    "status": "live",
+    "tags": ["strategy", "2 player", "board game", "smartboard", "single-device"],
+    "description": "Two-player smartboard classic for side-by-side play. Drop, stack, and line up four to win.",
+    "theme": "logic"
+  },
+  {
     "slug": "ant-colony",
     "title": "Ant Colony Lab",
     "path": "/games/ant-colony-lab/",
