@@ -51,12 +51,13 @@
     { slug: "rube-goldberg-machine", title: "Rube Goldberg Machine Builder", path: "/rube-goldberg%20copy.html", status: "live", description: "Chain ramps, dominoes, and gadgets to create a machine.", tags: ["engineering", "physics"], theme: "engineering" },
     { slug: "biome-world-lab", title: "Biome World Lab", path: "/biome-world-lab.html", status: "live", description: "Explore Earth's biomes by adjusting temperature and rainfall.", tags: ["science", "geography"], theme: "science" },
     { slug: "moonjet-cavern", title: "Moonjet Cavern", path: "/games/moonjet-cavern/", status: "coming_soon", description: "Pilot an astronaut through rocky caverns.", tags: ["arcade", "physics"], theme: "sim" },
-    { slug: "connect-4", title: "Connect 4 Showdown", path: "/connect%204/index.html", status: "live", description: "Two-player smartboard classic with an AI opponent — drop, stack, and line up four to win.", tags: ["strategy", "2 player"], theme: "logic" }
+    { slug: "connect-4", title: "Connect 4 Showdown", path: "/connect-4/", status: "live", description: "Two-player smartboard classic for side-by-side play — drop, stack, and line up four to win.", tags: ["strategy", "2 player"], theme: "logic" }
   ];
 
   var qrInstance = null;
   var activeUrl = "";
   var activeShortUrl = "";
+  var activeLaunchUrl = "";
   var activeTitle = "STEAM Lab Experiment";
   var activeStatus = "live";
   var activeSlug = "";
@@ -272,7 +273,7 @@
   }
 
   async function copyLink() {
-    var text = activeShortUrl || activeUrl;
+    var text = activeLaunchUrl || activeShortUrl || activeUrl;
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
@@ -321,7 +322,7 @@
     }
 
     window.addEventListener("resize", function () {
-      if (activeUrl) renderQr(activeUrl);
+      if (activeLaunchUrl || activeUrl) renderQr(activeLaunchUrl || activeUrl);
     });
 
     document.addEventListener("keydown", function (event) {
@@ -343,6 +344,7 @@
 
       // Build short URL
       activeShortUrl = buildShortUrl(activeSlug);
+      activeLaunchUrl = activeShortUrl || activeUrl;
 
       if (gameTitleEl) gameTitleEl.textContent = activeTitle;
       if (gameDescription) gameDescription.textContent = payload.description;
@@ -366,11 +368,12 @@
         }
       }
 
-      // QR always encodes the direct game URL so students land straight in the game
-      renderQr(activeUrl);
+      // Prefer the clean slug URL so the QR, copy link, and open button
+      // all point to the same canonical launch route.
+      renderQr(activeLaunchUrl);
 
       if (openBtn && !openBtn.classList.contains("disabled")) {
-        openBtn.href = activeUrl;
+        openBtn.href = activeLaunchUrl;
       }
 
       if (activeStatus !== "live") {
