@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../favicon.png?v=20260901" type="image/png" sizes="256x256" />
+  <link rel="shortcut icon" href="../favicon.png?v=20260901" type="image/png" />
+  <link rel="apple-touch-icon" href="../favicon.png?v=20260901" />
+  <title>Launching… | STEAM Lab Games</title>
+  <style>
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: "Nunito Sans", sans-serif; background: #f4faff; color: #12263a; }
+    .msg { text-align: center; padding: 2rem; }
+    .msg h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
+    .msg p { margin: 0; color: #516a80; }
+    .msg a { color: #2563eb; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="msg">
+    <h1>Launching experiment…</h1>
+    <p>If nothing happens, <a href="../index.html">go to the portal</a>.</p>
+  </div>
+  <script>
+    (function () {
+      var GAMES = [
+        { slug: "pixel-print", path: "/pixel-print-classroom.html" },
+        { slug: "spin-art-studio", path: "/spin-art-studio.html" },
+        { slug: "spiro-spark-studio", path: "/spirograph-studio.html" },
+        { slug: "buoyancy-sandbox", path: "/buoyancy-sandbox.html" },
+        { slug: "maze-generator", path: "/maze-generator.html" },
+        { slug: "quake-lab", path: "/quake-lab/index.html" },
+        { slug: "sky-math-academy", path: "/math-flight-simulator/" },
+        { slug: "balloon-pop-quantities", path: "/balloon-pop-quantities.html" },
+        { slug: "greater-gator", path: "/greater-gator.html" },
+        { slug: "math-cannon", path: "/math-cannon.html" },
+        { slug: "pollinator-patrol", path: "/pollinator%20patrol/pollinator-patrol.html" },
+        { slug: "ten-frame-builder", path: "/ten-frame-builder/index.html" },
+        { slug: "rube-goldberg-machine", path: "/rube-goldberg%20copy.html" },
+        { slug: "biome-world-lab", path: "/biome-world-lab.html" },
+        { slug: "moonjet-cavern", path: "/games/moonjet-cavern/" },
+        { slug: "connect-4", path: "/connect-4/" }
+      ];
+
+      var hash = (location.hash || "").replace(/^#/, "").toLowerCase().trim();
+      if (!hash) return;
+
+      var match = GAMES.find(function (g) { return g.slug === hash; });
+      if (match) {
+        var base = location.protocol === "file:"
+          ? location.href.replace(/\/go\/.*$/, "")
+          : location.origin;
+        location.replace(base + match.path);
+      }
+    })();
+  </script>
+</body>
+</html>

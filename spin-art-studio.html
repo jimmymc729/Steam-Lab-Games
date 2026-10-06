@@ -1,8 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PKMRWW0Z40"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PKMRWW0Z40');
+  </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="icon" href="favicon.png?v=20260901" type="image/png" sizes="256x256" />
+  <link rel="shortcut icon" href="favicon.png?v=20260901" type="image/png" />
+  <link rel="apple-touch-icon" href="favicon.png?v=20260901" />
 <title>Spin Art Studio</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -397,17 +408,6 @@ canvas#spinCanvas {
 .spin-indicator.visible { opacity: 1; }
 
 /* Print styles */
-@media print {
-  body * { visibility: hidden; }
-  #printArea, #printArea * { visibility: visible; }
-  #printArea {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-  }
-}
-
 #printArea {
   display: none;
   padding: 40px;
@@ -440,22 +440,19 @@ canvas#spinCanvas {
   border: 2px solid #CCC;
 }
 
-#printArea .question {
-  margin: 20px 0;
-  padding: 16px;
-  border: 1px solid #CCC;
-  border-radius: 8px;
-}
+@page { margin: 0.4in; }
 
-#printArea .question h4 {
-  font-size: 1rem;
-  margin-bottom: 12px;
-}
-
-#printArea .question .lines {
-  border-bottom: 1px solid #DDD;
-  height: 30px;
-  margin-bottom: 4px;
+@media print {
+  body { background: #fff !important; }
+  #app { display: none !important; }
+  #printArea { padding: 0; }
+  #printArea .print-artwork { margin: 12px 0 0; }
+  /* Fill the page: 7in fits both US Letter and A4 with room for the name line */
+  #printArea .print-artwork img {
+    width: 7in;
+    height: auto;
+    max-width: 100%;
+  }
 }
 
 /* Responsive */
@@ -593,18 +590,6 @@ canvas#spinCanvas {
   </div>
   <div class="print-artwork">
     <img id="printImg" alt="Spin Art">
-  </div>
-  <div class="question">
-    <h4>1. How did spin speed change your design?</h4>
-    <div class="lines"></div>
-    <div class="lines"></div>
-    <div class="lines"></div>
-  </div>
-  <div class="question">
-    <h4>2. What happened when you dropped paint near the center vs. near the edge?</h4>
-    <div class="lines"></div>
-    <div class="lines"></div>
-    <div class="lines"></div>
   </div>
 </div>
 

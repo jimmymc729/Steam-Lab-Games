@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="favicon.png?v=20260901" type="image/png" sizes="256x256" />
+  <link rel="shortcut icon" href="favicon.png?v=20260901" type="image/png" />
+  <link rel="apple-touch-icon" href="favicon.png?v=20260901" />
+  <title>Betta Buddy | Virtual Pet</title>
+  <style>
+    :root {
+      --reef-1: #072d4f;
+      --reef-2: #0d5f83;
+      --reef-3: #2bb0a8;
+      --sand: #d9c396;
+      --panel: rgba(8, 32, 54, 0.82);
+      --panel-edge: rgba(170, 222, 245, 0.36);
+      --ink: #f4fbff;
+      --good: #67da97;
+      --warn: #ffcc5f;
+      --bad: #ff7f7f;
+      --glow: #6ce9ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 16%, rgba(124, 213, 255, 0.36), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(95, 255, 233, 0.22), transparent 32%),
+        linear-gradient(180deg, #031322 0%, #041b31 26%, #0b3458 100%);
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 2px solid var(--panel-edge);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.4rem, 3.8vw, 2.1rem);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      font-size: 0.9rem;
+      opacity: 0.88;
+    }
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 5px 11px;
+      font-size: 0.84rem;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .dashboard {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(5, minmax(130px, 1fr));
+    }
+
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 14px;
+      padding: 8px;
+      min-height: 72px;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      opacity: 0.9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .meter {
+      width: 100%;
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, var(--good), #b6f6cd);
+      transition: width 220ms linear, background 220ms linear;
+    }
+
+    .scene {
+      position: relative;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 2px solid var(--panel-edge);
+      background: #03203a;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: transparent;
+      touch-action: none;
+    }
+
+    .speech {
+      position: absolute;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%);
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.93);
+      color: #123;
+      font-weight: 700;
+      text-align: center;
+      font-size: 0.9rem;
+      min-width: 180px;
+      max-width: calc(100% - 20px);
+      border: 1px solid rgba(8, 32, 54, 0.16);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+    }
+
+    .controls {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(7, minmax(120px, 1fr));
+    }
+
+    .btn {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07));
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .btn:hover,
+    .btn:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.42);
+      background: linear-gradient(180deg, rgba(108, 233, 255, 0.26), rgba(255, 255, 255, 0.08));
+      outline: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn.sleeping {
+      background: linear-gradient(180deg, rgba(169, 188, 255, 0.35), rgba(133, 164, 233, 0.16));
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, rgba(95, 236, 197, 0.42), rgba(70, 159, 212, 0.2));
+      border-color: rgba(164, 255, 228, 0.45);
+    }
+
+    .notes {
+      background: var(--panel);
+      border: 1px solid var(--panel-edge);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      opacity: 0.95;
+    }
+
+    @media (max-width: 920px) {
+      .dashboard {
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+      }
+
+      .controls {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+      }
+    }
+
+    body.mopy-mode {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    body.mopy-mode .app {
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      gap: 0;
+    }
+
+    body.mopy-mode .header,
+    body.mopy-mode .dashboard,
+    body.mopy-mode .notes {
+      display: none;
+    }
+
+    body.mopy-mode .scene {
+      border-radius: 0;
+      border: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #041c31;
+    }
+
+    body.mopy-mode canvas {
+      width: min(100vw, calc(100vh * 1.7778));
+      height: auto;
+      max-height: 100vh;
+      aspect-ratio: 16 / 9;
+    }
+
+    body.mopy-mode .controls {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 12px;
+      width: min(96vw, 980px);
+      z-index: 20;
+      grid-template-columns: repeat(7, minmax(100px, 1fr));
+      padding: 0 8px;
+    }
+
+    @media (max-width: 980px) {
+      body.mopy-mode .controls {
+        grid-template-columns: repeat(4, minmax(90px, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <div>
+        <h1 class="title">Betta Buddy</h1>
+        <p class="subtitle">A cozy Mopy-style virtual pet, now with a dramatic betta fish.</p>
+      </div>
+      <div class="meta">
+        <span class="pill" id="age-pill">Age: 0 days</span>
+        <span class="pill" id="mode-pill">Mode: Awake</span>
+        <span class="pill" id="save-pill">Autosave on</span>
+      </div>
+    </section>
+
+    <section class="dashboard" id="dashboard"></section>
+
+    <section class="scene">
+      <div class="speech" id="speech">Tap Feed to start your fish day.</div>
+      <canvas id="tank" width="960" height="540" aria-label="Betta fish tank"></canvas>
+    </section>
+
+    <section class="controls">
+      <button class="btn" id="feed-btn">Feed</button>
+      <button class="btn" id="play-btn">Play Laser</button>
+      <button class="btn" id="clean-btn">Clean Tank</button>
+      <button class="btn" id="rest-btn">Toggle Sleep</button>
+      <button class="btn" id="med-btn">Medicine</button>
+      <button class="btn" id="load-sprite-btn">Load Sprite Sheet</button>
+      <button class="btn primary" id="mopy-view-btn">Mopy View</button>
+    </section>
+    <input id="sprite-input" type="file" accept="image/png,image/webp,image/jpeg" hidden>
+
+    <section class="notes">
+      Click or drag inside the tank while Play Laser is active. Keep hunger, cleanliness, and energy balanced to protect health.
+      Use <code>Load Sprite Sheet</code>, paste an image, or drop one on the tank. You can still use <code>assets/betta-sprite-sheet.png</code>.
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("tank");
+      const ctx = canvas.getContext("2d");
+      const speechEl = document.getElementById("speech");
+      const ageEl = document.getElementById("age-pill");
+      const modeEl = document.getElementById("mode-pill");
+      const saveEl = document.getElementById("save-pill");
+      const restBtn = document.getElementById("rest-btn");
+      const spriteInput = document.getElementById("sprite-input");
+      const loadSpriteBtn = document.getElementById("load-sprite-btn");
+      const mopyViewBtn = document.getElementById("mopy-view-btn");
+      const sceneEl = document.querySelector(".scene");
+      const dashboard = document.getElementById("dashboard");
+
+      const STORAGE_KEY = "bettaBuddySaveV1";
+      const SPRITE_STORAGE_KEY = "bettaBuddySpriteDataUrlV1";
+      const FIXED_STEP = 1 / 60;
+      const fishSprite = {
+        source: null,
+        image: null,
+        ready: false,
+        cols: 10,
+        rows: 6,
+        cellW: 0,
+        cellH: 0,
+        frames: [],
+        loadError: null
+      };
+      const spriteCandidates = [
+        "assets/betta-sprite-sheet-clean-v2.png",
+        "assets/betta-sprite-sheet-clean.png",
+        "assets/betta-sprite-sheet.png",
+        "assets/betta-spritesheet.png",
+        "betta-sprite-sheet.png",
+        "betta-spritesheet.png"
+      ];
+
+      const statModel = [
+        { key: "hunger", label: "Hunger" },
+        { key: "happiness", label: "Happiness" },
+        { key: "cleanliness", label: "Cleanliness" },
+        { key: "energy", label: "Energy" },
+        { key: "health", label: "Health" }
+      ];
+
+      for (const stat of statModel) {
+        const card = document.createElement("article");
+        card.className = "stat";
+        card.innerHTML = `
+          <div class="stat-label">
+            <span>${stat.label}</span>
+            <span id="${stat.key}-value">0%</span>
+          </div>
+          <div class="meter"><div class="meter-fill" id="${stat.key}-fill"></div></div>
+        `;
+        dashboard.appendChild(card);
+      }
+
+      const state = {
+        elapsed: 0,
+        speech: "Tap Feed to start your fish day.",
+        speechTimer: 0,
+        stats: {
+          hunger: 76,
+          happiness: 82,
+          cleanliness: 87,
+          energy: 80,
+          health: 96
+        },
+        fish: {
+          x: 470,
+          y: 280,
+          vx: 8,
+          vy: 0,
+          facing: 1,
+          facingWanted: 1,
+          swimTimer: 0,
+          turnCooldown: 0,
+          targetX: 620,
+          targetY: 260,
+          colorShift: 335
+        },
+        anim: {
+          row: 0,
+          frame: 0,
+          clock: 0,
+          rowLock: 0,
+          speedEma: 0
+        },
+        bubbles: [],
+        food: [],
+        sparkles: [],
+        toy: {
+          active: false,
+          timer: 0,
+          x: 480,
+          y: 240
+        },
+        sleeping: false,
+        lastMoodTick: 0,
+        saveTimer: 0,
+        cleanFlash: 0,
+        medicineCooldown: 0
+      };
+
+      const pointer = {
+        inside: false,
+        x: canvas.width * 0.5,
+        y: canvas.height * 0.45
+      };
+
+      const rand = (min, max) => Math.random() * (max - min) + min;
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+      function applyLoadedSprite(img, sourceLabel) {
+        fishSprite.image = img;
+        fishSprite.source = sourceLabel;
+        fishSprite.cellW = Math.max(1, Math.floor(img.width / fishSprite.cols));
+        fishSprite.cellH = Math.max(1, Math.floor(img.height / fishSprite.rows));
+        fishSprite.frames = [];
+        try {
+          const runCleanup = shouldRunRuntimeSheetCleanup(img, sourceLabel);
+          fishSprite.frames = buildSheetFrames(img, fishSprite.cols, fishSprite.rows, {
+            pad: 12,
+            runCleanup
+          });
+          fishSprite.ready = fishSprite.frames.some((row) => row.length > 0);
+          fishSprite.loadError = fishSprite.ready ? null : "Sprite parsing failed";
+          if (fishSprite.ready) {
+            state.anim.frame = 0;
+            state.anim.clock = 0;
+          }
+          return fishSprite.ready;
+        } catch (err) {
+          fishSprite.ready = false;
+          fishSprite.loadError = "Sprite parsing failed";
+          return false;
+        }
+      }
+
+      function shouldRunRuntimeSheetCleanup(image, sourceLabel) {
+        const label = String(sourceLabel || "").toLowerCase();
+        if (label.includes("clean")) {
+          return false;
+        }
+        try {
+          const probe = document.createElement("canvas");
+          probe.width = Math.max(1, Math.min(64, image.width));
+          probe.height = Math.max(1, Math.min(64, image.height));
+          const pctx = probe.getContext("2d", { willReadFrequently: true });
+          pctx.drawImage(image, 0, 0, probe.width, probe.height);
+          const data = pctx.getImageData(0, 0, probe.width, probe.height).data;
+          for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 250) {
+              // Already has useful alpha, so skip destructive cleanup.
+              return false;
+            }
+          }
+        } catch (err) {
+          // If probing fails, avoid aggressive cleanup to protect sprite details.
+          return false;
+        }
+        return true;
+      }
+
+      function cleanupSpriteCell(imageData) {
+        const { data, width, height } = imageData;
+        for (let y = 0; y < height; y++) {
+          const yRatio = y / Math.max(1, height);
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const a = data[idx + 3];
+            if (a < 8) continue;
+            const neutral = Math.abs(r - g) < 14 && Math.abs(g - b) < 14;
+            const brightNeutral = neutral && r > 118 && g > 118 && b > 118;
+            const darkLabelText = yRatio < 0.45 && neutral && r < 92 && g < 92 && b < 92;
+            if (brightNeutral || darkLabelText) {
+              data[idx + 3] = 0;
+            }
+          }
+        }
+      }
+
+      function buildSheetFrames(image, cols, rows, options = {}) {
+        const pad = Math.max(0, options.pad ?? 12);
+        const runCleanup = Boolean(options.runCleanup);
+        const cellW = Math.max(1, Math.floor(image.width / cols));
+        const cellH = Math.max(1, Math.floor(image.height / rows));
+        const packed = [];
+        const workCanvas = document.createElement("canvas");
+        workCanvas.width = cellW;
+        workCanvas.height = cellH;
+        const workCtx = workCanvas.getContext("2d", { willReadFrequently: true });
+        let canReadPixels = runCleanup;
+
+        for (let row = 0; row < rows; row++) {
+          const rowFrames = [];
+          for (let col = 0; col < cols; col++) {
+            const sx = col * cellW;
+            const sy = row * cellH;
+            workCtx.clearRect(0, 0, cellW, cellH);
+            workCtx.drawImage(image, sx, sy, cellW, cellH, 0, 0, cellW, cellH);
+
+            if (runCleanup && canReadPixels) {
+              try {
+                const imageData = workCtx.getImageData(0, 0, cellW, cellH);
+                cleanupSpriteCell(imageData);
+                workCtx.putImageData(imageData, 0, 0);
+              } catch (err) {
+                canReadPixels = false;
+              }
+            }
+
+            const frameCanvas = document.createElement("canvas");
+            frameCanvas.width = cellW + pad * 2;
+            frameCanvas.height = cellH + pad * 2;
+            const fctx = frameCanvas.getContext("2d");
+            fctx.drawImage(workCanvas, 0, 0, cellW, cellH, pad, pad, cellW, cellH);
+            rowFrames.push({
+              canvas: cloneFrameCanvas(frameCanvas),
+              bounds: {
+                x: 0,
+                y: 0,
+                w: frameCanvas.width,
+                h: frameCanvas.height
+              }
+            });
+          }
+          packed.push(rowFrames);
+        }
+        return packed;
+      }
+
+      function loadFishSpriteFromUrl(src, sourceLabel, onDone) {
+        const img = new Image();
+        img.onload = () => {
+          const ok = applyLoadedSprite(img, sourceLabel);
+          onDone(ok);
+        };
+        img.onerror = () => {
+          onDone(false);
+        };
+        img.src = src;
+      }
+
+      function persistSpriteDataUrl(dataUrl) {
+        try {
+          localStorage.setItem(SPRITE_STORAGE_KEY, dataUrl);
+        } catch (err) {
+          // Keep running even if storage quota is full.
+        }
+      }
+
+      function readPersistedSpriteDataUrl() {
+        try {
+          return localStorage.getItem(SPRITE_STORAGE_KEY);
+        } catch (err) {
+          return null;
+        }
+      }
+
+      function handleSpriteFile(file) {
+        if (!file || !file.type || !file.type.startsWith("image/")) {
+          setSpeech("That file is not an image sprite sheet.", 2.6);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = typeof reader.result === "string" ? reader.result : "";
+          if (!dataUrl) {
+            setSpeech("Could not read sprite image data.", 2.6);
+            return;
+          }
+          loadFishSpriteFromUrl(dataUrl, `uploaded:${file.name || "sprite"}`, (ok) => {
+            if (!ok) {
+              setSpeech("Sprite load failed. Try another export.", 2.6);
+              return;
+            }
+            persistSpriteDataUrl(dataUrl);
+            setSpeech("Sprite sheet loaded. Real-fish mode active.", 2.8);
+          });
+        };
+        reader.onerror = () => {
+          setSpeech("Could not open that image file.", 2.6);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function firstImageFileFromEvent(event) {
+        const files = event?.dataTransfer?.files || event?.target?.files;
+        if (files && files.length) {
+          for (const file of files) {
+            if (file.type && file.type.startsWith("image/")) return file;
+          }
+        }
+        const items = event?.clipboardData?.items || [];
+        for (const item of items) {
+          if (item.type && item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (file) return file;
+          }
+        }
+        return null;
+      }
+
+      function tryCandidateSprites(onFail) {
+        let candidateIndex = 0;
+        const tryNext = () => {
+          if (candidateIndex >= spriteCandidates.length) {
+            if (typeof onFail === "function") {
+              onFail();
+            } else {
+              fishSprite.loadError = "No sprite sheet found";
+              fishSprite.ready = false;
+            }
+            return;
+          }
+          const src = spriteCandidates[candidateIndex++];
+          loadFishSpriteFromUrl(src, src, (ok) => {
+            if (ok) {
+              setSpeech("Real betta sprite loaded. Looking sharp.", 2.6);
+            } else {
+              tryNext();
+            }
+          });
+        };
+        tryNext();
+      }
+
+      function loadFishSpriteSheet() {
+        const persisted = readPersistedSpriteDataUrl();
+        if (persisted) {
+          loadFishSpriteFromUrl(persisted, "uploaded:saved", (ok) => {
+            if (ok) {
+              setSpeech("Saved custom sprite sheet restored.", 2.6);
+              return;
+            }
+            tryCandidateSprites(() => {
+              fishSprite.loadError = "No sprite sheet found";
+              fishSprite.ready = false;
+            });
+          });
+          return;
+        }
+        tryCandidateSprites(() => {
+          fishSprite.loadError = "No sprite sheet found";
+          fishSprite.ready = false;
+        });
+      }
+
+      function cloneFrameCanvas(sourceCanvas) {
+        const copy = document.createElement("canvas");
+        copy.width = sourceCanvas.width;
+        copy.height = sourceCanvas.height;
+        const copyCtx = copy.getContext("2d");
+        copyCtx.drawImage(sourceCanvas, 0, 0);
+        return copy;
+      }
+
+      function pickFishAnimationRow(speedMag, currentRow) {
+        if (state.sleeping) return 5;
+        if (state.toy.active) return 2;
+        if (state.food.length > 0) {
+          return speedMag > 62 ? 2 : 1;
+        }
+        if (currentRow === 2) {
+          if (speedMag > 50) return 2;
+          if (speedMag > 35) return 1;
+          return 0;
+        }
+        if (currentRow === 1) {
+          if (speedMag > 76) return 2;
+          if (speedMag > 26) return 1;
+          return 0;
+        }
+        if (speedMag > 84) return 2;
+        if (speedMag > 40) return 1;
+        return 0;
+      }
+
+      function setSpeech(text, duration = 3.8) {
+        state.speech = text;
+        state.speechTimer = duration;
+        speechEl.textContent = text;
+      }
+
+      function applyStatDelta(key, amount) {
+        state.stats[key] = clamp(state.stats[key] + amount, 0, 100);
+      }
+
+      function updateDashboard() {
+        for (const stat of statModel) {
+          const value = Math.round(state.stats[stat.key]);
+          const fill = document.getElementById(`${stat.key}-fill`);
+          const label = document.getElementById(`${stat.key}-value`);
+          fill.style.width = `${value}%`;
+          label.textContent = `${value}%`;
+
+          if (value < 30) {
+            fill.style.background = "linear-gradient(90deg, var(--bad), #ffb0b0)";
+          } else if (value < 60) {
+            fill.style.background = "linear-gradient(90deg, var(--warn), #ffe39c)";
+          } else {
+            fill.style.background = "linear-gradient(90deg, var(--good), #b6f6cd)";
+          }
+        }
+
+        ageEl.textContent = `Age: ${Math.floor(state.elapsed / 120)} days`;
+        modeEl.textContent = `Mode: ${state.sleeping ? "Sleeping" : "Awake"}`;
+        restBtn.classList.toggle("sleeping", state.sleeping);
+      }
+
+      function autoMoodMessage() {
+        const { hunger, happiness, cleanliness, energy, health } = state.stats;
+        if (health < 28) {
+          setSpeech("I do not feel well... please help me.", 3.2);
+          return;
+        }
+        if (state.sleeping) {
+          setSpeech("Zzz... drifting in soft bubbles.", 3);
+          return;
+        }
+        if (hunger < 32) {
+          setSpeech("Tiny stomach alert. Pellets, please.", 3.1);
+          return;
+        }
+        if (cleanliness < 35) {
+          setSpeech("The water feels murky. Can we clean?", 3.2);
+          return;
+        }
+        if (energy < 30) {
+          setSpeech("Slow fins today. A nap sounds nice.", 3.1);
+          return;
+        }
+        if (happiness < 35) {
+          setSpeech("Can we play laser tag in here?", 3.1);
+          return;
+        }
+        setSpeech("Fins flowing. Vibes are immaculate.", 3);
+      }
+
+      function feedFish() {
+        for (let i = 0; i < 7; i++) {
+          state.food.push({
+            x: rand(120, canvas.width - 120),
+            y: rand(48, 90),
+            vy: rand(22, 40),
+            drift: rand(-10, 10),
+            life: 26,
+            wobble: rand(0, Math.PI * 2)
+          });
+        }
+        applyStatDelta("hunger", 18);
+        applyStatDelta("happiness", 4);
+        applyStatDelta("cleanliness", -7);
+        setSpeech("Pellet rain! Best part of the day.");
+      }
+
+      function playLaser() {
+        state.toy.active = true;
+        state.toy.timer = 15;
+        state.toy.x = pointer.x;
+        state.toy.y = pointer.y;
+        applyStatDelta("happiness", 12);
+        applyStatDelta("energy", -8);
+        setSpeech("Laser mode engaged. Watch these turns.");
+      }
+
+      function cleanTank() {
+        applyStatDelta("cleanliness", 30);
+        applyStatDelta("happiness", 6);
+        state.cleanFlash = 0.9;
+        for (let i = 0; i < 26; i++) {
+          state.sparkles.push({
+            x: rand(80, canvas.width - 80),
+            y: rand(60, canvas.height - 70),
+            vx: rand(-18, 18),
+            vy: rand(-30, 24),
+            life: rand(0.6, 1.2),
+            maxLife: 1.2
+          });
+        }
+        setSpeech("Fresh water swirl. Gorgeous.");
+      }
+
+      function toggleSleep() {
+        state.sleeping = !state.sleeping;
+        if (state.sleeping) {
+          state.toy.active = false;
+          state.toy.timer = 0;
+          setSpeech("Lights down. Time to float and rest.");
+        } else {
+          setSpeech("Back on patrol. Fins up.");
+        }
+      }
+
+      function giveMedicine() {
+        if (state.medicineCooldown > 0) {
+          setSpeech("Medicine is cooling down for a moment.", 2.4);
+          return;
+        }
+        applyStatDelta("health", 20);
+        applyStatDelta("happiness", -3);
+        state.medicineCooldown = 20;
+        setSpeech("Medicinal snack accepted. Thank you.");
+      }
+
+      function targetNearestFood(fish) {
+        if (!state.food.length) {
+          return false;
+        }
+        let closest = null;
+        let bestDist = Number.POSITIVE_INFINITY;
+        for (const pellet of state.food) {
+          const dx = pellet.x - fish.x;
+          const dy = pellet.y - fish.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < bestDist) {
+            bestDist = d2;
+            closest = pellet;
+          }
+        }
+        if (closest) {
+          fish.targetX = closest.x;
+          fish.targetY = closest.y;
+          return true;
+        }
+        return false;
+      }
+
+      function getFishRenderMetrics(row = state.anim.row) {
+        const frameRow = fishSprite.frames[row] || [];
+        const frame = frameRow.length ? frameRow[state.anim.frame % frameRow.length] : null;
+        const srcW = frame?.bounds?.w || Math.max(1, fishSprite.cellW || 96);
+        const srcH = frame?.bounds?.h || Math.max(1, fishSprite.cellH || 64);
+        const aspect = srcW / srcH || 1;
+        const targetWidth = state.sleeping ? 236 : 248;
+        const targetHeight = targetWidth / aspect;
+        return { targetWidth, targetHeight };
+      }
+
+      function updateFish(dt) {
+        const fish = state.fish;
+        fish.turnCooldown = Math.max(0, fish.turnCooldown - dt);
+
+        if (state.sleeping) {
+          fish.targetX = canvas.width * 0.3;
+          fish.targetY = canvas.height * 0.62;
+        } else if (targetNearestFood(fish)) {
+          // Food targeting is highest priority.
+        } else if (state.toy.active) {
+          fish.targetX = state.toy.x;
+          fish.targetY = state.toy.y;
+        } else {
+          fish.swimTimer -= dt;
+          if (fish.swimTimer <= 0) {
+            fish.swimTimer = rand(1.8, 3.6);
+            fish.targetX = rand(110, canvas.width - 110);
+            fish.targetY = rand(120, canvas.height - 120);
+          }
+        }
+
+        const dx = fish.targetX - fish.x;
+        const dy = fish.targetY - fish.y;
+        const dist = Math.hypot(dx, dy) || 1;
+        const baseSpeed = state.sleeping ? 24 : state.toy.active ? 95 : 68;
+        const desiredSpeed = state.sleeping
+          ? Math.min(baseSpeed, dist * 0.95 + 5)
+          : Math.min(baseSpeed, dist * 1.35 + 14);
+        const speed = Math.max(8, desiredSpeed);
+        const desiredVX = (dx / dist) * speed;
+        const desiredVY = (dy / dist) * speed;
+        const steer = state.sleeping ? 1.3 : 2.6;
+
+        fish.vx += (desiredVX - fish.vx) * clamp(steer * dt, 0, 1);
+        fish.vy += (desiredVY - fish.vy) * clamp(steer * dt, 0, 1);
+        fish.x += fish.vx * dt;
+        fish.y += fish.vy * dt;
+
+        const renderMetrics = getFishRenderMetrics();
+        const marginX = Math.max(136, renderMetrics.targetWidth * 0.72);
+        const marginTop = Math.max(104, renderMetrics.targetHeight * 0.62);
+        const marginBottom = Math.max(84, renderMetrics.targetHeight * 0.54);
+        fish.x = clamp(fish.x, marginX, canvas.width - marginX);
+        fish.y = clamp(fish.y, marginTop, canvas.height - marginBottom);
+
+        if (Math.abs(fish.vx) > 34 && Math.abs(dx) > 18) {
+          fish.facingWanted = Math.sign(fish.vx);
+        }
+
+        if (fish.turnCooldown <= 0 && fish.facingWanted !== fish.facing) {
+          fish.facing = fish.facingWanted;
+          fish.turnCooldown = 0.42;
+        }
+
+        for (let i = state.food.length - 1; i >= 0; i--) {
+          const pellet = state.food[i];
+          const biteDist = Math.hypot(pellet.x - fish.x, pellet.y - fish.y);
+          if (biteDist < 24) {
+            state.food.splice(i, 1);
+            applyStatDelta("hunger", 6);
+            applyStatDelta("happiness", 1.8);
+            state.sparkles.push({
+              x: fish.x,
+              y: fish.y,
+              vx: rand(-22, 22),
+              vy: rand(-24, 16),
+              life: 0.45,
+              maxLife: 0.45
+            });
+          }
+        }
+      }
+
+      function updateFishAnimation(dt) {
+        const anim = state.anim;
+        const speedMag = Math.hypot(state.fish.vx, state.fish.vy);
+        anim.speedEma += (speedMag - anim.speedEma) * clamp(dt * 4.5, 0, 1);
+        anim.rowLock = Math.max(0, anim.rowLock - dt);
+        const row = pickFishAnimationRow(anim.speedEma, anim.row);
+        if (anim.row !== row && anim.rowLock <= 0) {
+          anim.row = row;
+          anim.frame = 0;
+          anim.clock = 0;
+          anim.rowLock = 0.2;
+        }
+
+        const activeRow = anim.row;
+        const fpsByRow = [7, 9, 12, 9, 6, 4];
+        const frameRow = fishSprite.frames[activeRow] || [];
+        const frameCount = Math.max(1, frameRow.length || fishSprite.cols || 10);
+        anim.clock += dt * (fpsByRow[activeRow] || 8);
+        while (anim.clock >= 1) {
+          anim.clock -= 1;
+          anim.frame = (anim.frame + 1) % frameCount;
+        }
+      }
+
+      function updateDecays(dt) {
+        const decay = state.sleeping
+          ? { hunger: -0.9, happiness: -0.2, cleanliness: -0.45, energy: 4.8 }
+          : { hunger: -1.8, happiness: -0.95, cleanliness: -0.85, energy: -0.9 };
+
+        applyStatDelta("hunger", decay.hunger * dt);
+        applyStatDelta("happiness", decay.happiness * dt);
+        applyStatDelta("cleanliness", decay.cleanliness * dt);
+        applyStatDelta("energy", decay.energy * dt);
+
+        if (state.toy.active) {
+          applyStatDelta("happiness", 1.45 * dt);
+          applyStatDelta("energy", -2.4 * dt);
+        }
+
+        const { hunger, cleanliness, energy, happiness } = state.stats;
+
+        let healthDelta = 0;
+        if (hunger < 20) healthDelta -= (20 - hunger) * 0.12;
+        if (cleanliness < 26) healthDelta -= (26 - cleanliness) * 0.11;
+        if (!state.sleeping && energy < 18) healthDelta -= (18 - energy) * 0.1;
+        if (happiness < 22) healthDelta -= (22 - happiness) * 0.08;
+        if (hunger > 60 && cleanliness > 55 && energy > 55 && happiness > 55) {
+          healthDelta += 0.62;
+        }
+        applyStatDelta("health", healthDelta * dt);
+      }
+
+      function updateParticles(dt) {
+        if (Math.random() < 0.13) {
+          state.bubbles.push({
+            x: rand(40, canvas.width - 40),
+            y: canvas.height - rand(18, 44),
+            r: rand(3, 10),
+            vy: rand(32, 58),
+            drift: rand(-9, 9),
+            life: rand(4, 8)
+          });
+        }
+
+        for (let i = state.bubbles.length - 1; i >= 0; i--) {
+          const b = state.bubbles[i];
+          b.life -= dt;
+          b.y -= b.vy * dt;
+          b.x += Math.sin((state.elapsed + i) * 1.4) * b.drift * dt;
+          if (b.y < -12 || b.life <= 0) {
+            state.bubbles.splice(i, 1);
+          }
+        }
+
+        for (let i = state.food.length - 1; i >= 0; i--) {
+          const pellet = state.food[i];
+          pellet.life -= dt;
+          pellet.wobble += dt * 4.2;
+          pellet.x += Math.sin(pellet.wobble) * pellet.drift * dt;
+          pellet.y += pellet.vy * dt;
+          pellet.vy = clamp(pellet.vy + dt * 6, 18, 52);
+          if (pellet.y > canvas.height - 28 || pellet.life <= 0) {
+            state.food.splice(i, 1);
+            applyStatDelta("cleanliness", -0.35);
+          }
+        }
+
+        for (let i = state.sparkles.length - 1; i >= 0; i--) {
+          const s = state.sparkles[i];
+          s.life -= dt;
+          s.x += s.vx * dt;
+          s.y += s.vy * dt;
+          s.vy += 20 * dt;
+          if (s.life <= 0) {
+            state.sparkles.splice(i, 1);
+          }
+        }
+      }
+
+      function updateToy(dt) {
+        if (!state.toy.active) {
+          return;
+        }
+        state.toy.timer -= dt;
+        if (pointer.inside) {
+          state.toy.x += (pointer.x - state.toy.x) * clamp(8 * dt, 0, 1);
+          state.toy.y += (pointer.y - state.toy.y) * clamp(8 * dt, 0, 1);
+        }
+        state.toy.x = clamp(state.toy.x, 60, canvas.width - 60);
+        state.toy.y = clamp(state.toy.y, 70, canvas.height - 70);
+
+        if (state.toy.timer <= 0) {
+          state.toy.active = false;
+          state.toy.timer = 0;
+          setSpeech("Laser session complete. So many spins.", 2.8);
+        }
+      }
+
+      function saveState() {
+        const payload = {
+          elapsed: state.elapsed,
+          stats: state.stats,
+          sleeping: state.sleeping,
+          fish: {
+            x: state.fish.x,
+            y: state.fish.y,
+            colorShift: state.fish.colorShift
+          }
+        };
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+          saveEl.textContent = "Autosave on";
+        } catch (err) {
+          saveEl.textContent = "Autosave blocked";
+        }
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== "object") return;
+          if (typeof parsed.elapsed === "number") {
+            state.elapsed = clamp(parsed.elapsed, 0, 999999);
+          }
+          if (parsed.stats && typeof parsed.stats === "object") {
+            for (const key of Object.keys(state.stats)) {
+              if (typeof parsed.stats[key] === "number") {
+                state.stats[key] = clamp(parsed.stats[key], 0, 100);
+              }
+            }
+          }
+          if (typeof parsed.sleeping === "boolean") {
+            state.sleeping = parsed.sleeping;
+          }
+          if (parsed.fish && typeof parsed.fish === "object") {
+            if (typeof parsed.fish.x === "number") state.fish.x = clamp(parsed.fish.x, 70, canvas.width - 70);
+            if (typeof parsed.fish.y === "number") state.fish.y = clamp(parsed.fish.y, 92, canvas.height - 66);
+            if (typeof parsed.fish.colorShift === "number") state.fish.colorShift = parsed.fish.colorShift;
+          }
+        } catch (err) {
+          saveEl.textContent = "Save file unreadable";
+        }
+      }
+
+      function drawTankBackground() {
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        if (state.sleeping) {
+          gradient.addColorStop(0, "#051423");
+          gradient.addColorStop(0.55, "#0b3656");
+          gradient.addColorStop(1, "#123f60");
+        } else {
+          gradient.addColorStop(0, "#0a4467");
+          gradient.addColorStop(0.5, "#1a7ea0");
+          gradient.addColorStop(1, "#2cb8b0");
+        }
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.globalAlpha = state.sleeping ? 0.08 : 0.14;
+        for (let i = 0; i < 5; i++) {
+          const beamX = 80 + i * 180 + Math.sin(state.elapsed * 0.25 + i) * 30;
+          ctx.beginPath();
+          ctx.moveTo(beamX, 0);
+          ctx.lineTo(beamX + 90, canvas.height);
+          ctx.lineTo(beamX + 170, canvas.height);
+          ctx.lineTo(beamX + 34, 0);
+          ctx.closePath();
+          ctx.fillStyle = "#b9ecff";
+          ctx.fill();
+        }
+        ctx.restore();
+
+        const floorY = canvas.height - 56;
+        ctx.fillStyle = "rgba(3, 26, 41, 0.2)";
+        ctx.fillRect(0, floorY - 14, canvas.width, 14);
+
+        const sand = ctx.createLinearGradient(0, floorY, 0, canvas.height);
+        sand.addColorStop(0, "#d9c396");
+        sand.addColorStop(1, "#bea87d");
+        ctx.fillStyle = sand;
+        ctx.fillRect(0, floorY, canvas.width, canvas.height - floorY);
+
+        for (let i = 0; i < 22; i++) {
+          const stemX = 38 + i * 44;
+          const sway = Math.sin(state.elapsed * 1.8 + i * 1.3) * 5;
+          ctx.strokeStyle = i % 2 ? "#1f7f68" : "#258f72";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(stemX, floorY + 4);
+          ctx.quadraticCurveTo(stemX + sway, floorY - 36, stemX + sway * 0.8, floorY - 90 - (i % 3) * 12);
+          ctx.stroke();
+        }
+      }
+
+      function drawBubbles() {
+        for (const b of state.bubbles) {
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(222, 246, 255, 0.24)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function drawFood() {
+        for (const pellet of state.food) {
+          ctx.beginPath();
+          ctx.arc(pellet.x, pellet.y, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#b6632c";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(pellet.x - 1.1, pellet.y - 1.2, 1.2, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(255, 217, 175, 0.8)";
+          ctx.fill();
+        }
+      }
+
+      function drawSparkles() {
+        for (const s of state.sparkles) {
+          const alpha = clamp(s.life / s.maxLife, 0, 1);
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.translate(s.x, s.y);
+          ctx.rotate(state.elapsed * 6 + s.x * 0.01);
+          ctx.fillStyle = "#f4fffd";
+          ctx.beginPath();
+          ctx.moveTo(0, -4);
+          ctx.lineTo(1.8, -1);
+          ctx.lineTo(4, 0);
+          ctx.lineTo(1.8, 1);
+          ctx.lineTo(0, 4);
+          ctx.lineTo(-1.8, 1);
+          ctx.lineTo(-4, 0);
+          ctx.lineTo(-1.8, -1);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawToy() {
+        if (!state.toy.active) {
+          return;
+        }
+
+        const pulse = 3 + Math.sin(state.elapsed * 10) * 1.4;
+        ctx.beginPath();
+        ctx.arc(state.toy.x, state.toy.y, pulse + 6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 70, 70, 0.2)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(state.toy.x, state.toy.y, pulse, 0, Math.PI * 2);
+        ctx.fillStyle = "#ff4a4a";
+        ctx.fill();
+      }
+
+      function drawFishVector() {
+        const fish = state.fish;
+        const finWave = Math.sin(state.elapsed * (state.sleeping ? 2.6 : 7.2)) * (state.sleeping ? 3 : 8);
+        const tailWave = Math.sin(state.elapsed * (state.sleeping ? 2.2 : 9)) * (state.sleeping ? 8 : 16);
+
+        ctx.save();
+        ctx.translate(fish.x, fish.y);
+        ctx.scale(fish.facing, 1);
+
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = "#001320";
+        ctx.beginPath();
+        ctx.ellipse(0, 44, 88, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = `hsla(${fish.colorShift}, 86%, 62%, 0.7)`;
+        ctx.beginPath();
+        ctx.moveTo(-10, -4);
+        ctx.quadraticCurveTo(-120, -42 - finWave, -150, -8);
+        ctx.quadraticCurveTo(-122, 38 + finWave, -15, 22);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = `hsl(${fish.colorShift + 18}, 82%, 61%)`;
+        ctx.beginPath();
+        ctx.moveTo(22, -34);
+        ctx.quadraticCurveTo(64, -72 - finWave * 0.5, 44, -16);
+        ctx.quadraticCurveTo(38, -2, 16, -10);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = `hsl(${fish.colorShift - 14}, 82%, 58%)`;
+        ctx.beginPath();
+        ctx.moveTo(8, 26);
+        ctx.quadraticCurveTo(66, 70 + finWave * 0.6, 30, 24);
+        ctx.quadraticCurveTo(12, 14, 8, 26);
+        ctx.fill();
+
+        const bodyGrad = ctx.createLinearGradient(-60, -30, 70, 40);
+        bodyGrad.addColorStop(0, "#f4feff");
+        bodyGrad.addColorStop(0.36, `hsl(${fish.colorShift + 8}, 88%, 65%)`);
+        bodyGrad.addColorStop(1, `hsl(${fish.colorShift - 22}, 82%, 45%)`);
+        ctx.fillStyle = bodyGrad;
+        ctx.beginPath();
+        ctx.ellipse(18, 0, 85, 50, -0.05, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.34)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-20, -18);
+        ctx.quadraticCurveTo(30, -28 + finWave * 0.2, 88, -10);
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(70, -9, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#1d2f46";
+        ctx.beginPath();
+        ctx.arc(73, -9, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.beginPath();
+        ctx.arc(75, -11, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-58, -4);
+        ctx.quadraticCurveTo(-122, tailWave * 0.18, -151, -5);
+        ctx.quadraticCurveTo(-120, 13, -58, 11);
+        ctx.stroke();
+
+        if (state.sleeping) {
+          const zY = -52 + Math.sin(state.elapsed * 2.2) * 5;
+          ctx.fillStyle = "rgba(240, 250, 255, 0.9)";
+          ctx.font = "bold 24px Trebuchet MS";
+          ctx.fillText("Z", 56, zY);
+        }
+
+        ctx.restore();
+      }
+
+      function drawFishSprite() {
+        const fish = state.fish;
+        const row = state.anim.row;
+        const frameRow = fishSprite.frames[row] || [];
+        if (!frameRow.length && !fishSprite.image) {
+          drawFishVector();
+          return;
+        }
+
+        const frameCount = Math.max(1, frameRow.length || fishSprite.cols || 10);
+        const frameIndex = state.anim.frame % frameCount;
+
+        const fishBob = Math.sin(state.elapsed * (state.sleeping ? 2.4 : 5.6)) * (state.sleeping ? 2.4 : 4.2);
+        const tilt = clamp(fish.vy / 240, -0.18, 0.18);
+
+        const src = frameRow.length
+          ? frameRow[frameIndex].bounds
+          : {
+              x: frameIndex * fishSprite.cellW,
+              y: row * fishSprite.cellH,
+              w: fishSprite.cellW,
+              h: fishSprite.cellH
+            };
+        const frameCanvas = frameRow.length ? frameRow[frameIndex].canvas : fishSprite.image;
+        const { targetWidth, targetHeight } = getFishRenderMetrics(row);
+
+        ctx.save();
+        ctx.translate(fish.x, fish.y + fishBob);
+        ctx.rotate(tilt * fish.facing);
+        ctx.scale(fish.facing, 1);
+
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = "#001320";
+        ctx.beginPath();
+        ctx.ellipse(0, 44, 88, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.drawImage(
+          frameCanvas,
+          src.x,
+          src.y,
+          src.w,
+          src.h,
+          -targetWidth * 0.5,
+          -targetHeight * 0.5,
+          targetWidth,
+          targetHeight
+        );
+
+        if (state.sleeping) {
+          const zY = -52 + Math.sin(state.elapsed * 2.2) * 5;
+          ctx.fillStyle = "rgba(240, 250, 255, 0.9)";
+          ctx.font = "bold 24px Trebuchet MS";
+          ctx.fillText("Z", 56, zY);
+        }
+
+        ctx.restore();
+      }
+
+      function drawFish() {
+        if (fishSprite.ready) {
+          drawFishSprite();
+        } else {
+          drawFishVector();
+        }
+      }
+
+      function drawHudOverlay() {
+        if (state.cleanFlash > 0) {
+          ctx.save();
+          ctx.globalAlpha = state.cleanFlash * 0.35;
+          ctx.fillStyle = "#baf8ff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        }
+
+        if (state.stats.health < 25) {
+          ctx.save();
+          ctx.globalAlpha = 0.18 + Math.sin(state.elapsed * 6) * 0.07;
+          ctx.fillStyle = "#ff2f2f";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        }
+      }
+
+      function render() {
+        drawTankBackground();
+        drawBubbles();
+        drawFood();
+        drawToy();
+        drawFish();
+        drawSparkles();
+        drawHudOverlay();
+      }
+
+      function update(dt) {
+        state.elapsed += dt;
+        state.speechTimer -= dt;
+        state.cleanFlash = Math.max(0, state.cleanFlash - dt * 1.4);
+        state.medicineCooldown = Math.max(0, state.medicineCooldown - dt);
+
+        updateDecays(dt);
+        updateToy(dt);
+        updateParticles(dt);
+        updateFish(dt);
+        updateFishAnimation(dt);
+
+        if (state.speechTimer <= 0 && state.elapsed - state.lastMoodTick > 4.5) {
+          state.lastMoodTick = state.elapsed;
+          autoMoodMessage();
+        }
+
+        state.saveTimer += dt;
+        if (state.saveTimer > 5.5) {
+          state.saveTimer = 0;
+          saveState();
+        }
+
+        updateDashboard();
+      }
+
+      function pointerToCanvas(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * canvas.width;
+        const y = ((event.clientY - rect.top) / rect.height) * canvas.height;
+        return { x: clamp(x, 0, canvas.width), y: clamp(y, 0, canvas.height) };
+      }
+
+      canvas.addEventListener("pointerenter", () => {
+        pointer.inside = true;
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        pointer.inside = false;
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        const p = pointerToCanvas(event);
+        pointer.x = p.x;
+        pointer.y = p.y;
+      });
+
+      canvas.addEventListener("pointerdown", (event) => {
+        const p = pointerToCanvas(event);
+        pointer.x = p.x;
+        pointer.y = p.y;
+
+        if (state.toy.active) {
+          state.toy.x = p.x;
+          state.toy.y = p.y;
+          applyStatDelta("happiness", 0.8);
+          return;
+        }
+
+        const fish = state.fish;
+        if (Math.hypot(p.x - fish.x, p.y - fish.y) < 96) {
+          applyStatDelta("happiness", 2);
+          setSpeech("Boop acknowledged. Tiny spin incoming.", 2.2);
+        }
+      });
+
+      document.getElementById("feed-btn").addEventListener("click", feedFish);
+      document.getElementById("play-btn").addEventListener("click", playLaser);
+      document.getElementById("clean-btn").addEventListener("click", cleanTank);
+      document.getElementById("rest-btn").addEventListener("click", toggleSleep);
+      document.getElementById("med-btn").addEventListener("click", giveMedicine);
+      let mopyMode = false;
+      function setMopyMode(enabled) {
+        mopyMode = enabled;
+        document.body.classList.toggle("mopy-mode", enabled);
+        mopyViewBtn.textContent = enabled ? "Exit Mopy" : "Mopy View";
+      }
+      async function toggleMopyMode() {
+        if (!mopyMode) {
+          setMopyMode(true);
+          if (sceneEl && sceneEl.requestFullscreen) {
+            try {
+              await sceneEl.requestFullscreen();
+            } catch (err) {
+              // Keep CSS mopy mode even if fullscreen is blocked.
+            }
+          }
+          return;
+        }
+        setMopyMode(false);
+        if (document.fullscreenElement === sceneEl) {
+          try {
+            await document.exitFullscreen();
+          } catch (err) {
+            // Ignore.
+          }
+        }
+      }
+      mopyViewBtn.addEventListener("click", () => {
+        toggleMopyMode();
+      });
+      document.addEventListener("fullscreenchange", () => {
+        if (document.fullscreenElement !== sceneEl && mopyMode) {
+          setMopyMode(false);
+        }
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key.toLowerCase() === "f") {
+          event.preventDefault();
+          toggleMopyMode();
+        }
+      });
+      loadSpriteBtn.addEventListener("click", () => {
+        spriteInput.click();
+      });
+      spriteInput.addEventListener("change", (event) => {
+        const file = firstImageFileFromEvent(event);
+        if (file) {
+          handleSpriteFile(file);
+        } else {
+          setSpeech("Choose an image file for the sprite sheet.", 2.4);
+        }
+        spriteInput.value = "";
+      });
+
+      window.addEventListener("paste", (event) => {
+        const file = firstImageFileFromEvent(event);
+        if (!file) return;
+        event.preventDefault();
+        handleSpriteFile(file);
+      });
+
+      window.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      window.addEventListener("drop", (event) => {
+        event.preventDefault();
+      });
+
+      canvas.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+      canvas.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const file = firstImageFileFromEvent(event);
+        if (file) {
+          handleSpriteFile(file);
+          return;
+        }
+        setSpeech("Drop an image file to load your fish sprite.", 2.4);
+      });
+
+      window.addEventListener("beforeunload", saveState);
+
+      window.render_game_to_text = () => {
+        const payload = {
+          coordinateSystem: "origin top-left; x increases right; y increases down; canvas 960x540",
+          mode: state.sleeping ? "sleeping" : "awake",
+          speech: state.speech,
+          stats: {
+            hunger: Math.round(state.stats.hunger),
+            happiness: Math.round(state.stats.happiness),
+            cleanliness: Math.round(state.stats.cleanliness),
+            energy: Math.round(state.stats.energy),
+            health: Math.round(state.stats.health)
+          },
+          pet: {
+            x: Number(state.fish.x.toFixed(1)),
+            y: Number(state.fish.y.toFixed(1)),
+            vx: Number(state.fish.vx.toFixed(1)),
+            vy: Number(state.fish.vy.toFixed(1)),
+            facing: state.fish.facing,
+            facingWanted: state.fish.facingWanted,
+            turnCooldown: Number(state.fish.turnCooldown.toFixed(2)),
+            targetX: Number(state.fish.targetX.toFixed(1)),
+            targetY: Number(state.fish.targetY.toFixed(1))
+          },
+          animation: {
+            row: state.anim.row,
+            frame: state.anim.frame,
+            mode: mopyMode ? "mopy-fullscreen" : "standard"
+          },
+          sprite: {
+            ready: fishSprite.ready,
+            source: fishSprite.source,
+            cols: fishSprite.cols,
+            rows: fishSprite.rows,
+            loadError: fishSprite.loadError,
+            uploadedSaved: Boolean(readPersistedSpriteDataUrl())
+          },
+          toy: {
+            active: state.toy.active,
+            timer: Number(state.toy.timer.toFixed(1)),
+            x: Number(state.toy.x.toFixed(1)),
+            y: Number(state.toy.y.toFixed(1))
+          },
+          objects: {
+            foodCount: state.food.length,
+            bubbleCount: state.bubbles.length,
+            sparkleCount: state.sparkles.length
+          }
+        };
+        return JSON.stringify(payload);
+      };
+
+      window.advanceTime = (ms) => {
+        const steps = Math.max(1, Math.round(ms / (1000 / 60)));
+        for (let i = 0; i < steps; i++) {
+          update(FIXED_STEP);
+        }
+        render();
+      };
+
+      loadFishSpriteSheet();
+      loadState();
+      updateDashboard();
+      render();
+
+      let last = performance.now();
+      let accumulator = 0;
+
+      function frame(now) {
+        let delta = (now - last) / 1000;
+        last = now;
+        delta = Math.min(delta, 0.05);
+        accumulator += delta;
+
+        while (accumulator >= FIXED_STEP) {
+          update(FIXED_STEP);
+          accumulator -= FIXED_STEP;
+        }
+
+        render();
+        requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>

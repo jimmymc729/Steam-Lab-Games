@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="../favicon.png?v=20260901" type="image/png" sizes="256x256" />
+  <link rel="shortcut icon" href="../favicon.png?v=20260901" type="image/png" />
+  <link rel="apple-touch-icon" href="../favicon.png?v=20260901" />
+    <title>Terraform Mars: Grand Strategy</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="title-bar">
+        <div>
+          <p class="eyebrow">Steam Lab Planetary Command</p>
+          <h1>Terraform Mars: Grand Strategy</h1>
+        </div>
+        <div class="mission-chip" id="missionStatus">Pre-Launch</div>
+      </header>
+
+      <section class="hud" aria-label="resources and terraforming stats">
+        <div class="hud-group">
+          <h2>Resources</h2>
+          <p>Energy <span id="res-energy">0</span></p>
+          <p>Metals <span id="res-metals">0</span></p>
+          <p>Water Ice <span id="res-waterIce">0</span></p>
+          <p>Carbon <span id="res-carbon">0</span></p>
+          <p>Science <span id="res-science">0</span></p>
+        </div>
+        <div class="hud-group">
+          <h2>Planet</h2>
+          <p>Temperature <span id="stat-temperature">0</span></p>
+          <p>Pressure <span id="stat-pressure">0</span></p>
+          <p>Oxygen <span id="stat-oxygen">0</span></p>
+          <p>Biomass <span id="stat-biomass">0</span></p>
+          <p>Population <span id="stat-population">0</span></p>
+        </div>
+      </section>
+
+      <main class="main-layout">
+        <section class="canvas-panel" aria-label="mars map">
+          <canvas id="gameCanvas" width="960" height="576"></canvas>
+          <div id="overlay" class="overlay" role="dialog" aria-live="polite"></div>
+        </section>
+
+        <aside class="side-panel" aria-label="game controls and event log">
+          <section class="panel controls-panel">
+            <h2>Mission Controls</h2>
+            <div class="button-row">
+              <button id="pauseBtn" type="button">Pause</button>
+              <button id="restartBtn" type="button">Restart</button>
+            </div>
+            <div class="button-row">
+              <button class="speed-btn active" data-speed="1" type="button">1x</button>
+              <button class="speed-btn" data-speed="2" type="button">2x</button>
+              <button class="speed-btn" data-speed="4" type="button">4x</button>
+            </div>
+            <div class="button-row">
+              <button id="fullscreenBtn" type="button">Fullscreen (F)</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <h2>Build Menu</h2>
+            <p class="small-note">Pick a structure, then click a map tile.</p>
+            <div id="buildMenu" class="build-menu"></div>
+          </section>
+
+          <section class="panel objectives-panel">
+            <h2>Mission Goal</h2>
+            <p id="goalText">
+              Reach Temp -28C, Pressure 24 kPa, Oxygen 15%, and Population 55 to win.
+            </p>
+            <p id="criticalText" class="critical hidden"></p>
+          </section>
+
+          <section class="panel log-panel">
+            <h2>Event Log</h2>
+            <ul id="eventLog"></ul>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

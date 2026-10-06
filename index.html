@@ -361,6 +361,25 @@
       background-clip: text;
     }
 
+    .site-purpose {
+      max-width: 44rem;
+      margin: 0 auto;
+      color: #244f70;
+      font-size: clamp(0.9rem, 1.55vw, 1.08rem);
+      font-weight: 800;
+      line-height: 1.35;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-highlights.highlights {
+      justify-content: center;
+      margin: 0;
+      position: relative;
+      z-index: 1;
+    }
+
     .steam-stripe {
       display: flex;
       justify-content: center;
@@ -368,6 +387,11 @@
       gap: 0.42rem;
       position: relative;
       z-index: 1;
+    }
+
+    .catalog-filters {
+      justify-content: flex-start;
+      margin-top: 0.3rem;
     }
 
     .steam-tag {
@@ -518,9 +542,561 @@
     }
 
     main {
-      padding: 0.85rem 0 2rem;
+      padding: 0.6rem 0 2rem;
       display: grid;
-      gap: 1.05rem;
+      gap: 0.8rem;
+    }
+
+    .hero-carousel {
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      padding: clamp(1rem, 2vw, 1.25rem);
+      background: #123f59;
+      box-shadow: 0 18px 34px rgba(10, 30, 54, 0.18);
+      isolation: isolate;
+    }
+
+    /* The active game card already carries the useful context, so avoid a second oversized intro. */
+    @media (min-width: 741px) {
+      .hero-carousel .hero-topline {
+        display: none;
+      }
+    }
+
+    /* Keep the full feature showcase and the first game row in a typical desktop viewport. */
+    @media (min-width: 981px) {
+      .site-header {
+        padding: 0.75rem 0 0.65rem;
+      }
+
+      .header-shell {
+        padding: 0.95rem 1.1rem 0.82rem;
+        gap: 0.5rem;
+      }
+
+      .hero-carousel {
+        border-radius: 24px;
+        padding: 0.82rem;
+      }
+
+      .hero-topline {
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 0.65rem;
+      }
+
+      .hero-copy {
+        gap: 0.35rem;
+        max-width: 760px;
+      }
+
+      .hero-kicker {
+        font-size: 0.66rem;
+      }
+
+      .hero-copy h2 {
+        max-width: 26ch;
+        font-size: clamp(1.65rem, 2.6vw, 2.35rem);
+        line-height: 1.02;
+      }
+
+      .hero-copy p {
+        font-size: 0.84rem;
+        line-height: 1.35;
+      }
+
+      .hero-summary {
+        gap: 0.38rem;
+        max-width: 350px;
+      }
+
+      .hero-summary-chip {
+        padding: 0.3rem 0.52rem;
+        font-size: 0.62rem;
+      }
+
+      .hero-stage-shell {
+        gap: 0.55rem;
+      }
+
+      .hero-stage {
+        min-height: 230px;
+      }
+
+      .hero-slide {
+        grid-template-columns: minmax(0, 1.3fr) minmax(270px, 0.9fr);
+        gap: 0.7rem;
+        border-radius: 20px;
+        padding: 0.7rem;
+      }
+
+      .hero-visual {
+        min-height: 210px;
+        border-radius: 16px;
+      }
+
+      .hero-visual-badge {
+        left: 11px;
+        top: 11px;
+        padding: 0.28rem 0.5rem;
+        font-size: 0.61rem;
+      }
+
+      .hero-visual-note {
+        left: 11px;
+        bottom: 10px;
+        max-width: 37ch;
+        font-size: 0.72rem;
+        line-height: 1.25;
+      }
+
+      .hero-panel {
+        gap: 0.55rem;
+        border-radius: 16px;
+        padding: 0.75rem;
+      }
+
+      .hero-panel-top,
+      .hero-panel-bottom {
+        gap: 0.45rem;
+      }
+
+      .hero-theme {
+        font-size: 0.61rem;
+      }
+
+      .hero-panel h3 {
+        font-size: clamp(1.28rem, 2.2vw, 1.76rem);
+      }
+
+      .hero-panel p {
+        font-size: 0.76rem;
+        line-height: 1.32;
+      }
+
+      .hero-chip {
+        padding: 0.2rem 0.38rem;
+        font-size: 0.58rem;
+      }
+
+      .hero-stats {
+        gap: 0.4rem;
+      }
+
+      .hero-stat {
+        border-radius: 12px;
+        padding: 0.42rem 0.5rem;
+      }
+
+      .hero-stat strong {
+        font-size: 0.77rem;
+      }
+
+      .hero-stat span {
+        margin-bottom: 0.12rem;
+        font-size: 0.53rem;
+      }
+
+      .hero-actions {
+        gap: 0.4rem;
+      }
+
+      .hero-btn {
+        min-width: 104px;
+        padding: 0.44rem 0.56rem;
+        font-size: 0.66rem;
+      }
+
+      .hero-controls {
+        gap: 0.48rem;
+      }
+
+      .hero-arrow {
+        width: 38px;
+        height: 38px;
+        font-size: 1.05rem;
+      }
+
+      .catalog-head p {
+        margin: 0.32rem 0 0.46rem;
+        font-size: 1rem;
+      }
+
+      .highlights {
+        margin-bottom: 0.55rem;
+      }
+    }
+
+    .hero-carousel::before {
+      content: none;
+    }
+
+    .hero-carousel::after {
+      content: none;
+    }
+
+    .hero-topline,
+    .hero-stage-shell {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-topline {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 0.7rem;
+      max-width: 680px;
+    }
+
+    .hero-kicker {
+      margin: 0;
+      color: #d9f6ff;
+      font-size: 0.74rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      color: #ffffff;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(2rem, 5vw, 3.35rem);
+      line-height: 0.94;
+      max-width: 12ch;
+      text-wrap: balance;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      color: rgba(231, 244, 255, 0.86);
+      font-size: 1.02rem;
+      line-height: 1.5;
+      max-width: 58ch;
+    }
+
+    .hero-summary {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.55rem;
+      align-self: center;
+    }
+
+    .hero-summary-chip {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-pill);
+      padding: 0.42rem 0.74rem;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .hero-stage-shell {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .hero-stage {
+      display: grid;
+      min-height: 460px;
+    }
+
+    .hero-slide {
+      grid-area: 1 / 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(250px, 0.9fr);
+      gap: 1rem;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: #eaf2f6;
+      padding: 1rem;
+      box-shadow: 0 10px 24px rgba(3, 10, 19, 0.16);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(28px) scale(0.985);
+      transition: opacity 520ms ease, transform 520ms ease, visibility 520ms step-end;
+    }
+
+    .hero-slide.is-active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: none;
+      transition: opacity 520ms ease, transform 520ms ease;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 360px;
+      overflow: hidden;
+      border-radius: 24px;
+      background: rgba(216, 232, 246, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .hero-visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(7, 17, 29, 0.02) 45%, rgba(7, 17, 29, 0.52) 100%),
+        linear-gradient(90deg, rgba(7, 17, 29, 0.15), transparent 28%);
+      pointer-events: none;
+    }
+
+    .hero-visual img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      object-position: top center;
+      transform: scale(1.015);
+    }
+
+    .hero-visual-badge {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      z-index: 1;
+      border-radius: var(--radius-pill);
+      padding: 0.38rem 0.68rem;
+      background: rgba(8, 19, 33, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .hero-visual-note {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      z-index: 1;
+      margin: 0;
+      max-width: 28ch;
+      color: rgba(244, 249, 255, 0.92);
+      font-size: 0.86rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .hero-panel {
+      display: grid;
+      align-content: space-between;
+      gap: 1rem;
+      border-radius: 24px;
+      padding: 1.05rem;
+      color: #ffffff;
+      background:
+        linear-gradient(90deg, rgba(8, 38, 58, 0.96) 0%, rgba(5, 29, 43, 0.84) 54%, rgba(5, 26, 38, 0.52) 100%),
+        var(--hero-art) center / cover no-repeat;
+      border: 1px solid rgba(10, 45, 65, 0.2);
+    }
+
+    .hero-panel-top,
+    .hero-panel-bottom {
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .hero-theme {
+      color: #d4edff;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .hero-panel h3 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.7rem, 3.2vw, 2.35rem);
+      line-height: 0.98;
+    }
+
+    .hero-panel p {
+      margin: 0;
+      color: rgba(234, 244, 255, 0.88);
+      font-size: 0.98rem;
+      line-height: 1.48;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .hero-chip {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius-pill);
+      padding: 0.3rem 0.56rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      font-size: 0.71rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.6rem;
+    }
+
+    .hero-stat:only-child {
+      grid-column: 1 / -1;
+    }
+
+    .hero-stat {
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.72rem 0.78rem;
+    }
+
+    .hero-stat strong {
+      display: block;
+      color: #ffffff;
+      font-size: 1rem;
+      line-height: 1.15;
+    }
+
+    .hero-stat span {
+      display: block;
+      margin-bottom: 0.28rem;
+      color: rgba(214, 233, 250, 0.76);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .hero-btn {
+      border-radius: 12px;
+      padding: 0.68rem 0.92rem;
+      min-width: 132px;
+      text-align: center;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      transition: transform 140ms ease, box-shadow 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .hero-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .hero-btn.primary {
+      color: #0b2d4b;
+      background: linear-gradient(135deg, #ffffff, #d6f3ff);
+      box-shadow: 0 10px 24px rgba(3, 10, 19, 0.16);
+    }
+
+    .hero-btn.secondary {
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .hero-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      min-height: 42px;
+    }
+
+    .hero-arrow {
+      appearance: none;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(7, 18, 31, 0.34);
+      color: #ffffff;
+      font-size: 1.25rem;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+      flex: 0 0 auto;
+    }
+
+    .hero-arrow:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .hero-arrow:focus-visible,
+    .hero-dot:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 2px;
+    }
+
+    .hero-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .hero-dot {
+      appearance: none;
+      width: 9px;
+      height: 9px;
+      border: 0;
+      border-radius: 50%;
+      padding: 0;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.42);
+      transition: width 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .hero-dot:hover {
+      transform: scale(1.18);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .hero-dot.is-active {
+      width: 24px;
+      border-radius: var(--radius-pill);
+      background: #ffffff;
+    }
+
+    .hero-status {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     .catalog-head h2 {
@@ -891,9 +1467,201 @@
       }
     }
 
+    /* Desktop overrides belong after the base hero rules so they win the cascade. */
+    @media (min-width: 981px) {
+      .hero-carousel {
+        border-radius: 24px;
+        padding: 0.82rem;
+      }
+
+      .hero-stage-shell { gap: 0.55rem; }
+
+      .hero-stage { min-height: 230px; }
+
+      .hero-slide {
+        grid-template-columns: minmax(0, 1.3fr) minmax(270px, 0.9fr);
+        gap: 0.7rem;
+        border-radius: 20px;
+        padding: 0.7rem;
+      }
+
+      .hero-visual {
+        min-height: 210px;
+        border-radius: 16px;
+      }
+
+      .hero-visual-badge {
+        left: 11px;
+        top: 11px;
+        padding: 0.28rem 0.5rem;
+        font-size: 0.61rem;
+      }
+
+      .hero-visual-note {
+        left: 11px;
+        bottom: 10px;
+        max-width: 37ch;
+        font-size: 0.72rem;
+        line-height: 1.25;
+      }
+
+      .hero-panel {
+        gap: 0.55rem;
+        border-radius: 16px;
+        padding: 0.75rem;
+      }
+
+      .hero-panel-top,
+      .hero-panel-bottom { gap: 0.45rem; }
+
+      .hero-theme { font-size: 0.61rem; }
+
+      .hero-panel h3 { font-size: clamp(1.28rem, 2.2vw, 1.76rem); }
+
+      .hero-panel p {
+        font-size: 0.76rem;
+        line-height: 1.32;
+      }
+
+      .hero-chip {
+        padding: 0.2rem 0.38rem;
+        font-size: 0.58rem;
+      }
+
+      .hero-stats { gap: 0.4rem; }
+
+      .hero-stat {
+        border-radius: 12px;
+        padding: 0.42rem 0.5rem;
+      }
+
+      .hero-stat strong { font-size: 0.77rem; }
+
+      .hero-stat span {
+        margin-bottom: 0.12rem;
+        font-size: 0.53rem;
+      }
+
+      .hero-actions { gap: 0.4rem; }
+
+      .hero-btn {
+        min-width: 104px;
+        padding: 0.44rem 0.56rem;
+        font-size: 0.66rem;
+      }
+
+      .hero-controls { gap: 0.48rem; }
+
+      .hero-arrow {
+        width: 38px;
+        height: 38px;
+        font-size: 1.05rem;
+      }
+
+      .catalog-head p {
+        margin: 0.32rem 0 0.46rem;
+        font-size: 1rem;
+      }
+
+      .highlights { margin-bottom: 0.55rem; }
+
+      .hero-carousel {
+        border: 1px solid rgba(167, 235, 255, 0.22);
+        box-shadow:
+          0 24px 52px rgba(10, 30, 54, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      }
+
+      .hero-slide {
+        border-color: rgba(255, 255, 255, 0.22);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.12),
+          0 15px 30px rgba(3, 10, 19, 0.2);
+      }
+
+      .hero-visual {
+        border-color: rgba(255, 255, 255, 0.38);
+        box-shadow:
+          0 12px 24px rgba(3, 18, 28, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      }
+
+      .hero-visual img { transform: none; }
+
+      .hero-visual-note {
+        padding: 0.34rem 0.48rem;
+        border-radius: 9px;
+        background: linear-gradient(90deg, rgba(4, 19, 30, 0.78), rgba(4, 19, 30, 0.15));
+        text-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+      }
+
+      .hero-panel {
+        background:
+          linear-gradient(90deg, rgba(8, 38, 58, 0.96) 0%, rgba(5, 29, 43, 0.84) 54%, rgba(5, 26, 38, 0.52) 100%),
+          var(--hero-art) center / cover no-repeat;
+        border-color: rgba(10, 45, 65, 0.2);
+      }
+
+      .hero-panel::before {
+        content: none;
+      }
+
+      .hero-panel > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-theme::before {
+        content: "";
+        display: inline-block;
+        width: 0.45rem;
+        height: 0.45rem;
+        margin-right: 0.36rem;
+        border-radius: 50%;
+        background: #87f1c7;
+        box-shadow: 0 0 0 4px rgba(135, 241, 199, 0.12);
+        vertical-align: 0.04em;
+      }
+
+      .hero-chip {
+        border-color: rgba(219, 248, 255, 0.22);
+        background: rgba(221, 248, 255, 0.1);
+      }
+
+      .hero-stat {
+        border-color: rgba(221, 248, 255, 0.16);
+        background: rgba(218, 247, 255, 0.1);
+      }
+
+      .hero-btn.primary {
+        box-shadow: 0 7px 16px rgba(1, 17, 30, 0.24);
+      }
+
+      .hero-btn.secondary {
+        border-color: rgba(221, 248, 255, 0.26);
+      }
+
+      .hero-btn:hover {
+        transform: translateY(-2px);
+      }
+
+      .hero-controls {
+        display: flex;
+        justify-content: center;
+      }
+    }
+
     @media (max-width: 980px) {
       .grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .hero-slide {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-stage {
+        min-height: 680px;
       }
 
       .thumb,
@@ -907,6 +1675,32 @@
     @media (max-width: 740px) {
       .wrap {
         width: min(var(--max), calc(100% - 1rem));
+      }
+
+      .hero-carousel {
+        border-radius: 24px;
+      }
+
+      .hero-topline {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .hero-copy h2,
+      .hero-copy p {
+        max-width: none;
+      }
+
+      .hero-summary {
+        justify-content: flex-start;
+      }
+
+      .hero-stage {
+        min-height: 640px;
+      }
+
+      .hero-controls {
+        align-items: stretch;
       }
 
       .header-shell {
@@ -933,6 +1727,45 @@
 
       .lab-status-line {
         justify-content: center;
+      }
+
+      .hero-stage {
+        min-height: 560px;
+      }
+
+      .hero-slide {
+        padding: 0.8rem;
+      }
+
+      .hero-visual {
+        min-height: 240px;
+      }
+
+      .hero-panel {
+        padding: 0.9rem;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .hero-btn {
+        width: 100%;
+      }
+
+      .hero-controls {
+        display: grid;
+        grid-template-columns: 46px minmax(0, 1fr) 46px;
+      }
+
+      .hero-status {
+        grid-column: 1 / -1;
+        order: 4;
       }
 
       .pill {
@@ -1071,40 +1904,52 @@
         </div>
         <h1 class="logo"><span class="steam"><span class="s">S</span><span class="t">T</span><span class="e">E</span><span class="a">A</span><span class="m">M</span></span><span class="rest">Lab.games</span></h1>
       </div>
-      <p class="tagline">Experiment. Invent. Explore.</p>
-      <div class="steam-stripe" role="group" aria-label="STEAM Category Filters">
+      <p class="site-purpose">Free interactive STEAM games for the classroom. No logins. No downloads.</p>
+      <div class="highlights header-highlights" aria-label="Why teachers choose STEAM Lab">
+        <span class="highlight">FREE</span>
+        <span class="highlight">NO LOGIN REQUIRED</span>
+        <span class="highlight">CLASSROOM SAFE</span>
+        <span class="highlight">CHROMEBOOK + IPAD</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="featuredCarousel" class="hero-carousel" aria-label="Featured gameplay carousel">
+      <div class="hero-topline">
+        <div class="hero-copy">
+          <p class="hero-kicker">Featured Gameplay</p>
+          <h2>See the games in motion before you launch.</h2>
+          <p>A rotating showcase of colorful classroom-ready play, from bee adventures and math flights to live art studios and quick strategy battles.</p>
+        </div>
+        <div class="hero-summary" aria-label="Featured carousel highlights">
+          <span class="hero-summary-chip">8 gameplay spotlights</span>
+          <span class="hero-summary-chip">Tap any preview to jump in</span>
+          <span class="hero-summary-chip">Built for Chromebooks and iPads</span>
+        </div>
+      </div>
+
+      <div class="hero-stage-shell">
+        <div id="heroStage" class="hero-stage" aria-live="polite"></div>
+        <div class="hero-controls">
+          <button id="heroPrev" class="hero-arrow" type="button" aria-label="Show previous featured game">&#8249;</button>
+          <div id="heroDots" class="hero-dots" role="tablist" aria-label="Featured games"></div>
+          <button id="heroNext" class="hero-arrow" type="button" aria-label="Show next featured game">&#8250;</button>
+          <div id="heroStatus" class="hero-status">1 / 8</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog-head">
+      <h2>Explore the Game Labs</h2>
+      <p><span id="loadedCount">14</span> free classroom-ready activities.</p>
+      <div class="steam-stripe catalog-filters" role="group" aria-label="Filter game labs by subject">
         <button type="button" class="steam-tag all is-selected" data-filter-chip="all" aria-pressed="true">ALL</button>
         <button type="button" class="steam-tag s" data-filter-chip="science" aria-pressed="false">SCIENCE</button>
         <button type="button" class="steam-tag t" data-filter-chip="tech" aria-pressed="false">TECH</button>
         <button type="button" class="steam-tag e" data-filter-chip="engineering" aria-pressed="false">ENGINEERING</button>
         <button type="button" class="steam-tag a" data-filter-chip="art" aria-pressed="false">ART</button>
         <button type="button" class="steam-tag m" data-filter-chip="math" aria-pressed="false">MATH</button>
-      </div>
-      <nav class="nav" aria-label="Primary">
-        <a href="#gameGrid" class="pill active">GAMES</a>
-      </nav>
-      <div class="lab-status" role="status" aria-live="polite">
-        <span class="lab-status-line">
-          <span class="status-dot" aria-hidden="true"></span>
-          <span id="statusState">Systems Online</span>
-        </span>
-        <span class="lab-status-line">
-          <span id="headerCount">14</span>
-          <span>Experiments Ready</span>
-        </span>
-      </div>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="catalog-head">
-      <h2>Explore the Labs</h2>
-      <p><span id="loadedCount">14</span> experiments ready to launch.</p>
-      <div class="highlights" aria-label="Portal Highlights">
-        <span class="highlight">NO LOGIN REQUIRED</span>
-        <span class="highlight">CLASSROOM SAFE</span>
-        <span class="highlight">WORKS ON CHROMEBOOKS AND IPADS</span>
-        <span class="highlight">FREE EXPERIMENTS</span>
       </div>
     </section>
 
@@ -1797,6 +2642,12 @@
       const cards = Array.from(document.querySelectorAll("#gameGrid .card"));
       const toastEl = document.getElementById("toast");
       const filterChips = Array.from(document.querySelectorAll("[data-filter-chip]"));
+      const heroRoot = document.getElementById("featuredCarousel");
+      const heroStage = document.getElementById("heroStage");
+      const heroDots = document.getElementById("heroDots");
+      const heroPrev = document.getElementById("heroPrev");
+      const heroNext = document.getElementById("heroNext");
+      const heroStatus = document.getElementById("heroStatus");
       const activeFilters = new Set();
       const aiThumbs = {
         "pixel-print": "thumbs/pixel-print.jpg",
@@ -1815,8 +2666,140 @@
         "moonjet-cavern": "thumbs/moonjet-cavern.jpg",
         "connect-4": "thumbs/connect-4.jpg"
       };
+      const heroSlides = [
+        {
+          id: "pollinator-patrol",
+          title: "Pollinator Patrol",
+          eyebrow: "Science + nature mission",
+          description: "Guide a busy bee through flower fields, dodge birds, and stack pollination combos across a living garden grid.",
+          note: "Great for ecosystem talk, quick rounds, and whole-class strategy moments.",
+          href: "pollinator%20patrol/pollinator-patrol.html",
+          image: "thumbs/featured/pollinator-patrol-hero.jpg",
+          alt: "Gameplay screenshot of Pollinator Patrol showing a bee moving through a flower field full of pollination goals and hazards.",
+          chips: ["Science", "Nature", "Combo Play"],
+          stats: [
+            { label: "Best for", value: "Ecosystems" },
+            { label: "Feel", value: "Cozy strategy" }
+          ],
+          colors: ["rgba(134, 239, 172, 0.34)", "rgba(250, 204, 21, 0.18)"]
+        },
+        {
+          id: "sky-math-academy",
+          title: "Sky Math Academy",
+          eyebrow: "Math arcade in the clouds",
+          description: "Launch through the correct answer gates, grab fuel, and turn fact fluency into a fast-moving flight challenge.",
+          note: "Bright answer targets and motion-heavy play make fluency practice feel like an arcade run.",
+          href: "math-flight-simulator/",
+          image: "thumbs/featured/sky-math-academy-hero.jpg",
+          alt: "Gameplay screenshot of Sky Math Academy showing a plane flying toward colorful numbered answer gates.",
+          chips: ["Math", "Arcade", "Fast Facts"],
+          stats: [
+            { label: "Best for", value: "Fluency reps" },
+            { label: "Feel", value: "High energy" }
+          ],
+          colors: ["rgba(56, 189, 248, 0.34)", "rgba(253, 230, 138, 0.16)"]
+        },
+        {
+          id: "math-cannon",
+          title: "Math Cannon",
+          eyebrow: "Pirate target practice",
+          description: "Aim the cannon at the correct answer ships and celebrate every splashy hit with coins, streaks, and sea-spray effects.",
+          note: "The pirate scene makes simple equations feel active, tactile, and loud in the best way.",
+          href: "math-cannon.html",
+          image: "thumbs/featured/math-cannon-hero.jpg",
+          alt: "Gameplay screenshot of Math Cannon showing a pirate-themed math challenge with answer ships on the water.",
+          chips: ["Math", "Aiming", "Celebration FX"],
+          stats: [
+            { label: "Best for", value: "Quick checks" },
+            { label: "Feel", value: "Arcade burst" }
+          ],
+          colors: ["rgba(96, 165, 250, 0.34)", "rgba(251, 191, 36, 0.18)"]
+        },
+        {
+          id: "connect-4",
+          title: "Connect 4 Showdown",
+          eyebrow: "Smartboard strategy battle",
+          description: "Drop bright red and yellow tokens into a giant board and let side-by-side decisions turn into instant competition.",
+          note: "A familiar classic with bold visuals that reads clearly from across the room.",
+          href: "connect-4/",
+          image: "thumbs/featured/connect-4-hero.jpg",
+          alt: "Gameplay screenshot of Connect 4 Showdown showing a large blue board with red and yellow pieces mid-game.",
+          chips: ["Logic", "2 Player", "Strategy"],
+          stats: [
+            { label: "Best for", value: "Partner play" },
+            { label: "Feel", value: "Classic showdown" }
+          ],
+          colors: ["rgba(37, 99, 235, 0.34)", "rgba(239, 68, 68, 0.18)"]
+        },
+        {
+          id: "maze-generator",
+          title: "Random Maze",
+          eyebrow: "Fresh puzzle every run",
+          description: "Generate a brand-new maze instantly and race the clean pathways toward the goal with just the arrow keys.",
+          note: "The crisp board and clear objective make this an easy warm-up or challenge station.",
+          href: "maze-generator.html",
+          image: "thumbs/featured/maze-generator-hero.jpg",
+          alt: "Gameplay screenshot of Random Maze showing a blue maze board and control panel beside it.",
+          chips: ["Math", "Logic", "Pathfinding"],
+          stats: [
+            { label: "Best for", value: "Brain breaks" },
+            { label: "Feel", value: "Clean puzzle" }
+          ],
+          colors: ["rgba(14, 165, 233, 0.32)", "rgba(34, 197, 94, 0.16)"]
+        },
+        {
+          id: "greater-gator",
+          title: "Greater Gator",
+          eyebrow: "Number sense in the swamp",
+          description: "Compare quantities quickly while a cartoon gator chomps the bigger value and keeps the round moving.",
+          note: "The soft greens and oversized symbols make number comparisons feel inviting instead of worksheet-heavy.",
+          href: "greater-gator.html",
+          image: "thumbs/featured/greater-gator-hero.jpg",
+          alt: "Gameplay screenshot of Greater Gator showing a cartoon alligator between two numbers with comparison choices below.",
+          chips: ["Math", "Compare", "Primary Grades"],
+          stats: [
+            { label: "Best for", value: "Number sense" },
+            { label: "Feel", value: "Playful calm" }
+          ],
+          colors: ["rgba(187, 247, 208, 0.34)", "rgba(253, 224, 71, 0.16)"]
+        },
+        {
+          id: "pixel-print",
+          title: "Pixel Print",
+          eyebrow: "Make-and-print art lab",
+          description: "Design sprites and printable pixel art with templates, palette tools, and grid-based classroom-friendly controls.",
+          note: "Students can sketch, color, and export their work without leaving the browser.",
+          href: "pixel-print-classroom.html",
+          image: "thumbs/featured/pixel-print-hero.jpg",
+          alt: "Gameplay screenshot of Pixel Print showing a pixel art canvas with a cat drawing and color tools.",
+          chips: ["Art", "Design", "Printable"],
+          stats: [
+            { label: "Best for", value: "Creative stations" },
+            { label: "Feel", value: "Maker lab" }
+          ],
+          colors: ["rgba(249, 115, 22, 0.32)", "rgba(56, 189, 248, 0.16)"]
+        },
+        {
+          id: "spin-art-studio",
+          title: "Spin Art Studio",
+          eyebrow: "Motion meets color",
+          description: "Build bright radial patterns with spinning paint, size controls, and fast visual feedback that feels instantly rewarding.",
+          note: "A big visual payoff for lessons around symmetry, movement, and design choices.",
+          href: "spin-art-studio.html",
+          image: "thumbs/featured/spin-art-studio-hero.jpg",
+          alt: "Gameplay screenshot of Spin Art Studio showing a bright circular spin-art canvas with colorful paint streaks.",
+          chips: ["Art", "Motion", "Color Play"],
+          stats: [
+            { label: "Best for", value: "Creative breaks" },
+            { label: "Feel", value: "Gallery energy" }
+          ],
+          colors: ["rgba(139, 92, 246, 0.32)", "rgba(34, 197, 94, 0.18)"]
+        }
+      ];
 
       let toastTimer = null;
+      let heroIndex = 0;
+      let heroTimer = null;
 
       function showThumbPlaceholder(thumb, title) {
         thumb.innerHTML =
@@ -1850,6 +2833,129 @@
       function updateExperimentCounts(value) {
         if (countEl) countEl.textContent = String(value);
         if (headerCountEl) headerCountEl.textContent = String(value);
+      }
+
+      function renderHeroCarousel() {
+        if (!heroRoot || !heroStage || !heroDots || !heroPrev || !heroNext || !heroStatus || heroSlides.length === 0) {
+          return;
+        }
+
+        heroStage.innerHTML = heroSlides.map((slide, index) => `
+          <article
+            class="hero-slide${index === 0 ? " is-active" : ""}"
+            data-slide-index="${index}"
+            aria-hidden="${index === 0 ? "false" : "true"}"
+            style="--hero-art:url('${aiThumbs[slide.id] || slide.image}');"
+          >
+            <div class="hero-visual">
+              <img src="${slide.image}" alt="${slide.alt}" loading="${index === 0 ? "eager" : "lazy"}" decoding="async" />
+              <p class="hero-visual-note">${slide.note}</p>
+            </div>
+            <div class="hero-panel">
+              <div class="hero-panel-top">
+                <span class="hero-theme">${slide.chips.slice(0, 2).join(" • ")}</span>
+                <h3>${slide.title}</h3>
+                <p>${slide.description}</p>
+              </div>
+              <div class="hero-panel-bottom">
+                <div class="hero-stats">
+                  <div class="hero-stat">
+                    <span>Best for</span>
+                    <strong>${slide.stats[0].value}</strong>
+                  </div>
+                </div>
+                <div class="hero-actions">
+                  <a class="hero-btn primary" href="${slide.href}" target="_blank" rel="noopener" data-launch-label="${slide.title}">PLAY GAME</a>
+                </div>
+              </div>
+            </div>
+          </article>
+        `).join("");
+
+        heroDots.innerHTML = heroSlides.map((slide, index) => `
+          <button
+            type="button"
+            class="hero-dot${index === 0 ? " is-active" : ""}"
+            data-hero-dot="${index}"
+            role="tab"
+            aria-selected="${index === 0 ? "true" : "false"}"
+            aria-controls="heroStage"
+            aria-label="Show ${slide.title}"
+            title="${slide.title}"
+          ></button>
+        `).join("");
+
+        const slideEls = Array.from(heroStage.querySelectorAll(".hero-slide"));
+        const dotEls = Array.from(heroDots.querySelectorAll(".hero-dot"));
+
+        function syncHero(nextIndex) {
+          heroIndex = (nextIndex + heroSlides.length) % heroSlides.length;
+          slideEls.forEach((slideEl, index) => {
+            const active = index === heroIndex;
+            slideEl.classList.toggle("is-active", active);
+            slideEl.setAttribute("aria-hidden", String(!active));
+          });
+          dotEls.forEach((dotEl, index) => {
+            const active = index === heroIndex;
+            dotEl.classList.toggle("is-active", active);
+            dotEl.setAttribute("aria-selected", String(active));
+          });
+          heroStatus.textContent = `${heroIndex + 1} / ${heroSlides.length} • ${heroSlides[heroIndex].title}`;
+        }
+
+        function stopHeroAutoplay() {
+          if (heroTimer) {
+            clearInterval(heroTimer);
+            heroTimer = null;
+          }
+        }
+
+        function startHeroAutoplay() {
+          stopHeroAutoplay();
+          heroTimer = window.setInterval(() => {
+            syncHero(heroIndex + 1);
+          }, 6500);
+        }
+
+        heroPrev.addEventListener("click", () => {
+          syncHero(heroIndex - 1);
+          startHeroAutoplay();
+        });
+
+        heroNext.addEventListener("click", () => {
+          syncHero(heroIndex + 1);
+          startHeroAutoplay();
+        });
+
+        dotEls.forEach((dotEl) => {
+          dotEl.addEventListener("click", () => {
+            syncHero(Number(dotEl.dataset.heroDot || 0));
+            startHeroAutoplay();
+          });
+        });
+
+        heroRoot.addEventListener("mouseenter", stopHeroAutoplay);
+        heroRoot.addEventListener("mouseleave", startHeroAutoplay);
+        heroRoot.addEventListener("focusin", stopHeroAutoplay);
+        heroRoot.addEventListener("focusout", (event) => {
+          if (!heroRoot.contains(event.relatedTarget)) {
+            startHeroAutoplay();
+          }
+        });
+        heroRoot.addEventListener("keydown", (event) => {
+          if (event.key === "ArrowRight") {
+            event.preventDefault();
+            syncHero(heroIndex + 1);
+            startHeroAutoplay();
+          } else if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            syncHero(heroIndex - 1);
+            startHeroAutoplay();
+          }
+        });
+
+        syncHero(0);
+        startHeroAutoplay();
       }
 
       function showToast(message) {
@@ -1934,9 +3040,10 @@
       }
 
       applyAiThumbnails();
+      renderHeroCarousel();
 
       // Show toast on play button or card-link click
-      const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.card-link"));
+      const launchLinks = Array.from(document.querySelectorAll("a.btn.play, a.card-link, a.hero-btn.primary"));
       launchLinks.forEach((link) => {
         link.addEventListener("click", () => {
           const title = link.dataset.launchLabel || link.closest(".card")?.dataset.title || "Lab";

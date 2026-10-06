@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- Google Analytics (GA4) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-PKMRWW0Z40"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-PKMRWW0Z40');
+  </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Buoyancy Sandbox | STEAM Lab Games</title>
+  <meta name="description" content="Classroom-friendly buoyancy sandbox for testing float, sink, tip, and trapped-air behavior." />
+  <link rel="icon" href="favicon.png?v=20260901" type="image/png" sizes="256x256" />
+  <link rel="shortcut icon" href="favicon.png?v=20260901" type="image/png" />
+  <link rel="apple-touch-icon" href="favicon.png?v=20260901" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f2f8ff;
+      --ink: #12304a;
+      --muted: #4f6980;
+      --line: #bfd2e6;
+      --panel: #ffffff;
+      --accent: #159a8f;
+      --blue: #2d73d9;
+      --warn: #d97822;
+      --ok: #13814d;
+      --radius: 16px;
+      --shadow: 0 12px 28px rgba(17, 49, 76, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "Nunito Sans", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 10%, rgba(21, 154, 143, 0.2), transparent 38%),
+        radial-gradient(circle at 92% 8%, rgba(45, 115, 217, 0.2), transparent 34%),
+        linear-gradient(180deg, #f8fbff, var(--bg));
+      line-height: 1.35;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .app {
+      width: min(1260px, calc(100% - 1rem));
+      margin: 0.5rem auto 1rem;
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .shell {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.72rem;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .head h1 {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      font-size: clamp(1.2rem, 2.1vw, 1.75rem);
+      line-height: 1.1;
+      color: #1a476d;
+    }
+
+    .head p {
+      margin: 0.22rem 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+      font-weight: 700;
+    }
+
+    .top-links {
+      display: inline-flex;
+      gap: 0.48rem;
+      flex-wrap: wrap;
+    }
+
+    .top-link {
+      border: 1px solid #a8c2dd;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 0.35rem 0.68rem;
+      background: #f4f8ff;
+      color: #24527b;
+    }
+
+    .controls {
+      border: 1px solid #c9d9ea;
+      border-radius: var(--radius);
+      background: #fbfdff;
+      padding: 0.58rem;
+      display: grid;
+      gap: 0.58rem;
+    }
+
+    .control-row {
+      display: grid;
+      gap: 0.45rem;
+      align-items: center;
+      grid-template-columns: 125px 1fr;
+    }
+
+    .control-row strong {
+      font-size: 0.8rem;
+      color: #355672;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .chip-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.38rem;
+    }
+
+    .chip,
+    .action-btn,
+    .water-btn {
+      border: 1px solid #bdd0e4;
+      border-radius: 12px;
+      background: #fff;
+      color: #24527b;
+      font-weight: 800;
+      font-size: 0.82rem;
+      line-height: 1;
+      padding: 0.55rem 0.72rem;
+      min-height: 42px;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 140ms ease, box-shadow 140ms ease;
+      font-family: inherit;
+    }
+
+    .chip:hover,
+    .action-btn:hover,
+    .water-btn:hover {
+      transform: translateY(-1px);
+      border-color: #8fb0d0;
+      box-shadow: 0 6px 12px rgba(20, 67, 103, 0.1);
+    }
+
+    .chip.is-selected {
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(37, 99, 170, 0.2);
+      background: linear-gradient(130deg, #159a8f, #2d73d9);
+    }
+
+    .chip[data-material] {
+      color: #193f60;
+      background: var(--chip, #f1f6ff);
+      border-color: rgba(38, 86, 127, 0.28);
+    }
+
+    .chip[data-material].is-selected {
+      color: #0f2e46;
+      border-color: rgba(23, 57, 86, 0.28);
+      box-shadow: 0 6px 16px rgba(20, 67, 103, 0.18);
+      background: var(--chip, #deecff);
+    }
+
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.56rem;
+      flex-wrap: wrap;
+    }
+
+    .range-wrap input[type="range"] {
+      flex: 1;
+      min-width: 170px;
+      accent-color: #2d73d9;
+    }
+
+    .water-pct {
+      font-weight: 900;
+      color: #1a4a74;
+      min-width: 3.5ch;
+      text-align: right;
+    }
+
+    .water-btn.is-selected {
+      border-color: transparent;
+      color: #fff;
+      background: linear-gradient(135deg, #1a93bf, #2d73d9);
+    }
+
+    .action-btn.primary {
+      color: #fff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #159a8f, #2d73d9);
+    }
+
+    .action-btn.warn {
+      background: #fff2e5;
+      color: #934b06;
+      border-color: #efbf8f;
+    }
+
+    .canvas-shell {
+      border: 1px solid #c6d8eb;
+      border-radius: 18px;
+      background: #ebf4ff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #labCanvas {
+      display: block;
+      width: 100%;
+      height: min(64vh, 700px);
+      touch-action: none;
+      background: linear-gradient(180deg, #ebf6ff 0%, #d7ebff 34%, #b9dcff 100%);
+    }
+
+    .status-bar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+
+    .status-pill {
+      border: 1px solid rgba(42, 90, 128, 0.24);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #264f73;
+      font-size: 0.74rem;
+      font-weight: 900;
+      padding: 0.28rem 0.58rem;
+      letter-spacing: 0.02em;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      color: #355d81;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .legend span {
+      border: 1px solid #c8d9eb;
+      border-radius: 999px;
+      padding: 0.22rem 0.55rem;
+      background: #f7fbff;
+    }
+
+    .legend .f { color: #166f4a; border-color: #9ad8ba; }
+    .legend .s { color: #965512; border-color: #f1c18d; }
+    .legend .t { color: #6a3b94; border-color: #d6b8f2; }
+    .legend .a { color: #0f5997; border-color: #a6c7f4; }
+
+    .note {
+      margin: 0;
+      color: #4f6a80;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 960px) {
+      .control-row {
+        grid-template-columns: 1fr;
+      }
+
+      .control-row strong {
+        font-size: 0.74rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="shell">
+      <header class="head">
+        <div>
+          <h1>Buoyancy Sandbox</h1>
+          <p>Draw shapes, pick materials, and raise or drain water to test floating, sinking, tipping, and trapped-air designs.</p>
+        </div>
+        <nav class="top-links" aria-label="Navigation">
+          <a class="top-link" href="index.html">Portal</a>
+          <a class="top-link" href="class/index.html?game=buoyancy-sandbox" target="_blank" rel="noopener">Class QR</a>
+        </nav>
+      </header>
+
+      <section class="controls" aria-label="Simulation Controls">
+        <div class="control-row">
+          <strong>Shape Tool</strong>
+          <div class="chip-wrap" id="shapeTools">
+            <button class="chip is-selected" type="button" data-shape="box">Box</button>
+            <button class="chip" type="button" data-shape="circle">Ellipse</button>
+            <button class="chip" type="button" data-shape="triangle">Triangle</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <strong>Material</strong>
+          <div class="chip-wrap" id="materialTools"></div>
+        </div>
+
+        <div class="control-row">
+          <strong>Water</strong>
+          <div class="range-wrap">
+            <input id="waterSlider" type="range" min="0" max="100" step="1" value="42" aria-label="Water Fill Percent" />
+            <span id="waterPct" class="water-pct">42%</span>
+            <button class="water-btn" type="button" data-flow="rise">Rise</button>
+            <button class="water-btn" type="button" data-flow="drain">Drain</button>
+            <button class="water-btn is-selected" type="button" data-flow="still">Stop</button>
+          </div>
+        </div>
+
+        <div class="control-row">
+          <strong>Actions</strong>
+          <div class="chip-wrap">
+            <button id="pauseBtn" class="action-btn primary" type="button">Pause Physics</button>
+            <button id="resetBtn" class="action-btn" type="button">Reset Bodies</button>
+            <button id="undoBtn" class="action-btn" type="button">Undo Last</button>
+            <button id="clearBtn" class="action-btn warn" type="button">Clear All</button>
+            <button id="sampleBtn" class="action-btn" type="button">Drop Sample Set</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="canvas-shell" aria-label="Buoyancy Simulation Canvas">
+        <canvas id="labCanvas"></canvas>
+        <div class="status-bar">
+          <span id="statusLeft" class="status-pill">Draw a shape to start</span>
+          <span id="statusRight" class="status-pill">Bodies: 0 | Running</span>
+        </div>
+      </section>
+
+      <div class="legend" aria-label="Outcome Legend">
+        <span class="f">FLOATING</span>
+        <span class="s">SUNK</span>
+        <span class="t">TIPPING</span>
+        <span class="a">TRAPPING AIR</span>
+      </div>
+      <p class="note">Tip: Use metal or clay to make sinking shapes, then add an air chamber shape on top to test trapped-air flotation effects.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById("labCanvas");
+      const ctx = canvas.getContext("2d");
+      const shapeTools = document.getElementById("shapeTools");
+      const materialTools = document.getElementById("materialTools");
+      const waterSlider = document.getElementById("waterSlider");
+      const waterPct = document.getElementById("waterPct");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const undoBtn = document.getElementById("undoBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const sampleBtn = document.getElementById("sampleBtn");
+      const statusLeft = document.getElementById("statusLeft");
+      const statusRight = document.getElementById("statusRight");
+      const flowBtns = Array.from(document.querySelectorAll("[data-flow]"));
+
+      const WATER_DENSITY = 1;
+      const MASS_SCALE = 0.0012;
+      const GRAVITY = 620;
+      const WATER_RATE = 24;
+      const RESTITUTION = 0.16;
+      const WALL_PADDING = 14;
+      const FLOOR_HEIGHT = 18;
+      const CEILING_PADDING = 8;
+
+      const MATERIALS = [
+        { key: "foam", label: "Foam", density: 0.24, color: "#f7d58f", chip: "#fff5de" },
+        { key: "wood", label: "Wood", density: 0.62, color: "#cc9054", chip: "#fdeada" },
+        { key: "plastic", label: "Plastic", density: 0.94, color: "#8dc2ff", chip: "#e4f0ff" },
+        { key: "ice", label: "Ice", density: 0.92, color: "#cce8ff", chip: "#ebf6ff" },
+        { key: "clay", label: "Clay", density: 1.34, color: "#9f7b61", chip: "#f0e6de" },
+        { key: "metal", label: "Metal", density: 2.7, color: "#8a9bb4", chip: "#e6ecf4" },
+        { key: "air-chamber", label: "Air Chamber", density: 0.16, color: "#7dd9cd", chip: "#e1faf6" }
+      ];
+
+      const MATERIAL_BY_KEY = Object.fromEntries(MATERIALS.map((entry) => [entry.key, entry]));
+
+      const state = {
+        width: 0,
+        height: 0,
+        floorY: 0,
+        waterTopY: 0,
+        fillPercent: 42,
+        flowMode: "still",
+        shape: "box",
+        material: "wood",
+        bodies: [],
+        nextId: 1,
+        drawing: null,
+        paused: false,
+        waveT: 0
+      };
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function normalizeAngle(angle) {
+        let a = angle;
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        return a;
+      }
+
+      function pathRoundedRect(x, y, w, h, r) {
+        const rr = Math.min(r, w * 0.5, h * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+
+      function localToWorld(point, body) {
+        const c = Math.cos(body.angle);
+        const s = Math.sin(body.angle);
+        return {
+          x: body.position.x + point.x * c - point.y * s,
+          y: body.position.y + point.x * s + point.y * c
+        };
+      }
+
+      function getBodyWorldPoints(body) {
+        return body.points.map((p) => localToWorld(p, body));
+      }
+
+      function polygonMetrics(points) {
+        if (!points || points.length < 3) return null;
+        let twiceArea = 0;
+        let cx = 0;
+        let cy = 0;
+
+        for (let i = 0; i < points.length; i += 1) {
+          const p0 = points[i];
+          const p1 = points[(i + 1) % points.length];
+          const cross = p0.x * p1.y - p1.x * p0.y;
+          twiceArea += cross;
+          cx += (p0.x + p1.x) * cross;
+          cy += (p0.y + p1.y) * cross;
+        }
+
+        const area = Math.abs(twiceArea) * 0.5;
+        if (area < 0.00001) return null;
+        const denom = twiceArea * 3;
+        const centroid = {
+          x: cx / denom,
+          y: cy / denom
+        };
+        return { area, centroid };
+      }
+
+      function clipPolygonBelowWater(points, waterY) {
+        if (!points || points.length < 3) return [];
+        const out = [];
+
+        for (let i = 0; i < points.length; i += 1) {
+          const a = points[i];
+          const b = points[(i + 1) % points.length];
+          const aInside = a.y >= waterY;
+          const bInside = b.y >= waterY;
+
+          if (aInside && bInside) {
+            out.push({ x: b.x, y: b.y });
+          } else if (aInside && !bInside) {
+            const t = (waterY - a.y) / (b.y - a.y);
+            out.push({ x: a.x + (b.x - a.x) * t, y: waterY });
+          } else if (!aInside && bInside) {
+            const t = (waterY - a.y) / (b.y - a.y);
+            out.push({ x: a.x + (b.x - a.x) * t, y: waterY });
+            out.push({ x: b.x, y: b.y });
+          }
+        }
+
+        return out;
+      }
+
+      function pointsBounds(points) {
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        points.forEach((p) => {
+          if (p.x < minX) minX = p.x;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.y > maxY) maxY = p.y;
+        });
+
+        return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+      }
+
+      function createShapePoints(shape, x0, y0, x1, y1) {
+        const left = Math.min(x0, x1);
+        const right = Math.max(x0, x1);
+        const top = Math.min(y0, y1);
+        const bottom = Math.max(y0, y1);
+        const w = right - left;
+        const h = bottom - top;
+        if (w < 12 || h < 12) return null;
+
+        const center = { x: left + w * 0.5, y: top + h * 0.5 };
+        let points;
+
+        if (shape === "triangle") {
+          points = [
+            { x: -w * 0.5, y: h * 0.5 },
+            { x: 0, y: -h * 0.5 },
+            { x: w * 0.5, y: h * 0.5 }
+          ];
+        } else if (shape === "circle") {
+          const count = 22;
+          const rx = w * 0.5;
+          const ry = h * 0.5;
+          points = [];
+          for (let i = 0; i < count; i += 1) {
+            const t = (i / count) * Math.PI * 2;
+            points.push({ x: Math.cos(t) * rx, y: Math.sin(t) * ry });
+          }
+        } else {
+          points = [
+            { x: -w * 0.5, y: -h * 0.5 },
+            { x: w * 0.5, y: -h * 0.5 },
+            { x: w * 0.5, y: h * 0.5 },
+            { x: -w * 0.5, y: h * 0.5 }
+          ];
+        }
+
+        const metrics = polygonMetrics(points);
+        if (!metrics) return null;
+
+        const recentered = points.map((p) => ({ x: p.x - metrics.centroid.x, y: p.y - metrics.centroid.y }));
+        return { center, points: recentered, area: metrics.area };
+      }
+
+      function spawnBody(shape, x0, y0, x1, y1, materialKey) {
+        const shapeData = createShapePoints(shape, x0, y0, x1, y1);
+        if (!shapeData) return false;
+
+        const material = MATERIAL_BY_KEY[materialKey];
+        if (!material) return false;
+
+        const bounds = pointsBounds(shapeData.points);
+        const area = shapeData.area;
+        const mass = Math.max(0.01, area * material.density * MASS_SCALE);
+        const inertia = Math.max(0.01, mass * (bounds.width * bounds.width + bounds.height * bounds.height) / 12);
+
+        const body = {
+          id: state.nextId++,
+          points: shapeData.points,
+          area,
+          bounds,
+          density: material.density,
+          material: material.key,
+          color: material.color,
+          mass,
+          inertia,
+          position: {
+            x: clamp(shapeData.center.x, WALL_PADDING + 12, state.width - WALL_PADDING - 12),
+            y: clamp(shapeData.center.y, CEILING_PADDING + 12, state.floorY - 12)
+          },
+          angle: 0,
+          vx: 0,
+          vy: 0,
+          omega: 0,
+          touchFloor: false,
+          stateLabel: "Testing",
+          submergedFrac: 0,
+          spawn: null
+        };
+
+        body.spawn = {
+          x: body.position.x,
+          y: body.position.y,
+          angle: body.angle
+        };
+
+        state.bodies.push(body);
+        return true;
+      }
+
+      function currentWaterY() {
+        const range = state.floorY - state.waterTopY;
+        return state.floorY - (state.fillPercent / 100) * range;
+      }
+
+      function setStatus(text) {
+        if (statusLeft) statusLeft.textContent = text;
+      }
+
+      function updateRightStatus() {
+        const mode = state.paused ? "Paused" : "Running";
+        if (statusRight) statusRight.textContent = "Bodies: " + state.bodies.length + " | " + mode;
+      }
+
+      function updateWaterDisplay() {
+        waterSlider.value = String(Math.round(state.fillPercent));
+        waterPct.textContent = Math.round(state.fillPercent) + "%";
+      }
+
+      function setFlowMode(mode) {
+        state.flowMode = mode;
+        flowBtns.forEach((btn) => {
+          btn.classList.toggle("is-selected", btn.dataset.flow === mode);
+        });
+      }
+
+      function setShape(shape) {
+        state.shape = shape;
+        Array.from(shapeTools.querySelectorAll("[data-shape]")).forEach((btn) => {
+          btn.classList.toggle("is-selected", btn.dataset.shape === shape);
+        });
+      }
+
+      function setMaterial(key) {
+        state.material = key;
+        Array.from(materialTools.querySelectorAll("[data-material]")).forEach((btn) => {
+          btn.classList.toggle("is-selected", btn.dataset.material === key);
+        });
+      }
+
+      function addMaterialButtons() {
+        MATERIALS.forEach((material) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "chip";
+          btn.dataset.material = material.key;
+          btn.style.setProperty("--chip", material.chip);
+          btn.textContent = material.label + " (\u03c1 " + material.density + ")";
+          btn.addEventListener("click", () => {
+            setMaterial(material.key);
+            if (material.key === "air-chamber") {
+              setStatus("Air Chamber selected: useful for trapped-air flotation.");
+            } else {
+              setStatus("Material set to " + material.label + ".");
+            }
+          });
+          materialTools.appendChild(btn);
+        });
+      }
+
+      function pointerToCanvas(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: clamp(event.clientX - rect.left, 0, state.width),
+          y: clamp(event.clientY - rect.top, 0, state.height)
+        };
+      }
+
+      function startDrawing(event) {
+        if (event.button !== undefined && event.button !== 0) return;
+        event.preventDefault();
+        const p = pointerToCanvas(event);
+        state.drawing = {
+          pointerId: event.pointerId,
+          start: p,
+          current: p
+        };
+        canvas.setPointerCapture(event.pointerId);
+      }
+
+      function moveDrawing(event) {
+        if (!state.drawing || state.drawing.pointerId !== event.pointerId) return;
+        const p = pointerToCanvas(event);
+        state.drawing.current = p;
+      }
+
+      function endDrawing(event) {
+        if (!state.drawing || state.drawing.pointerId !== event.pointerId) return;
+        const draft = state.drawing;
+        state.drawing = null;
+        try {
+          canvas.releasePointerCapture(event.pointerId);
+        } catch (err) {
+          // Pointer may already be released.
+        }
+
+        const ok = spawnBody(
+          state.shape,
+          draft.start.x,
+          draft.start.y,
+          draft.current.x,
+          draft.current.y,
+          state.material
+        );
+        if (!ok) {
+          setStatus("Shape too small. Drag a larger area.");
+        } else {
+          setStatus("Body added. Test it by changing water level.");
+        }
+        updateRightStatus();
+      }
+
+      function drawPolygon(points, fill, stroke, lineWidth) {
+        if (!points || points.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i += 1) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = lineWidth;
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      function drawWater(waterY, timeSec) {
+        const waveHeight = 4;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(0, waterY);
+        for (let x = 0; x <= state.width; x += 12) {
+          const y = waterY + Math.sin((x * 0.04) + timeSec * 2.2) * waveHeight;
+          ctx.lineTo(x, y);
+        }
+        ctx.lineTo(state.width, state.height);
+        ctx.lineTo(0, state.height);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(0, waterY, 0, state.height);
+        gradient.addColorStop(0, "rgba(78, 170, 238, 0.45)");
+        gradient.addColorStop(1, "rgba(45, 105, 204, 0.68)");
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        ctx.beginPath();
+        for (let x = 0; x <= state.width; x += 8) {
+          const y = waterY + Math.sin((x * 0.05) + timeSec * 3) * waveHeight;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawWorldFrame(waterY) {
+        ctx.clearRect(0, 0, state.width, state.height);
+
+        drawWater(waterY, state.waveT);
+
+        ctx.fillStyle = "#8f6848";
+        ctx.fillRect(0, state.floorY, state.width, FLOOR_HEIGHT);
+
+        ctx.fillStyle = "rgba(138, 104, 73, 0.72)";
+        ctx.fillRect(0, state.floorY - 4, state.width, 4);
+
+        ctx.fillStyle = "rgba(130, 160, 189, 0.35)";
+        ctx.fillRect(0, 0, WALL_PADDING, state.floorY);
+        ctx.fillRect(state.width - WALL_PADDING, 0, WALL_PADDING, state.floorY);
+
+        ctx.strokeStyle = "rgba(24, 68, 100, 0.2)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 5]);
+        ctx.beginPath();
+        ctx.moveTo(WALL_PADDING, waterY);
+        ctx.lineTo(state.width - WALL_PADDING, waterY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      function drawBodyLabel(body, worldPoints) {
+        const b = pointsBounds(worldPoints);
+        const x = (b.minX + b.maxX) * 0.5;
+        const y = b.minY - 16;
+        const label = "S" + body.id + " | " + body.stateLabel;
+        ctx.font = "700 12px Nunito Sans, sans-serif";
+        const w = ctx.measureText(label).width + 14;
+        const h = 18;
+        const px = clamp(x - w * 0.5, 4, state.width - w - 4);
+        const py = clamp(y - h * 0.5, 2, state.floorY - h - 4);
+
+        let fill = "rgba(255, 255, 255, 0.86)";
+        let stroke = "rgba(38, 82, 118, 0.3)";
+        let ink = "#214d70";
+        if (body.stateLabel === "Floating") {
+          fill = "rgba(223, 253, 237, 0.9)";
+          stroke = "rgba(26, 125, 80, 0.35)";
+          ink = "#186843";
+        } else if (body.stateLabel === "Sunk") {
+          fill = "rgba(255, 234, 216, 0.9)";
+          stroke = "rgba(185, 100, 25, 0.35)";
+          ink = "#9a5210";
+        } else if (body.stateLabel === "Tipping") {
+          fill = "rgba(241, 230, 255, 0.92)";
+          stroke = "rgba(105, 58, 145, 0.35)";
+          ink = "#6b3f91";
+        } else if (body.stateLabel === "Trapping Air") {
+          fill = "rgba(227, 245, 255, 0.92)";
+          stroke = "rgba(17, 89, 151, 0.35)";
+          ink = "#0f5997";
+        }
+
+        ctx.save();
+        pathRoundedRect(px, py, w, h, 8);
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = ink;
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, px + 7, py + h * 0.5);
+        ctx.restore();
+      }
+
+      function updateBodyStateLabel(body, submergedArea, waterY) {
+        const frac = submergedArea > 0 ? submergedArea / body.area : 0;
+        body.submergedFrac = frac;
+        const tip = Math.abs(normalizeAngle(body.angle));
+        const highDensity = body.density > WATER_DENSITY * 1.1;
+        const lowDensity = body.density <= WATER_DENSITY * 1.02;
+
+        if (body.material === "air-chamber" && frac > 0.08) {
+          body.stateLabel = "Trapping Air";
+          return;
+        }
+        if (body.touchFloor && frac > 0.2) {
+          body.stateLabel = "Sunk";
+          return;
+        }
+        if (tip > 0.45 && frac > 0.06) {
+          body.stateLabel = "Tipping";
+          return;
+        }
+        if (lowDensity && frac > 0.02 && body.position.y < state.floorY - 8) {
+          body.stateLabel = "Floating";
+          return;
+        }
+        if (highDensity && body.position.y > waterY + 16 && body.vy > 8) {
+          body.stateLabel = "Sinking";
+          return;
+        }
+        if (frac < 0.01) {
+          body.stateLabel = "Dry";
+          return;
+        }
+        body.stateLabel = "Testing";
+      }
+
+      function integrateBody(body, dt, waterY) {
+        const worldPoints = getBodyWorldPoints(body);
+        const submergedPoly = clipPolygonBelowWater(worldPoints, waterY);
+        const submergedMetrics = polygonMetrics(submergedPoly);
+        const submergedArea = submergedMetrics ? submergedMetrics.area : 0;
+        const submergedFrac = submergedArea > 0 ? submergedArea / body.area : 0;
+
+        let fx = -body.vx * (0.18 + submergedFrac * 2.8);
+        let fy = body.mass * GRAVITY - body.vy * (0.12 + submergedFrac * 3.4);
+        let torque = -body.omega * (0.16 + submergedFrac * 3.2);
+
+        if (submergedMetrics) {
+          const buoyancy = WATER_DENSITY * submergedArea * MASS_SCALE * GRAVITY;
+          fy -= buoyancy;
+          const rx = submergedMetrics.centroid.x - body.position.x;
+          torque += rx * (-buoyancy);
+        }
+
+        const ax = fx / body.mass;
+        const ay = fy / body.mass;
+        const alpha = torque / body.inertia;
+
+        body.vx += ax * dt;
+        body.vy += ay * dt;
+        body.omega += alpha * dt;
+
+        body.position.x += body.vx * dt;
+        body.position.y += body.vy * dt;
+        body.angle += body.omega * dt;
+
+        const postPoints = getBodyWorldPoints(body);
+        const b = pointsBounds(postPoints);
+        body.touchFloor = false;
+
+        if (b.maxY > state.floorY) {
+          body.position.y -= (b.maxY - state.floorY);
+          if (body.vy > 0) body.vy *= -RESTITUTION;
+          body.vx *= 0.9;
+          body.omega *= 0.78;
+          body.touchFloor = true;
+        }
+
+        if (b.minY < CEILING_PADDING) {
+          body.position.y += (CEILING_PADDING - b.minY);
+          if (body.vy < 0) body.vy *= -0.08;
+        }
+
+        if (b.minX < WALL_PADDING) {
+          body.position.x += (WALL_PADDING - b.minX);
+          if (body.vx < 0) body.vx *= -0.18;
+          body.omega *= 0.88;
+        }
+        if (b.maxX > state.width - WALL_PADDING) {
+          body.position.x -= (b.maxX - (state.width - WALL_PADDING));
+          if (body.vx > 0) body.vx *= -0.18;
+          body.omega *= 0.88;
+        }
+
+        if (body.touchFloor && Math.abs(body.vy) < 8) {
+          body.vy = 0;
+          body.omega *= 0.88;
+        }
+
+        updateBodyStateLabel(body, submergedArea, waterY);
+      }
+
+      function updateWater(dt) {
+        if (state.flowMode === "rise") {
+          state.fillPercent += WATER_RATE * dt;
+        } else if (state.flowMode === "drain") {
+          state.fillPercent -= WATER_RATE * dt;
+        }
+        state.fillPercent = clamp(state.fillPercent, 0, 100);
+        updateWaterDisplay();
+      }
+
+      function step(dt) {
+        updateWater(dt);
+        const waterY = currentWaterY();
+        if (!state.paused) {
+          for (let i = 0; i < state.bodies.length; i += 1) {
+            integrateBody(state.bodies[i], dt, waterY);
+          }
+        }
+        state.waveT += dt;
+      }
+
+      function drawBodies() {
+        for (let i = 0; i < state.bodies.length; i += 1) {
+          const body = state.bodies[i];
+          const worldPoints = getBodyWorldPoints(body);
+          drawPolygon(worldPoints, body.color, "rgba(22, 53, 78, 0.7)", 2);
+
+          ctx.fillStyle = "rgba(19, 48, 73, 0.8)";
+          ctx.beginPath();
+          ctx.arc(body.position.x, body.position.y, 2.3, 0, Math.PI * 2);
+          ctx.fill();
+
+          drawBodyLabel(body, worldPoints);
+        }
+      }
+
+      function drawDraftShape() {
+        if (!state.drawing) return;
+        const { start, current } = state.drawing;
+        const shapeData = createShapePoints(state.shape, start.x, start.y, current.x, current.y);
+        if (!shapeData) return;
+        const previewPoints = shapeData.points.map((p) => ({ x: p.x + shapeData.center.x, y: p.y + shapeData.center.y }));
+        drawPolygon(previewPoints, "rgba(255, 255, 255, 0.35)", "rgba(18, 56, 85, 0.72)", 2);
+      }
+
+      function render() {
+        const waterY = currentWaterY();
+        drawWorldFrame(waterY);
+        drawBodies();
+        drawDraftShape();
+      }
+
+      function loop(ts) {
+        const now = ts * 0.001;
+        if (!loop.lastT) loop.lastT = now;
+        const elapsed = Math.min(0.04, Math.max(0.001, now - loop.lastT));
+        loop.lastT = now;
+
+        const fixedDt = 1 / 120;
+        loop.accum += elapsed;
+        while (loop.accum >= fixedDt) {
+          step(fixedDt);
+          loop.accum -= fixedDt;
+        }
+
+        render();
+        requestAnimationFrame(loop);
+      }
+      loop.lastT = 0;
+      loop.accum = 0;
+
+      function resetBodies() {
+        state.bodies.forEach((body) => {
+          body.position.x = body.spawn.x;
+          body.position.y = body.spawn.y;
+          body.angle = body.spawn.angle;
+          body.vx = 0;
+          body.vy = 0;
+          body.omega = 0;
+          body.touchFloor = false;
+          body.stateLabel = "Testing";
+        });
+        setStatus("Bodies reset to initial positions.");
+      }
+
+      function dropSampleSet() {
+        const y = 70;
+        const xStart = WALL_PADDING + 50;
+        const gap = 86;
+        spawnBody("box", xStart, y, xStart + 74, y + 44, "wood");
+        spawnBody("box", xStart + gap, y - 6, xStart + gap + 74, y + 34, "metal");
+        spawnBody("triangle", xStart + gap * 2, y, xStart + gap * 2 + 78, y + 56, "clay");
+        spawnBody("box", xStart + gap * 3, y - 10, xStart + gap * 3 + 84, y + 30, "air-chamber");
+        updateRightStatus();
+        setStatus("Sample set dropped. Raise water and compare outcomes.");
+      }
+
+      function resizeCanvas() {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const rect = canvas.getBoundingClientRect();
+        state.width = Math.max(320, rect.width);
+        state.height = Math.max(280, rect.height);
+        state.floorY = state.height - FLOOR_HEIGHT;
+        state.waterTopY = 48;
+
+        canvas.width = Math.round(state.width * dpr);
+        canvas.height = Math.round(state.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+      }
+
+      function bindUI() {
+        shapeTools.addEventListener("click", (event) => {
+          const btn = event.target.closest("[data-shape]");
+          if (!btn) return;
+          setShape(btn.dataset.shape);
+          setStatus("Shape tool: " + btn.textContent + ".");
+        });
+
+        waterSlider.addEventListener("input", () => {
+          state.fillPercent = clamp(Number(waterSlider.value), 0, 100);
+          setFlowMode("still");
+          updateWaterDisplay();
+          setStatus("Water level set to " + Math.round(state.fillPercent) + "%.");
+        });
+
+        flowBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            setFlowMode(btn.dataset.flow || "still");
+            if (state.flowMode === "rise") setStatus("Water rising.");
+            else if (state.flowMode === "drain") setStatus("Water draining.");
+            else setStatus("Water flow stopped.");
+          });
+        });
+
+        pauseBtn.addEventListener("click", () => {
+          state.paused = !state.paused;
+          pauseBtn.textContent = state.paused ? "Resume Physics" : "Pause Physics";
+          setStatus(state.paused ? "Physics paused." : "Physics running.");
+          updateRightStatus();
+        });
+
+        resetBtn.addEventListener("click", () => {
+          resetBodies();
+        });
+
+        undoBtn.addEventListener("click", () => {
+          if (state.bodies.length === 0) {
+            setStatus("Nothing to undo.");
+            return;
+          }
+          state.bodies.pop();
+          updateRightStatus();
+          setStatus("Removed last body.");
+        });
+
+        clearBtn.addEventListener("click", () => {
+          state.bodies.length = 0;
+          updateRightStatus();
+          setStatus("All bodies cleared.");
+        });
+
+        sampleBtn.addEventListener("click", () => {
+          dropSampleSet();
+        });
+
+        canvas.addEventListener("pointerdown", startDrawing);
+        canvas.addEventListener("pointermove", moveDrawing);
+        canvas.addEventListener("pointerup", endDrawing);
+        canvas.addEventListener("pointercancel", endDrawing);
+
+        window.addEventListener("resize", resizeCanvas);
+      }
+
+      function init() {
+        addMaterialButtons();
+        setShape(state.shape);
+        setMaterial(state.material);
+        setFlowMode(state.flowMode);
+        updateWaterDisplay();
+        bindUI();
+        resizeCanvas();
+        updateRightStatus();
+        setStatus("Draw a shape on the canvas to begin.");
+        requestAnimationFrame(loop);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
