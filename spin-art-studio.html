@@ -721,13 +721,52 @@ let canvasSize = 0;
 let radius = 0;
 let dpr = 1;
 
+// Draw an image (canvas or ImageData) scaled to fill the art canvas
+function drawScaledToCanvas(source) {
+  let img = source;
+  if (source instanceof ImageData) {
+    img = document.createElement('canvas');
+    img.width = source.width;
+    img.height = source.height;
+    img.getContext('2d').putImageData(source, 0, 0);
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+function isTyping() {
+  const el = document.activeElement;
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.type !== 'range' && el.type !== 'color';
+}
+
 function resizeCanvas() {
+  // On touch screens and smartboards, tapping the name box opens an on-screen
+  // keyboard that shrinks the page. Don't resize (and risk the artwork) then;
+  // we resize once typing is finished instead.
+  if (isTyping() && canvasSize > 0) return;
+
   const area = document.querySelector('.canvas-area');
   const w = area.clientWidth - 40;
   const h = area.clientHeight - 40;
-  canvasSize = Math.min(w, h, 700);
+  const newSize = Math.max(Math.min(w, h, 700), 100);
+  const newDpr = window.devicePixelRatio || 1;
+  if (newSize === canvasSize && newDpr === dpr) return;
+
+  // Keep a copy of the artwork exactly as it is right now
+  let current = null;
+  if (canvas.width > 0 && canvas.height > 0) {
+    current = document.createElement('canvas');
+    current.width = canvas.width;
+    current.height = canvas.height;
+    current.getContext('2d').drawImage(canvas, 0, 0);
+  }
+
+  canvasSize = newSize;
   radius = canvasSize / 2;
-  dpr = window.devicePixelRatio || 1;
+  dpr = newDpr;
 
   canvas.style.width = canvasSize + 'px';
   canvas.style.height = canvasSize + 'px';
@@ -735,20 +774,7 @@ function resizeCanvas() {
   canvas.height = canvasSize * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // Redraw from last undo snapshot if available
-  if (undoStack.length > 0) {
-    const last = undoStack[undoStack.length - 1];
-    const tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = last.width;
-    tmpCanvas.height = last.height;
-    const tmpCtx = tmpCanvas.getContext('2d');
-    tmpCtx.putImageData(last, 0, 0);
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(tmpCanvas, 0, 0, canvas.width, canvas.height);
-    ctx.restore();
-  }
+  if (current) drawScaledToCanvas(current);
 }
 
 // ====== Init date ======
@@ -1221,12 +1247,8 @@ function animate(time) {
 // ====== Actions ======
 function undoAction() {
   if (undoStack.length === 0) return;
-  const data = undoStack.pop();
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.putImageData(data, 0, 0);
-  ctx.restore();
+  // Snapshots may be from before a resize, so scale them to the current size
+  drawScaledToCanvas(undoStack.pop());
   particles = [];
 }
 
@@ -1303,6 +1325,8 @@ function init() {
   buildPalette();
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
+  // Catch up on any resize skipped while a name was being typed
+  document.addEventListener('focusout', () => setTimeout(resizeCanvas, 300));
   animFrameId = requestAnimationFrame(animate);
 }
 
